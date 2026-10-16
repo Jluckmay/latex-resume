@@ -44,3 +44,4 @@ EXPOSE 10000
 
 # Executa servidor com Gunicorn (suporte a concorrência e timeout adequado para LaTeX)
 CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT:-10000} --workers 2 --threads 4 --timeout 120 server:app"]
+

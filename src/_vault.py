@@ -69,31 +69,19 @@ def _scrub_network_environment() -> None:
 
 
 def _initialize_in_memory_vault() -> None:
-    """Carrega a chave de forma segura, higieniza o ambiente de execução e particiona em shards na memória."""
+    """Carrega a chave efêmera em memória, higieniza o ambiente de execução e particiona em shards.
+    A chave nunca é salva em disco local nem exposta externamente.
+    """
     global _IN_MEMORY_SHARDS
     if _IN_MEMORY_SHARDS is not None:
         return
 
-    # 1. Busca por variável de ambiente (Render / CI / Docker)
+    # 1. Busca por variável de ambiente efêmera (injetada em tempo de execução no Render)
     raw_key = os.environ.get("NVIDIA_API_KEY") or os.environ.get("NVIDIA_VAULT_KEY")
 
     # Higienização imediata do os.environ para que nenhum processo-filho (como pdflatex) tenha acesso
     os.environ.pop("NVIDIA_API_KEY", None)
     os.environ.pop("NVIDIA_VAULT_KEY", None)
-
-    # 2. Se não estiver no ambiente, busca em arquivo local .vault.key ou .env (ignorado pelo git)
-    if not raw_key:
-        root_dir = pathlib.Path(__file__).resolve().parent.parent
-        vault_file = root_dir / ".vault.key"
-        env_file = root_dir / ".env"
-        if vault_file.exists():
-            raw_key = vault_file.read_text(encoding="utf-8").strip()
-        elif env_file.exists():
-            for line in env_file.read_text(encoding="utf-8").splitlines():
-                line = line.strip()
-                if line.startswith("NVIDIA_API_KEY="):
-                    raw_key = line.split("=", 1)[1].strip().strip('"').strip("'")
-                    break
 
     if not raw_key:
         return
@@ -110,6 +98,7 @@ def _initialize_in_memory_vault() -> None:
     s2 = rot[2::3]
 
     _IN_MEMORY_SHARDS = (s0, s1, s2, salt, len(key_bytes))
+    del raw_key, key_bytes, rot, ks
 
 
 def _attest_and_derive_tag(messages: List[Dict[str, str]]) -> bytes:
@@ -176,8 +165,8 @@ def dispatch_secure_nvidia_chat(
                 enc[i] = 0
         else:
             raise RuntimeError(
-                "Chave de API NVIDIA não configurada. Defina a variável de ambiente NVIDIA_API_KEY no Render "
-                "ou crie o arquivo .vault.key localmente."
+                "Chave de API NVIDIA não configurada. Defina a variável de ambiente NVIDIA_API_KEY no painel seguro do Render "
+                "ou informe a chave efêmera na sessão em memória."
             )
 
         auth_buf.extend(b"Bearer ")
