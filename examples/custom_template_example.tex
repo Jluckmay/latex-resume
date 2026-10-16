@@ -1,0 +1,37 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[brazil]{babel}
+\usepackage{lmodern}
+\usepackage[margin=1.6cm]{geometry}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{primary}{HTML}{1E3A8A}
+\newcommand{\cvheader}[3]{%
+    \begin{center}
+        {\LARGE\bfseries\color{primary} #1}\\[4pt]
+        {\large\itshape #2}\\[4pt]
+        {\small #3}
+    \end{center}
+    \hrule\vspace{8pt}
+}
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+
+\begin{document}
+\cvheader{NOME DO CANDIDATO}{CARGO OU TÍTULO}{Links e Contatos}
+
+\section*{Resumo}
+Preencher resumo do candidato.
+
+\section*{Experiência e Formação}
+\begin{itemize}[leftmargin=1.2em]
+    \item Preencher itens relevantes.
+\end{itemize}
+
+\end{document}
+

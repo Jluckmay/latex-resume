@@ -1,0 +1,18 @@
+# ==============================================================================
+# Render Blueprint Configuration (render.yaml)
+# ==============================================================================
+services:
+  - type: web
+    name: latex-resume-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /healthz
+    envVars:
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: PYTHONUNBUFFERED
+        value: "1"
+      - key: PORT
+        value: "10000"

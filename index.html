@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com data: blob:; connect-src 'self' http://127.0.0.1:5000 http://localhost:5000 https://*.onrender.com; frame-src blob: data:; img-src 'self' data: blob:;">
+    <meta name="backend-origin" content="https://latex-resume-backend.onrender.com">
+    <title>LaTeX Resume Generator — NVIDIA NIM AI</title>
+    <style>
+        :root[data-theme="light"] {
+            --bg-body: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-subtle: #f1f5f9;
+            --bg-input: #ffffff;
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+            --accent: #0F4C81;
+            --accent-sec: #1E293B;
+        }
+        :root[data-theme="dark"] {
+            --bg-body: #0b0f19;
+            --bg-card: #111827;
+            --bg-subtle: #1e293b;
+            --bg-input: #0f172a;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #1e293b;
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+            --accent: #38bdf8;
+            --accent-sec: #cbd5e1;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            line-height: 1.5;
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+        /* Top Navigation Bar */
+        .navbar {
+            background-color: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            padding: 0.85rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            box-shadow: var(--shadow);
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .brand-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent), #2563eb);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+        .brand-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .brand-subtitle {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+        .pill-badge {
+            font-size: 0.75rem;
+            padding: 0.3rem 0.7rem;
+            border-radius: 999px;
+            background-color: var(--bg-subtle);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .pill-badge.ok {
+            color: #10b981;
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+        .btn-toggle {
+            background-color: var(--bg-subtle);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+            padding: 0.42rem 0.85rem;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-toggle:hover {
+            border-color: var(--accent);
+        }
+        /* Main Grid Layout */
+        .container {
+            max-width: 1440px;
+            margin: 1.5rem auto;
+            padding: 0 1.5rem;
+            display: grid;
+            grid-template-columns: 1.08fr 0.92fr;
+            gap: 1.5rem;
+            align-items: start;
+        }
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 1.35rem;
+            margin-bottom: 1.15rem;
+            box-shadow: var(--shadow);
+        }
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 0.6rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .card-title {
+            font-size: 0.98rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .step-num {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            background-color: var(--accent);
+            color: #fff;
+            font-size: 0.78rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.9rem;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1.4fr 0.8fr 0.8fr;
+            gap: 0.9rem;
+        }
+        @media (max-width: 640px) {
+            .grid-2, .grid-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+        .form-group {
+            margin-bottom: 0.85rem;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 0.35rem;
+            color: var(--text-main);
+        }
+        .form-control {
+            width: 100%;
+            padding: 0.55rem 0.75rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background-color: var(--bg-input);
+            color: var(--text-main);
+            font-size: 0.86rem;
+            outline: none;
+            transition: border-color 0.15s ease;
+        }
+        .form-control:focus {
+            border-color: var(--accent);
+        }
+        textarea.form-control {
+            resize: vertical;
+            min-height: 76px;
+            font-family: inherit;
+        }
+        .color-input-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.3rem 0.6rem;
+        }
+        .color-input-wrap input[type="color"] {
+            border: none;
+            width: 28px;
+            height: 28px;
+            cursor: pointer;
+            background: transparent;
+        }
+        .color-hex-text {
+            font-family: monospace;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+        /* Segmented Radio Buttons */
+        .segmented {
+            display: flex;
+            background-color: var(--bg-subtle);
+            padding: 0.25rem;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            gap: 0.25rem;
+        }
+        .segmented button {
+            flex: 1;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            padding: 0.48rem 0.65rem;
+            border-radius: 7px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .segmented button.active {
+            background-color: var(--bg-card);
+            color: var(--text-main);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+        /* Template Cards Selector */
+        .tpl-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.65rem;
+            margin-top: 0.5rem;
+        }
+        .tpl-option {
+            border: 1.5px solid var(--border);
+            background-color: var(--bg-input);
+            border-radius: 10px;
+            padding: 0.7rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .tpl-option:hover {
+            border-color: var(--accent);
+        }
+        .tpl-option.active {
+            border-color: var(--accent);
+            background-color: var(--bg-subtle);
+        }
+        .tpl-option-title {
+            font-size: 0.83rem;
+            font-weight: 700;
+            margin-bottom: 0.2rem;
+        }
+        .tpl-option-desc {
+            font-size: 0.73rem;
+            color: var(--text-muted);
+            line-height: 1.3;
+        }
+        /* Primary CTA Button */
+        .btn-primary {
+            width: 100%;
+            padding: 0.85rem 1.2rem;
+            border: none;
+            border-radius: 11px;
+            background: linear-gradient(135deg, var(--accent), #2563eb);
+            color: #ffffff;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+            transition: transform 0.1s ease, opacity 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        .btn-primary:hover {
+            opacity: 0.95;
+        }
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: wait;
+        }
+        .btn-secondary {
+            padding: 0.55rem 0.95rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background-color: var(--bg-subtle);
+            color: var(--text-main);
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+        /* Metrics Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.65rem;
+            margin-bottom: 1rem;
+        }
+        .metric-box {
+            background-color: var(--bg-subtle);
+            border: 1px solid var(--border);
+            border-left: 3.5px solid var(--accent);
+            border-radius: 9px;
+            padding: 0.65rem 0.75rem;
+        }
+        .metric-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .metric-val {
+            font-size: 1.1rem;
+            font-weight: 800;
+            margin-top: 0.15rem;
+        }
+        /* Plugin Chips */
+        .plugin-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-top: 0.5rem;
+        }
+        .chip {
+            font-size: 0.72rem;
+            padding: 0.22rem 0.6rem;
+            border-radius: 999px;
+            background-color: var(--bg-subtle);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        details.collapsible {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.65rem 0.9rem;
+            background-color: var(--bg-subtle);
+            margin-bottom: 0.85rem;
+        }
+        details.collapsible summary {
+            cursor: pointer;
+            font-size: 0.83rem;
+            font-weight: 600;
+        }
+        pre.code-box {
+            background-color: #0f172a;
+            color: #e2e8f0;
+            padding: 0.9rem;
+            border-radius: 8px;
+            font-size: 0.76rem;
+            overflow-x: auto;
+            max-height: 320px;
+            margin-top: 0.65rem;
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+        <div class="brand">
+            <div class="brand-icon">📄</div>
+            <div>
+                <div class="brand-title" id="ui-app-title">Gerador Automático de Currículos LaTeX (NVIDIA NIM)</div>
+                <div class="brand-subtitle" id="ui-app-subtitle">Extração GitHub, ORCID, Lattes, LinkedIn & Portfólio • Economia de Tokens Caveman + TOON</div>
+            </div>
+        </div>
+        <div class="nav-controls">
+            <span class="pill-badge ok" id="ui-latex-badge">✅ LaTeX (pdflatex)</span>
+            <select id="resume-lang-select" class="btn-toggle" title="Resume Output Language">
+                <option value="pt-br">📝 PDF: Português (pt-BR)</option>
+                <option value="en-us">📝 PDF: English (en-US)</option>
+            </select>
+            <button type="button" class="btn-toggle" id="btn-lang-switch" onclick="toggleLanguage()">🌐 PT-BR / EN-US</button>
+            <button type="button" class="btn-toggle" id="btn-theme-switch" onclick="toggleTheme()">☀️ Claro</button>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="container">
+        <!-- Left Column: Intuitive Step-by-Step Configuration -->
+        <section>
+            <!-- Step 1: Modalidade & Modelo LaTeX -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="step-num">1</span>
+                        <span id="ui-step1-title">Modalidade e Modelo de Currículo LaTeX</span>
+                    </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label id="ui-purpose-lbl">Finalidade do Currículo</label>
+                        <div class="segmented">
+                            <button type="button" id="btn-type-prof" class="active" onclick="setResumeType('profissional')">💼 Profissional</button>
+                            <button type="button" id="btn-type-acad" onclick="setResumeType('academico')">🎓 Acadêmico</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label id="ui-tpl-source-lbl">Origem do Modelo LaTeX</label>
+                        <div class="segmented">
+                            <button type="button" id="btn-src-builtin" class="active" onclick="setTemplateSource('builtin')">✨ Modelos Integrados</button>
+                            <button type="button" id="btn-src-custom" onclick="setTemplateSource('custom')">📂 Enviar .TEX</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Built-in Templates Visual Picker -->
+                <div id="builtin-tpl-container">
+                    <div class="tpl-grid">
+                        <div class="tpl-option active" data-tpl="modern_pro" onclick="selectTemplate('modern_pro')">
+                            <div class="tpl-option-title" id="tpl-name-modern">Moderno Executivo</div>
+                            <div class="tpl-option-desc" id="tpl-desc-modern">Coluna única com cabeçalho destacado, foto opcional e links clicáveis.</div>
+                        </div>
+                        <div class="tpl-option" data-tpl="academic_classic" onclick="selectTemplate('academic_classic')">
+                            <div class="tpl-option-title" id="tpl-name-acad">Acadêmico Clássico</div>
+                            <div class="tpl-option-desc" id="tpl-desc-acad">Foco em Formação, Artigos com DOI, Projetos de Pesquisa, Lattes e ORCID.</div>
+                        </div>
+                        <div class="tpl-option" data-tpl="tech_sidebar" onclick="selectTemplate('tech_sidebar')">
+                            <div class="tpl-option-title" id="tpl-name-sidebar">Tech Duas Colunas</div>
+                            <div class="tpl-option-desc" id="tpl-desc-sidebar">Barra lateral para foto, skills e idiomas; coluna principal para experiência.</div>
+                        </div>
+                        <div class="tpl-option" data-tpl="minimal_ats" onclick="selectTemplate('minimal_ats')">
+                            <div class="tpl-option-title" id="tpl-name-ats">Minimalista ATS</div>
+                            <div class="tpl-option-desc" id="tpl-desc-ats">Alta densidade informacional otimizada para sistemas corporativos ATS.</div>
+                        </div>
+                        <div class="tpl-option" data-tpl="overleaf_russell_ti" onclick="selectTemplate('overleaf_russell_ti')">
+                            <div class="tpl-option-title" id="tpl-name-russell">🍃 Overleaf: Currículo T.I. (Russell)</div>
+                            <div class="tpl-option-desc" id="tpl-desc-russell">Foto no cabeçalho, ícones FontAwesome 5, destaque 3 letras e círculos de idioma.</div>
+                        </div>
+                        <div class="tpl-option" data-tpl="overleaf_awesome_cv" onclick="selectTemplate('overleaf_awesome_cv')">
+                            <div class="tpl-option-title" id="tpl-name-awesome">🍃 Overleaf: Jason Richards (Awesome-CV)</div>
+                            <div class="tpl-option-desc" id="tpl-desc-awesome">Cabeçalho centralizado, tipografia Roboto/Source Sans e rodapé executivo.</div>
+                        </div>
+                        <div class="tpl-option" data-tpl="overleaf_single_page_keywords" onclick="selectTemplate('overleaf_single_page_keywords')">
+                            <div class="tpl-option-title" id="tpl-name-keywords">🍃 Overleaf: Single-Page + Keywords</div>
+                            <div class="tpl-option-desc" id="tpl-desc-keywords">Duas colunas compactas com fonte Raleway, ícones circulares TikZ e Keywords.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Custom .tex Upload/Paste -->
+                <div id="custom-tpl-container" class="hidden" style="margin-top:0.75rem;">
+                    <div class="form-group">
+                        <label id="ui-upload-tex-lbl">Arquivo de Template LaTeX (.tex)</label>
+                        <input type="file" id="custom-tex-file" accept=".tex" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label id="ui-paste-tex-lbl">Ou cole seu código LaTeX abaixo</label>
+                        <textarea id="custom-tex-code" class="form-control" placeholder="\documentclass{article}\n\begin{document}\n...\n\end{document}"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Personalização de Cores -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="step-num">2</span>
+                        <span id="ui-step2-title">Personalização de Cores do Currículo</span>
+                    </div>
+                </div>
+                <div class="grid-3">
+                    <div class="form-group">
+                        <label id="ui-palette-lbl">Paleta Predefinida</label>
+                        <select id="color-preset-select" class="form-control" onchange="applyColorPreset()">
+                            <option value="ocean_blue">🌊 Azul Oceano (#0F4C81)</option>
+                            <option value="academic_navy">🎓 Azul Acadêmico (#1B365D)</option>
+                            <option value="emerald_tech">🌲 Verde Esmeralda (#047857)</option>
+                            <option value="royal_indigo">🔮 Índigo Real (#4338CA)</option>
+                            <option value="burgundy_classic">🍷 Bordô Clássico (#881337)</option>
+                            <option value="charcoal_minimal">🖤 Grafite ATS (#18181B)</option>
+                            <option value="custom">✨ Personalizado</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label id="ui-pcol-lbl">Cor Principal</label>
+                        <div class="color-input-wrap">
+                            <input type="color" id="primary-color" value="#0F4C81" oninput="onColorChange()">
+                            <span class="color-hex-text" id="primary-hex-lbl">#0F4C81</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label id="ui-scol-lbl">Cor Secundária</label>
+                        <div class="color-input-wrap">
+                            <input type="color" id="secondary-color" value="#1E293B" oninput="onColorChange()">
+                            <span class="color-hex-text" id="secondary-hex-lbl">#1E293B</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Fontes de Dados (GitHub, ORCID, LinkedIn, Lattes, Portfólio, Foto) -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="step-num">3</span>
+                        <span id="ui-step3-title">Perfis Online, Página de Portfólio e Foto</span>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label id="ui-gh-lbl">GitHub (usuário ou URL)</label>
+                        <input type="text" id="inp-github" class="form-control" placeholder="ex: octocat ou https://github.com/usuario">
+                    </div>
+                    <div class="form-group">
+                        <label id="ui-orcid-lbl">ORCID (ID ou URL)</label>
+                        <input type="text" id="inp-orcid" class="form-control" placeholder="ex: 0000-0002-1825-0097">
+                    </div>
+                    <div class="form-group">
+                        <label id="ui-li-lbl">LinkedIn (URL do perfil)</label>
+                        <input type="text" id="inp-linkedin" class="form-control" placeholder="https://www.linkedin.com/in/seu-perfil/">
+                    </div>
+                    <div class="form-group">
+                        <label id="ui-lattes-lbl">Currículo Lattes (URL)</label>
+                        <input type="text" id="inp-lattes" class="form-control" placeholder="http://lattes.cnpq.br/0000000000000000">
+                    </div>
+                    <div class="form-group">
+                        <label id="ui-port-lbl">Página de Portfólio / Website (URL)</label>
+                        <input type="text" id="inp-portfolio" class="form-control" placeholder="https://meuportfolio.dev" oninput="renderLivePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label id="ui-photo-lbl">Foto de Perfil (PNG / JPG / WebP)</label>
+                        <input type="file" id="inp-photo" accept="image/*" class="form-control" onchange="onPhotoSelected(event)">
+                    </div>
+                </div>
+
+                <details class="collapsible">
+                    <summary id="ui-extra-files-summary">📎 Anexar XML/ZIP do Lattes, PDF do LinkedIn ou Notas Extras</summary>
+                    <div class="grid-2" style="margin-top:0.75rem;">
+                        <div class="form-group">
+                            <label id="ui-lattes-file-lbl">Arquivo Lattes (XML, ZIP ou PDF)</label>
+                            <input type="file" id="inp-lattes-file" accept=".xml,.zip,.pdf,.html" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label id="ui-li-pdf-lbl">PDF Salvo do LinkedIn</label>
+                            <input type="file" id="inp-linkedin-pdf" accept=".pdf" class="form-control">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label id="ui-extra-txt-lbl">Informações Complementares / Descrição da Vaga ou Edital</label>
+                        <textarea id="inp-extra" class="form-control" placeholder="Cole experiências extras, certificações ou resumo adicional..."></textarea>
+                    </div>
+                </details>
+            </div>
+
+            <!-- Step 4: Dados Pessoais & Motor NVIDIA NIM -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="step-num">4</span>
+                        <span id="ui-step4-title">Cabeçalho Pessoal & Modelo da API NVIDIA</span>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label id="ui-name-lbl">Nome Completo (opcional)</label>
+                        <input type="text" id="inp-name" class="form-control" placeholder="Detectado automaticamente se vazio" oninput="renderLivePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label id="ui-role-lbl">Cargo / Título Principal (opcional)</label>
+                        <input type="text" id="inp-role" class="form-control" placeholder="Ex: Engenheiro de IA Sênior / Pesquisador" oninput="renderLivePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label id="ui-email-lbl">E-mail</label>
+                        <input type="email" id="inp-email" class="form-control" placeholder="seu.email@dominio.com" oninput="renderLivePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label id="ui-loc-lbl">Cidade / UF / País</label>
+                        <input type="text" id="inp-location" class="form-control" placeholder="São Paulo, SP, Brasil" oninput="renderLivePreview()">
+                    </div>
+                    <div class="form-group">
+                        <label id="ui-phone-lbl">Telefone</label>
+                        <input type="text" id="inp-phone" class="form-control" placeholder="+55 (11) 99999-9999">
+                    </div>
+                    <div class="form-group">
+                        <label id="ui-model-lbl">Modelo NVIDIA NIM</label>
+                        <select id="inp-model" class="form-control">
+                            <option value="nvidia/nemotron-3.5-super-vl-120b-a12b">NVIDIA Nemotron 3.5 Super 120B (Recomendado • 0 CoT)</option>
+                            <option value="stepfun-ai/step-5-preview">StepFun Step-5 Preview (Alta Velocidade)</option>
+                            <option value="google/gemma-4-31b-it">Google Gemma 4 31B Instruct (Econômico)</option>
+                            <option value="z-ai/glm-5.3">Z-AI GLM 5.3 (Raciocínio Avançado)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="plugin-chips" style="margin-bottom:1rem;">
+                    <span class="chip">⚡ CavemanPromptPlugin (-65% tokens)</span>
+                    <span class="chip">🧠 ThinkingSuppression (0 reasoning tokens)</span>
+                    <span class="chip">🗜️ TOONContextPruner</span>
+                    <span class="chip">🔑 ShortKeySchema</span>
+                    <span class="chip">🔒 Task-Bound TLS 1.3 Vault</span>
+                </div>
+
+                <button type="button" class="btn-primary" id="btn-generate" onclick="generateResume()">
+                    <span id="ui-gen-btn-txt">🚀 Gerar Currículo LaTeX + PDF</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Right Column: Real-Time Template Preview & Generated PDF Output -->
+        <section>
+            <!-- Live Template & Color Preview Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title" id="ui-preview-title">👁️ Preview em Tempo Real do Modelo LaTeX & Cores</div>
+                    <span class="pill-badge" id="preview-tpl-badge">modern_pro</span>
+                </div>
+                <div id="live-preview-box"></div>
+            </div>
+
+            <!-- Result, Token Economy Metrics & PDF Viewer Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title" id="ui-result-title">📑 Resultado, PDF Compilado & Economia de Tokens</div>
+                </div>
+
+                <div id="result-idle-msg" style="color:var(--text-muted);font-size:0.86rem;padding:0.5rem 0;">
+                    Preencha os perfis ao lado e clique em <b>Gerar Currículo LaTeX + PDF</b> para sintetizar os dados na API NVIDIA e compilar o documento via <code>pdflatex</code>.
+                </div>
+
+                <div id="result-content" class="hidden">
+                    <div class="metrics-grid">
+                        <div class="metric-box">
+                            <div class="metric-label" id="m-lbl-total">Tokens API</div>
+                            <div class="metric-val" id="m-val-total">0</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label" id="m-lbl-reas">Reasoning</div>
+                            <div class="metric-val" id="m-val-reas">0</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label" id="m-lbl-saved">Economizados</div>
+                            <div class="metric-val" id="m-val-saved">0</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label" id="m-lbl-pct">Economia</div>
+                            <div class="metric-val" id="m-val-pct">0%</div>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:0.75rem;margin-bottom:1rem;flex-wrap:wrap;">
+                        <a id="dl-pdf-link" class="btn-primary" style="flex:1;text-decoration:none;padding:0.65rem;" download="curriculo.pdf">⬇️ Baixar Currículo (.PDF)</a>
+                        <a id="dl-tex-link" class="btn-secondary" style="flex:1;" download="curriculo.tex">⬇️ Baixar Código (.TEX)</a>
+                    </div>
+
+                    <iframe id="pdf-iframe" style="width:100%;height:620px;border:1px solid var(--border);border-radius:10px;background:#fff;"></iframe>
+
+                    <details class="collapsible" style="margin-top:0.9rem;">
+                        <summary id="ui-tex-code-summary">🔍 Ver Código-Fonte LaTeX Gerado</summary>
+                        <pre class="code-box" id="tex-code-output"></pre>
+                    </details>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const PRESETS = {
+            ocean_blue: { primary: "#0F4C81", secondary: "#1E293B" },
+            academic_navy: { primary: "#1B365D", secondary: "#0F172A" },
+            emerald_tech: { primary: "#047857", secondary: "#064E3B" },
+            royal_indigo: { primary: "#4338CA", secondary: "#1E1B4B" },
+            burgundy_classic: { primary: "#881337", secondary: "#27272A" },
+            charcoal_minimal: { primary: "#18181B", secondary: "#3F3F46" }
+        };
+
+        const I18N = {
+            "pt-br": {
+                appTitle: "Gerador Automático de Currículos LaTeX (NVIDIA NIM)",
+                appSubtitle: "Extração GitHub, ORCID, Lattes, LinkedIn & Portfólio • Economia de Tokens Caveman + TOON",
+                themeLight: "☀️ Modo Claro",
+                themeDark: "🌙 Modo Escuro",
+                step1: "Modalidade e Modelo de Currículo LaTeX",
+                purposeLbl: "Finalidade do Currículo",
+                typeProf: "💼 Profissional",
+                typeAcad: "🎓 Acadêmico",
+                tplSourceLbl: "Origem do Modelo LaTeX",
+                srcBuiltin: "✨ Modelos Integrados",
+                srcCustom: "📂 Enviar .TEX",
+                tplModernName: "Moderno Executivo",
+                tplModernDesc: "Coluna única com cabeçalho destacado, foto opcional e links clicáveis.",
+                tplAcadName: "Acadêmico Clássico",
+                tplAcadDesc: "Foco em Formação, Artigos com DOI, Projetos de Pesquisa, Lattes e ORCID.",
+                tplSideName: "Tech Duas Colunas",
+                tplSideDesc: "Barra lateral para foto, skills e idiomas; coluna principal para experiência.",
+                tplAtsName: "Minimalista ATS",
+                tplAtsDesc: "Alta densidade informacional otimizada para sistemas corporativos ATS.",
+                tplRussellName: "🍃 Overleaf: Currículo T.I. (Russell)",
+                tplRussellDesc: "Foto no cabeçalho, ícones FontAwesome 5, destaque 3 letras e círculos de idioma.",
+                tplAwesomeName: "🍃 Overleaf: Jason Richards (Awesome-CV)",
+                tplAwesomeDesc: "Cabeçalho centralizado, tipografia Roboto/Source Sans e rodapé executivo.",
+                tplKeywordsName: "🍃 Overleaf: Single-Page + Keywords",
+                tplKeywordsDesc: "Duas colunas compactas com fonte Raleway, ícones circulares TikZ e Keywords.",
+                uploadTexLbl: "Arquivo de Template LaTeX (.tex)",
+                pasteTexLbl: "Ou cole seu código LaTeX abaixo",
+                step2: "Personalização de Cores do Currículo",
+                paletteLbl: "Paleta Predefinida",
+                pcolLbl: "Cor Principal",
+                scolLbl: "Cor Secundária",
+                step3: "Perfis Online, Página de Portfólio e Foto",
+                ghLbl: "GitHub (usuário ou URL)",
+                orcidLbl: "ORCID (ID ou URL)",
+                liLbl: "LinkedIn (URL do perfil)",
+                lattesLbl: "Currículo Lattes (URL)",
+                portLbl: "Página de Portfólio / Website (URL)",
+                photoLbl: "Foto de Perfil (PNG / JPG / WebP)",
+                extraSummary: "📎 Anexar XML/ZIP do Lattes, PDF do LinkedIn ou Notas Extras",
+                lattesFileLbl: "Arquivo Lattes (XML, ZIP ou PDF)",
+                liPdfLbl: "PDF Salvo do LinkedIn",
+                extraTxtLbl: "Informações Complementares / Descrição da Vaga ou Edital",
+                step4: "Cabeçalho Pessoal & Modelo da API NVIDIA",
+                nameLbl: "Nome Completo (opcional)",
+                roleLbl: "Cargo / Título Principal (opcional)",
+                emailLbl: "E-mail",
+                locLbl: "Cidade / UF / País",
+                phoneLbl: "Telefone",
+                modelLbl: "Modelo NVIDIA NIM",
+                genBtn: "🚀 Gerar Currículo LaTeX + PDF",
+                genLoading: "⏳ Extraindo perfis, otimizando tokens e compilando PDF...",
+                previewTitle: "👁️ Preview em Tempo Real do Modelo LaTeX & Cores",
+                resultTitle: "📑 Resultado, PDF Compilado & Economia de Tokens",
+                idleMsg: "Preencha os perfis ao lado e clique em <b>Gerar Currículo LaTeX + PDF</b> para sintetizar os dados na API NVIDIA e compilar o documento via <code>pdflatex</code>.",
+                mTotal: "Tokens API",
+                mReas: "Reasoning",
+                mSaved: "Economizados",
+                mPct: "Economia",
+                dlPdf: "⬇️ Baixar Currículo (.PDF)",
+                dlTex: "⬇️ Baixar Código (.TEX)",
+                texSummary: "🔍 Ver Código-Fonte LaTeX Gerado"
+            },
+            "en-us": {
+                appTitle: "Automatic LaTeX Resume Generator (NVIDIA NIM)",
+                appSubtitle: "GitHub, ORCID, Lattes, LinkedIn & Portfolio Extraction • Caveman + TOON Token Economy",
+                themeLight: "☀️ Light Mode",
+                themeDark: "🌙 Dark Mode",
+                step1: "Resume Mode & LaTeX Template",
+                purposeLbl: "Resume Purpose",
+                typeProf: "💼 Professional",
+                typeAcad: "🎓 Academic",
+                tplSourceLbl: "LaTeX Template Source",
+                srcBuiltin: "✨ Built-in Templates",
+                srcCustom: "📂 Upload .TEX",
+                tplModernName: "Executive Modern",
+                tplModernDesc: "Single-column layout with accented header, optional photo, and clickable links.",
+                tplAcadName: "Academic Classic",
+                tplAcadDesc: "Focused on Education, Peer-Reviewed Papers (DOI), Research Grants, Lattes & ORCID.",
+                tplSideName: "Tech Two-Column",
+                tplSideDesc: "Sidebar for photo, stack & languages; main column for experience & projects.",
+                tplAtsName: "Minimalist ATS",
+                tplAtsDesc: "High-density typography optimized for corporate ATS parsers.",
+                tplRussellName: "🍃 Overleaf: IT & Academic CV (Russell)",
+                tplRussellDesc: "Left header photo, FontAwesome 5 icons, 3-letter colored titles & language dots.",
+                tplAwesomeName: "🍃 Overleaf: Jason Richards (Awesome-CV)",
+                tplAwesomeDesc: "Centered header, Roboto/Source Sans typography & 3-column executive footer.",
+                tplKeywordsName: "🍃 Overleaf: Single-Page + Keywords",
+                tplKeywordsDesc: "Compact two-column layout with Raleway font, TikZ circled icons & Keywords.",
+                uploadTexLbl: "LaTeX Template File (.tex)",
+                pasteTexLbl: "Or paste your custom LaTeX code below",
+                step2: "Resume Color Customization",
+                paletteLbl: "Color Palette Preset",
+                pcolLbl: "Primary Color",
+                scolLbl: "Secondary Color",
+                step3: "Online Profiles, Portfolio Website & Photo",
+                ghLbl: "GitHub (username or URL)",
+                orcidLbl: "ORCID (ID or URL)",
+                liLbl: "LinkedIn (Profile URL)",
+                lattesLbl: "Lattes CV (URL)",
+                portLbl: "Portfolio Page / Website (URL)",
+                photoLbl: "Profile Photo (PNG / JPG / WebP)",
+                extraSummary: "📎 Attach Lattes XML/ZIP, LinkedIn PDF, or Additional Notes",
+                lattesFileLbl: "Lattes File (XML, ZIP, or PDF)",
+                liPdfLbl: "Saved LinkedIn PDF",
+                extraTxtLbl: "Additional Notes / Target Job or Grant Description",
+                step4: "Personal Header & NVIDIA API Model",
+                nameLbl: "Full Name (optional)",
+                roleLbl: "Primary Role / Headline (optional)",
+                emailLbl: "E-mail",
+                locLbl: "City / State / Country",
+                phoneLbl: "Phone",
+                modelLbl: "NVIDIA NIM Model",
+                genBtn: "🚀 Generate LaTeX + PDF Resume",
+                genLoading: "⏳ Extracting profiles, optimizing tokens & compiling PDF...",
+                previewTitle: "👁️ Real-Time LaTeX Template & Color Preview",
+                resultTitle: "📑 Result, Compiled PDF & Token Economy",
+                idleMsg: "Fill in your profiles on the left and click <b>Generate LaTeX + PDF Resume</b> to synthesize data via NVIDIA NIM and compile with <code>pdflatex</code>.",
+                mTotal: "API Tokens",
+                mReas: "Reasoning",
+                mSaved: "Tokens Saved",
+                mPct: "Savings",
+                dlPdf: "⬇️ Download Resume (.PDF)",
+                dlTex: "⬇️ Download Source (.TEX)",
+                texSummary: "🔍 View Generated LaTeX Source Code"
+            }
+        };
+
+        let state = {
+            uiLang: "pt-br",
+            theme: "light",
+            resumeType: "profissional",
+            templateSource: "builtin",
+            templateId: "modern_pro",
+            photoDataUrl: null
+        };
+
+        function initAutoPreferences() {
+            // 1. Auto-detect default language from browser/OS
+            const navLang = (navigator.language || navigator.userLanguage || "pt-BR").toLowerCase();
+            state.uiLang = navLang.startsWith("en") ? "en-us" : "pt-br";
+            document.getElementById("resume-lang-select").value = state.uiLang;
+
+            // 2. Auto-detect default theme (Light vs Dark) from OS/Browser media query
+            const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+            state.theme = prefersDark ? "dark" : "light";
+            document.documentElement.setAttribute("data-theme", state.theme);
+
+            applyTranslations();
+            renderLivePreview();
+            checkBackendStatus();
+        }
+
+        function toggleLanguage() {
+            state.uiLang = state.uiLang === "pt-br" ? "en-us" : "pt-br";
+            document.getElementById("resume-lang-select").value = state.uiLang;
+            applyTranslations();
+            renderLivePreview();
+        }
+
+        function toggleTheme() {
+            state.theme = state.theme === "light" ? "dark" : "light";
+            document.documentElement.setAttribute("data-theme", state.theme);
+            applyTranslations();
+        }
+
+        function applyTranslations() {
+            const t = I18N[state.uiLang];
+            document.documentElement.lang = state.uiLang === "en-us" ? "en-US" : "pt-BR";
+            document.getElementById("ui-app-title").textContent = t.appTitle;
+            document.getElementById("ui-app-subtitle").textContent = t.appSubtitle;
+            document.getElementById("btn-theme-switch").textContent = state.theme === "light" ? t.themeLight : t.themeDark;
+            document.getElementById("ui-step1-title").textContent = t.step1;
+            document.getElementById("ui-purpose-lbl").textContent = t.purposeLbl;
+            document.getElementById("btn-type-prof").textContent = t.typeProf;
+            document.getElementById("btn-type-acad").textContent = t.typeAcad;
+            document.getElementById("ui-tpl-source-lbl").textContent = t.tplSourceLbl;
+            document.getElementById("btn-src-builtin").textContent = t.srcBuiltin;
+            document.getElementById("btn-src-custom").textContent = t.srcCustom;
+            document.getElementById("tpl-name-modern").textContent = t.tplModernName;
+            document.getElementById("tpl-desc-modern").textContent = t.tplModernDesc;
+            document.getElementById("tpl-name-acad").textContent = t.tplAcadName;
+            document.getElementById("tpl-desc-acad").textContent = t.tplAcadDesc;
+            document.getElementById("tpl-name-sidebar").textContent = t.tplSideName;
+            document.getElementById("tpl-desc-sidebar").textContent = t.tplSideDesc;
+            document.getElementById("tpl-name-ats").textContent = t.tplAtsName;
+            document.getElementById("tpl-desc-ats").textContent = t.tplAtsDesc;
+            document.getElementById("tpl-name-russell").textContent = t.tplRussellName;
+            document.getElementById("tpl-desc-russell").textContent = t.tplRussellDesc;
+            document.getElementById("tpl-name-awesome").textContent = t.tplAwesomeName;
+            document.getElementById("tpl-desc-awesome").textContent = t.tplAwesomeDesc;
+            document.getElementById("tpl-name-keywords").textContent = t.tplKeywordsName;
+            document.getElementById("tpl-desc-keywords").textContent = t.tplKeywordsDesc;
+            document.getElementById("ui-upload-tex-lbl").textContent = t.uploadTexLbl;
+            document.getElementById("ui-paste-tex-lbl").textContent = t.pasteTexLbl;
+            document.getElementById("ui-step2-title").textContent = t.step2;
+            document.getElementById("ui-palette-lbl").textContent = t.paletteLbl;
+            document.getElementById("ui-pcol-lbl").textContent = t.pcolLbl;
+            document.getElementById("ui-scol-lbl").textContent = t.scolLbl;
+            document.getElementById("ui-step3-title").textContent = t.step3;
+            document.getElementById("ui-gh-lbl").textContent = t.ghLbl;
+            document.getElementById("ui-orcid-lbl").textContent = t.orcidLbl;
+            document.getElementById("ui-li-lbl").textContent = t.liLbl;
+            document.getElementById("ui-lattes-lbl").textContent = t.lattesLbl;
+            document.getElementById("ui-port-lbl").textContent = t.portLbl;
+            document.getElementById("ui-photo-lbl").textContent = t.photoLbl;
+            document.getElementById("ui-extra-files-summary").textContent = t.extraSummary;
+            document.getElementById("ui-lattes-file-lbl").textContent = t.lattesFileLbl;
+            document.getElementById("ui-li-pdf-lbl").textContent = t.liPdfLbl;
+            document.getElementById("ui-extra-txt-lbl").textContent = t.extraTxtLbl;
+            document.getElementById("ui-step4-title").textContent = t.step4;
+            document.getElementById("ui-name-lbl").textContent = t.nameLbl;
+            document.getElementById("ui-role-lbl").textContent = t.roleLbl;
+            document.getElementById("ui-email-lbl").textContent = t.emailLbl;
+            document.getElementById("ui-loc-lbl").textContent = t.locLbl;
+            document.getElementById("ui-phone-lbl").textContent = t.phoneLbl;
+            document.getElementById("ui-model-lbl").textContent = t.modelLbl;
+            document.getElementById("ui-gen-btn-txt").textContent = t.genBtn;
+            document.getElementById("ui-preview-title").textContent = t.previewTitle;
+            document.getElementById("ui-result-title").textContent = t.resultTitle;
+            document.getElementById("result-idle-msg").innerHTML = t.idleMsg;
+            document.getElementById("m-lbl-total").textContent = t.mTotal;
+            document.getElementById("m-lbl-reas").textContent = t.mReas;
+            document.getElementById("m-lbl-saved").textContent = t.mSaved;
+            document.getElementById("m-lbl-pct").textContent = t.mPct;
+            document.getElementById("dl-pdf-link").textContent = t.dlPdf;
+            document.getElementById("dl-tex-link").textContent = t.dlTex;
+            document.getElementById("ui-tex-code-summary").textContent = t.texSummary;
+        }
+
+        function setResumeType(type) {
+            state.resumeType = type;
+            document.getElementById("btn-type-prof").classList.toggle("active", type === "profissional");
+            document.getElementById("btn-type-acad").classList.toggle("active", type === "academico");
+            if (type === "academico" && state.templateId === "modern_pro") {
+                selectTemplate("academic_classic");
+                document.getElementById("color-preset-select").value = "academic_navy";
+                applyColorPreset();
+            } else if (type === "profissional" && state.templateId === "academic_classic") {
+                selectTemplate("modern_pro");
+                document.getElementById("color-preset-select").value = "ocean_blue";
+                applyColorPreset();
+            }
+            renderLivePreview();
+        }
+
+        function setTemplateSource(src) {
+            state.templateSource = src;
+            document.getElementById("btn-src-builtin").classList.toggle("active", src === "builtin");
+            document.getElementById("btn-src-custom").classList.toggle("active", src === "custom");
+            document.getElementById("builtin-tpl-container").classList.toggle("hidden", src !== "builtin");
+            document.getElementById("custom-tpl-container").classList.toggle("hidden", src !== "custom");
+        }
+
+        function selectTemplate(tplId) {
+            state.templateId = tplId;
+            document.querySelectorAll(".tpl-option").forEach(el => {
+                el.classList.toggle("active", el.getAttribute("data-tpl") === tplId);
+            });
+            document.getElementById("preview-tpl-badge").textContent = tplId;
+            renderLivePreview();
+        }
+
+        function applyColorPreset() {
+            const val = document.getElementById("color-preset-select").value;
+            if (PRESETS[val]) {
+                document.getElementById("primary-color").value = PRESETS[val].primary;
+                document.getElementById("secondary-color").value = PRESETS[val].secondary;
+                onColorChange(false);
+            }
+        }
+
+        function onColorChange(switchToCustom = true) {
+            const p = document.getElementById("primary-color").value.toUpperCase();
+            const s = document.getElementById("secondary-color").value.toUpperCase();
+            document.getElementById("primary-hex-lbl").textContent = p;
+            document.getElementById("secondary-hex-lbl").textContent = s;
+            document.documentElement.style.setProperty("--accent", p);
+            if (switchToCustom) {
+                document.getElementById("color-preset-select").value = "custom";
+            }
+            renderLivePreview();
+        }
+
+        function onPhotoSelected(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                state.photoDataUrl = null;
+                renderLivePreview();
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = e => {
+                state.photoDataUrl = e.target.result;
+                renderLivePreview();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function renderLivePreview() {
+            const pCol = document.getElementById("primary-color").value;
+            const sCol = document.getElementById("secondary-color").value;
+            const isEn = document.getElementById("resume-lang-select").value === "en-us";
+            const nameVal = document.getElementById("inp-name").value.trim() || (state.resumeType === "academico" ? "Dra. Helena Costa" : "Lucas Silva");
+            const roleVal = document.getElementById("inp-role").value.trim() || (isEn ? "Senior AI & Software Architect" : "Arquiteto de Software & IA Sênior");
+            const locVal = document.getElementById("inp-location").value.trim() || "São Paulo, BR";
+            const hasPort = Boolean(document.getElementById("inp-portfolio").value.trim());
+            const portBadge = hasPort ? " • <b>Portfolio</b>" : " • Portfolio";
+
+            const avatarHtml = state.photoDataUrl
+                ? `<img src="${state.photoDataUrl}" style="width:46px;height:46px;border-radius:8px;object-fit:cover;border:1.5px solid ${pCol};">`
+                : `<div style="width:44px;height:44px;border-radius:8px;background:linear-gradient(135deg,${pCol},${sCol});color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;">👤</div>`;
+
+            const lblExp = isEn ? "PROFESSIONAL EXPERIENCE" : "EXPERIÊNCIA PROFISSIONAL";
+            const lblEdu = isEn ? "EDUCATION" : "FORMAÇÃO ACADÊMICA";
+            const lblPub = isEn ? "SCIENTIFIC PUBLICATIONS" : "PRODUÇÃO CIENTÍFICA";
+            const lblSk = isEn ? "TECHNICAL SKILLS" : "COMPETÊNCIAS TÉCNICAS";
+
+            let html = "";
+            if (state.templateId === "tech_sidebar") {
+                html = `
+                <div style="background:#fff;color:#1e293b;border-radius:10px;border:1px solid #cbd5e1;padding:15px;display:flex;gap:12px;font-size:11px;min-height:240px;">
+                    <div style="width:33%;border-right:1.5px solid #e2e8f0;padding-right:10px;">
+                        <div style="margin-bottom:8px;">${avatarHtml}</div>
+                        <div style="font-weight:800;font-size:13px;color:${sCol};">${nameVal}</div>
+                        <div style="font-style:italic;font-size:10px;color:${pCol};margin-bottom:8px;">${roleVal}</div>
+                        <div style="font-weight:700;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:4px;">LINKS</div>
+                        <div style="font-size:9px;color:#475569;">${locVal}<br>LinkedIn • GitHub<br>ORCID${portBadge}</div>
+                        <div style="font-weight:700;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};margin:8px 0 4px 0;">${lblSk}</div>
+                        <div style="font-size:9px;color:#475569;">Python, LaTeX, AI, Cloud</div>
+                    </div>
+                    <div style="width:67%;">
+                        <div style="font-weight:700;font-size:10px;color:${pCol};border-bottom:1.5px solid ${pCol};margin-bottom:6px;">${lblExp}</div>
+                        <div style="display:flex;justify-content:space-between;font-weight:700;font-size:10px;color:${sCol};">
+                            <span>Lead AI Engineer</span><span style="color:#64748b;font-weight:400;">2023–Present</span>
+                        </div>
+                        <div style="font-size:9.5px;color:#334155;margin:3px 0 8px 8px;">• Token-saving LLM synthesis (-78% cost)<br>• Automated LaTeX PDF pipelines</div>
+                        <div style="font-weight:700;font-size:10px;color:${pCol};border-bottom:1.5px solid ${pCol};margin-bottom:6px;">${lblEdu}</div>
+                        <div style="font-size:9.5px;color:#334155;"><b>M.Sc. Computer Science</b> — USP (2021–2023)</div>
+                    </div>
+                </div>`;
+            } else if (state.templateId === "academic_classic") {
+                html = `
+                <div style="background:#fff;color:#1e293b;border-radius:10px;border:1px solid #cbd5e1;padding:15px;font-family:Georgia,serif;font-size:11px;min-height:240px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1.5px solid ${pCol};padding-bottom:8px;margin-bottom:8px;">
+                        <div>
+                            <div style="font-weight:700;font-size:15px;color:${pCol};">${nameVal}</div>
+                            <div style="font-style:italic;font-size:10.5px;color:${sCol};">${roleVal}</div>
+                            <div style="font-size:9px;color:#475569;margin-top:3px;">${locVal} • ORCID • Lattes CNPq • GitHub${portBadge}</div>
+                        </div>
+                        ${avatarHtml}
+                    </div>
+                    <div style="font-weight:700;font-size:10px;color:${pCol};border-bottom:1px solid #cbd5e1;margin-bottom:5px;">${lblEdu}</div>
+                    <div style="font-size:10px;margin-bottom:7px;"><b>Ph.D. in Computer Science</b> — USP (2020–2024)</div>
+                    <div style="font-weight:700;font-size:10px;color:${pCol};border-bottom:1px solid #cbd5e1;margin-bottom:5px;">${lblPub}</div>
+                    <div style="font-size:9.5px;color:#334155;">
+                        1. <b>Token-Efficient Reasoning in Large Language Models</b>. <i>JAIR</i>, 2025. <span style="color:${pCol};">DOI:10.1000/jair</span><br>
+                        2. <b>Graph Neural Networks in Bioinformatics</b>. 2024.
+                    </div>
+                </div>`;
+            } else if (state.templateId === "minimal_ats") {
+                html = `
+                <div style="background:#fff;color:#18181b;border-radius:10px;border:1px solid #cbd5e1;padding:15px;font-family:Arial,sans-serif;font-size:11px;min-height:240px;">
+                    <div style="text-align:center;border-bottom:1.5px solid ${pCol};padding-bottom:7px;margin-bottom:8px;">
+                        <div style="font-weight:800;font-size:15px;color:${pCol};">${nameVal.toUpperCase()}</div>
+                        <div style="font-size:10px;color:${sCol};">${roleVal}</div>
+                        <div style="font-size:9px;color:#52525b;margin-top:2px;">${locVal} | LinkedIn | GitHub | ORCID${portBadge}</div>
+                    </div>
+                    <div style="font-weight:800;font-size:9.5px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:5px;">${lblExp}</div>
+                    <div style="font-size:9.5px;color:#27272a;margin-bottom:8px;"><b>Senior Software Engineer</b> (2022–Present)<br>• High-throughput microservices & automated LaTeX generation</div>
+                    <div style="font-weight:800;font-size:9.5px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:5px;">${lblSk}</div>
+                    <div style="font-size:9.5px;color:#27272a;">Python, Go, TypeScript, LaTeX, Docker, Kubernetes, AWS</div>
+                </div>`;
+            } else if (state.templateId === "overleaf_russell_ti") {
+                html = `
+                <div style="background:#fff;color:#1e293b;border-radius:10px;border:1px solid #cbd5e1;padding:15px;font-family:'Roboto',sans-serif;font-size:11px;min-height:240px;">
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+                        ${avatarHtml}
+                        <div style="flex:1;text-align:center;">
+                            <div><span style="font-size:15px;color:#64748b;font-weight:300;">João Lucas</span> <span style="font-size:15px;color:${sCol};font-weight:800;">Mayrinck</span></div>
+                            <div style="font-size:9px;color:#475569;margin-top:2px;">🌐 Portfolio | 🐙 GitHub | 🆔 ORCID | 🎓 Lattes</div>
+                            <div style="font-size:9px;color:#475569;">✉️ email@ufmg.br | 📱 WhatsApp | 🔗 LinkedIn | 📍 ${locVal}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                        <span style="font-weight:800;font-size:11px;"><span style="color:${pCol};">Per</span><span style="color:${sCol};">fil</span></span>
+                        <div style="flex:1;height:1px;background:#94a3b8;"></div>
+                    </div>
+                    <div style="font-size:9.5px;color:#334155;margin-bottom:6px;">${roleVal} — UX Design, Segurança da Informação & IA.</div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                        <span style="font-weight:800;font-size:11px;"><span style="color:${pCol};">Hab</span><span style="color:${sCol};">ilidades</span></span>
+                        <div style="flex:1;height:1px;background:#94a3b8;"></div>
+                    </div>
+                    <div style="font-size:9.5px;color:#334155;margin-bottom:6px;"><b>Programação:</b> Python, C/C++, JS, SQL &nbsp;•&nbsp; <b>Ferramentas:</b> Linux, LaTeX, Git</div>
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                        <span style="font-weight:800;font-size:11px;"><span style="color:${pCol};">Idi</span><span style="color:${sCol};">omas</span></span>
+                        <div style="flex:1;height:1px;background:#94a3b8;"></div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:9.5px;">
+                        <span><b>Português</b> (Proficiência Nativa)</span><span style="color:${pCol};">● ● ● ● ●</span>
+                    </div>
+                </div>`;
+            } else if (state.templateId === "overleaf_awesome_cv") {
+                html = `
+                <div style="background:#fff;color:#1e293b;border-radius:10px;border:1px solid #cbd5e1;padding:15px;font-family:'Roboto',sans-serif;font-size:11px;min-height:240px;display:flex;flex-direction:column;justify-content:space-between;">
+                    <div>
+                        <div style="text-align:center;margin-bottom:8px;">
+                            <div><span style="font-size:16px;color:#64748b;font-weight:300;">Jason</span> <span style="font-size:16px;color:${sCol};font-weight:800;">Richards</span></div>
+                            <div style="font-size:9.5px;font-variant:small-caps;color:${pCol};font-weight:700;">${roleVal}</div>
+                            <div style="font-size:8.5px;color:#64748b;margin-top:2px;">📱 Phone &nbsp;|&nbsp; ✉️ Email &nbsp;|&nbsp; 🐙 GitHub &nbsp;|&nbsp; 🔗 LinkedIn${portBadge}</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                            <span style="font-weight:800;font-size:11px;"><span style="color:${pCol};">Ski</span><span style="color:${sCol};">lls</span></span>
+                            <div style="flex:1;height:1px;background:#94a3b8;"></div>
+                        </div>
+                        <div style="font-size:9.5px;color:#334155;margin-bottom:6px;"><b>Stack:</b> Python, LaTeX, FastAPI, NVIDIA NIM, Docker</div>
+                        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                            <span style="font-weight:800;font-size:11px;"><span style="color:${pCol};">Exp</span><span style="color:${sCol};">erience</span></span>
+                            <div style="flex:1;height:1px;background:#94a3b8;"></div>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;font-size:9.5px;font-weight:700;color:${sCol};">
+                            <span>Senior Software Engineer</span><span style="color:${pCol};font-style:italic;">2023–Present</span>
+                        </div>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;font-size:8px;color:#94a3b8;border-top:1px solid #f1f5f9;padding-top:4px;margin-top:6px;">
+                        <span>2026</span><span>${nameVal} · Résumé</span><span>1</span>
+                    </div>
+                </div>`;
+            } else if (state.templateId === "overleaf_single_page_keywords") {
+                html = `
+                <div style="background:#fff;color:#1e293b;border-radius:10px;border:1px solid #cbd5e1;padding:14px;font-family:'Raleway',sans-serif;font-size:10.5px;min-height:240px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #cbd5e1;padding-bottom:6px;margin-bottom:6px;">
+                        <div>
+                            <div style="font-size:14px;font-weight:900;color:${sCol};line-height:1;">${nameVal.toUpperCase()}</div>
+                            <div style="font-size:9px;color:${pCol};margin-top:2px;">${roleVal}</div>
+                        </div>
+                        <div style="text-align:right;font-size:8.5px;color:#475569;">
+                            Email <b>contact@domain.com</b><br>GitHub <b>github.com</b><br>Web <b>portfolio.dev</b>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;">
+                        <span style="background:${sCol};color:#fff;border-radius:50%;width:15px;height:15px;display:inline-flex;align-items:center;justify-content:center;font-size:8px;">📄</span>
+                        <span style="font-weight:800;font-size:10px;color:${pCol};">SUMMARY</span>
+                    </div>
+                    <div style="font-size:9px;color:#334155;margin-bottom:6px;">Generalist software engineer & AI researcher specialized in Python and deep learning.</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <div>
+                            <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;">
+                                <span style="background:${sCol};color:#fff;border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;font-size:7px;">✏️</span>
+                                <span style="font-weight:800;font-size:9.5px;color:${pCol};">WORK</span>
+                            </div>
+                            <div style="font-size:8.5px;"><b>ML Engineer / 2023–Now</b><br><i>Keywords: Python, PyTorch, LaTeX</i></div>
+                        </div>
+                        <div>
+                            <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;">
+                                <span style="background:${sCol};color:#fff;border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;font-size:7px;">🎓</span>
+                                <span style="font-weight:800;font-size:9.5px;color:${pCol};">EDUCATION</span>
+                            </div>
+                            <div style="font-size:8.5px;"><b>M.Sc. Computer Science</b><br>Thesis on Deep Neural Networks</div>
+                        </div>
+                    </div>
+                </div>`;
+            } else {
+                html = `
+                <div style="background:#fff;color:#1e293b;border-radius:10px;border:1px solid #cbd5e1;padding:15px;font-size:11px;min-height:240px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid ${pCol};padding-bottom:8px;margin-bottom:8px;">
+                        <div>
+                            <div style="font-weight:800;font-size:15px;color:${pCol};">${nameVal}</div>
+                            <div style="font-style:italic;font-size:10.5px;color:${sCol};">${roleVal}</div>
+                            <div style="font-size:9px;color:#475569;margin-top:3px;">${locVal} | LinkedIn | GitHub | ORCID | Lattes${portBadge}</div>
+                        </div>
+                        ${avatarHtml}
+                    </div>
+                    <div style="font-weight:700;font-size:10.5px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:5px;">${lblExp}</div>
+                    <div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;color:${sCol};">
+                        <span>Senior AI & Software Engineer</span><span style="color:#64748b;">2023–Present</span>
+                    </div>
+                    <div style="font-size:9.5px;color:#334155;margin:3px 0 8px 10px;">• Reduced LLM token consumption by 78% with Caveman & TOON plugins<br>• Multi-source extraction from GitHub, ORCID, Lattes & Portfolio</div>
+                    <div style="font-weight:700;font-size:10.5px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:5px;">${lblSk}</div>
+                    <div style="font-size:9.5px;color:#334155;"><b>Stack:</b> Python, LaTeX, FastAPI, Flask, Streamlit, LLMOps</div>
+                </div>`;
+            }
+            document.getElementById("live-preview-box").innerHTML = html;
+        }
+
+        function getBackendBaseUrl() {
+            if (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost") {
+                return "";
+            }
+            const custom = localStorage.getItem("latex_resume_backend_url");
+            if (custom && custom.trim()) return custom.trim().replace(/\/+$/, "");
+            const metaTag = document.querySelector('meta[name="backend-origin"]');
+            if (metaTag && metaTag.content) return metaTag.content.trim().replace(/\/+$/, "");
+            return "https://latex-resume-backend.onrender.com";
+        }
+
+        async function checkBackendStatus() {
+            const badge = document.getElementById("ui-latex-badge");
+            try {
+                const base = getBackendBaseUrl();
+                const res = await fetch(`${base}/api/status`, {
+                    headers: {
+                        "X-Resume-Client": "jluckmay-github-pages-v1",
+                        "X-Client-Timestamp": Date.now().toString()
+                    }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.latex_ok) {
+                        badge.textContent = "✅ " + data.latex_version;
+                    }
+                }
+            } catch (_) {}
+        }
+
+        async function generateResume() {
+            const btn = document.getElementById("btn-generate");
+            const btnTxt = document.getElementById("ui-gen-btn-txt");
+            const t = I18N[state.uiLang];
+
+            btn.disabled = true;
+            btnTxt.textContent = t.genLoading;
+
+            try {
+                const formData = new FormData();
+                formData.append("resume_type", state.resumeType);
+                formData.append("template_id", state.templateId);
+                formData.append("lang", document.getElementById("resume-lang-select").value);
+                formData.append("primary_color", document.getElementById("primary-color").value);
+                formData.append("secondary_color", document.getElementById("secondary-color").value);
+                formData.append("github", document.getElementById("inp-github").value);
+                formData.append("orcid", document.getElementById("inp-orcid").value);
+                formData.append("linkedin", document.getElementById("inp-linkedin").value);
+                formData.append("lattes", document.getElementById("inp-lattes").value);
+                formData.append("portfolio", document.getElementById("inp-portfolio").value);
+                formData.append("name", document.getElementById("inp-name").value);
+                formData.append("role", document.getElementById("inp-role").value);
+                formData.append("email", document.getElementById("inp-email").value);
+                formData.append("location", document.getElementById("inp-location").value);
+                formData.append("phone", document.getElementById("inp-phone").value);
+                formData.append("extra", document.getElementById("inp-extra").value);
+                formData.append("model", document.getElementById("inp-model").value);
+
+                if (state.templateSource === "custom") {
+                    const texFile = document.getElementById("custom-tex-file").files[0];
+                    if (texFile) {
+                        formData.append("custom_tex_file", texFile);
+                    } else {
+                        formData.append("custom_tex_code", document.getElementById("custom-tex-code").value);
+                    }
+                }
+
+                const photoFile = document.getElementById("inp-photo").files[0];
+                if (photoFile) formData.append("photo", photoFile);
+
+                const lattesFile = document.getElementById("inp-lattes-file").files[0];
+                if (lattesFile) formData.append("lattes_file", lattesFile);
+
+                const liPdf = document.getElementById("inp-linkedin-pdf").files[0];
+                if (liPdf) formData.append("linkedin_pdf", liPdf);
+
+                const base = getBackendBaseUrl();
+                const resp = await fetch(`${base}/api/generate`, {
+                    method: "POST",
+                    headers: {
+                        "X-Resume-Client": "jluckmay-github-pages-v1",
+                        "X-Client-Timestamp": Date.now().toString()
+                    },
+                    body: formData
+                });
+
+                const attestation = resp.headers.get("X-Backend-Attestation");
+                if (attestation && attestation !== "latex-resume-render-v1") {
+                    throw new Error("Falha na atestação do backend / Backend attestation failed");
+                }
+
+                const data = await resp.json();
+                if (!resp.ok || data.error) {
+                    throw new Error(data.error || "Failed to generate resume");
+                }
+
+                document.getElementById("result-idle-msg").classList.add("hidden");
+                document.getElementById("result-content").classList.remove("hidden");
+
+                const tm = data.token_metrics || {};
+                document.getElementById("m-val-total").textContent = tm.total_tokens_actual ?? 0;
+                document.getElementById("m-val-reas").textContent = tm.reasoning_tokens_actual ?? 0;
+                document.getElementById("m-val-saved").textContent = "~" + (tm.estimated_tokens_saved ?? 0);
+                document.getElementById("m-val-pct").textContent = (tm.estimated_savings_pct ?? 0) + "%";
+
+                document.getElementById("tex-code-output").textContent = data.latex_code || "";
+
+                const texBlob = new Blob([data.latex_code || ""], { type: "text/plain;charset=utf-8" });
+                document.getElementById("dl-tex-link").href = URL.createObjectURL(texBlob);
+
+                if (data.pdf_base64) {
+                    const pdfDataUri = "data:application/pdf;base64," + data.pdf_base64;
+                    document.getElementById("pdf-iframe").src = pdfDataUri;
+                    document.getElementById("dl-pdf-link").href = pdfDataUri;
+                    document.getElementById("dl-pdf-link").classList.remove("hidden");
+                }
+            } catch (err) {
+                alert((state.uiLang === "en-us"
+                    ? "Error communicating with backend: "
+                    : "Erro ao comunicar com o servidor: ") + err.message);
+            } finally {
+                btn.disabled = false;
+                btnTxt.textContent = I18N[state.uiLang].genBtn;
+            }
+        }
+
+        window.addEventListener("DOMContentLoaded", initAutoPreferences);
+    </script>
+</body>
+</html>

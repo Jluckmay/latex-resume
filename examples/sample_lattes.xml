@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CURRICULO-VITAE NUMERO-IDENTIFICADOR="9876543210123456">
+    <DADOS-GERAIS NOME-COMPLETO="Dra. Helena Costa">
+        <RESUMO-CV TEXTO-RESUMO-CV-RH="Pesquisadora em Inteligência Artificial e Aprendizado de Máquina com ênfase em Processamento de Linguagem Natural e Modelos Fundacionais eficientes." />
+        <FORMACAO-ACADEMICA-TITULACAO>
+            <DOUTORADO NOME-CURSO="Ciência da Computação" NOME-INSTITUICAO="Universidade de São Paulo (USP)" ANO-DE-INICIO="2020" ANO-DE-CONCLUSAO="2024" TITULO-DA-DISSERTACAO-TESE="Compressão de Tokens e Inferência Eficiente em Modelos de Linguagem de Grande Escala" />
+            <MESTRADO NOME-CURSO="Ciência da Computação" NOME-INSTITUICAO="Universidade Estadual de Campinas (UNICAMP)" ANO-DE-INICIO="2018" ANO-DE-CONCLUSAO="2020" TITULO-DA-DISSERTACAO-TESE="Redes Neurais Grafo-Convolucionais Aplicadas à Bioinformática" />
+        </FORMACAO-ACADEMICA-TITULACAO>
+        <ATUACOES-PROFISSIONAIS>
+            <ATUACAO-PROFISSIONAL NOME-INSTITUICAO="Universidade de São Paulo (USP)">
+                <VINCULOS ENQUADRAMENTO-FUNCIONAL="Pesquisadora de Pós-Doutorado" ANO-INICIO="2024" ANO-FIM="" OUTRAS-INFORMACOES="Coordenação de pesquisas em LLMs eficientes e orientação de alunos de iniciação científica." />
+                <ATIVIDADES-DE-PARTICIPACAO-EM-PROJETO>
+                    <PARTICIPACAO-EM-PROJETO>
+                        <PROJETO-DE-PESQUISA NOME-DO-PROJETO="IA Verde: Redução de Consumo Computacional em LLMs" ANO-INICIO="2024" DESCRICAO-DO-PROJETO="Desenvolvimento de algoritmos de poda de contexto e quantização." />
+                    </PARTICIPACAO-EM-PROJETO>
+                </ATIVIDADES-DE-PARTICIPACAO-EM-PROJETO>
+            </ATUACAO-PROFISSIONAL>
+        </ATUACOES-PROFISSIONAIS>
+        <IDIOMAS>
+            <IDIOMA DESCRICAO-DO-IDIOMA="Inglês" PROFICIENCIA-DE-LEITURA="Lê bem" PROFICIENCIA-DE-FALA="Fala bem" />
+            <IDIOMA DESCRICAO-DO-IDIOMA="Português" PROFICIENCIA-DE-LEITURA="Lê bem" PROFICIENCIA-DE-FALA="Fala bem" />
+        </IDIOMAS>
+        <PREMIOS-TITULOS>
+            <PREMIO-TITULO NOME-DO-PREMIO-OU-TITULO="Melhor Tese de Doutorado em IA" NOME-DA-ENTIDADE-PROMOTORA="Sociedade Brasileira de Computação (SBC)" ANO-DA-PREMIACAO="2024" />
+        </PREMIOS-TITULOS>
+    </DADOS-GERAIS>
+    <PRODUCAO-BIBLIOGRAFICA>
+        <ARTIGOS-PUBLICADOS>
+            <ARTIGO-PUBLICADO>
+                <DADOS-BASICOS-DO-ARTIGO TITULO-DO-ARTIGO="Token-Efficient Reasoning in Large Language Models" ANO-DO-ARTIGO="2025" DOI="10.1000/jair.2025.001" />
+                <DETALHAMENTO-DO-ARTIGO TITULO-DO-PERIODICO-OU-REVISTA="Journal of Artificial Intelligence Research" />
+                <AUTORES NOME-PARA-CITACAO="COSTA, H." />
+                <AUTORES NOME-PARA-CITACAO="SILVA, L." />
+            </ARTIGO-PUBLICADO>
+        </ARTIGOS-PUBLICADOS>
+    </PRODUCAO-BIBLIOGRAFICA>
+</CURRICULO-VITAE>
+

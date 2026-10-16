@@ -1,0 +1,495 @@
+"""Detecção automática de tema/idioma, temas visuais (Claro/Escuro), customização de cores e Previews de Templates LaTeX."""
+
+from __future__ import annotations
+
+import locale
+import os
+import re
+from typing import Any, Dict, Tuple
+
+COLOR_PRESETS: Dict[str, Dict[str, str]] = {
+    "ocean_blue": {
+        "pt-br": "🌊 Azul Oceano (Padrão Executivo)",
+        "en-us": "🌊 Ocean Blue (Executive Default)",
+        "primary": "#0F4C81",
+        "secondary": "#1E293B",
+    },
+    "academic_navy": {
+        "pt-br": "🎓 Azul Marinho Acadêmico",
+        "en-us": "🎓 Academic Navy",
+        "primary": "#1B365D",
+        "secondary": "#0F172A",
+    },
+    "emerald_tech": {
+        "pt-br": "🌲 Verde Esmeralda Tech",
+        "en-us": "🌲 Emerald Tech",
+        "primary": "#047857",
+        "secondary": "#064E3B",
+    },
+    "royal_indigo": {
+        "pt-br": "🔮 Índigo Real",
+        "en-us": "🔮 Royal Indigo",
+        "primary": "#4338CA",
+        "secondary": "#1E1B4B",
+    },
+    "burgundy_classic": {
+        "pt-br": "🍷 Борdô Clássico / Burgundy",
+        "en-us": "🍷 Classic Burgundy",
+        "primary": "#881337",
+        "secondary": "#27272A",
+    },
+    "charcoal_minimal": {
+        "pt-br": "🖤 Grafite Minimalista (ATS)",
+        "en-us": "🖤 Minimalist Charcoal (ATS)",
+        "primary": "#18181B",
+        "secondary": "#3F3F46",
+    },
+}
+
+
+def detect_default_language(st_context_headers: Dict[str, str] | None = None) -> str:
+    """Detecta automaticamente o idioma padrão do navegador (`Accept-Language`) ou do sistema operacional."""
+    if st_context_headers:
+        accept_lang = st_context_headers.get("Accept-Language") or st_context_headers.get("accept-language") or ""
+        if accept_lang:
+            first_tag = accept_lang.split(",")[0].strip().lower()
+            if first_tag.startswith("en"):
+                return "en-us"
+            if first_tag.startswith("pt"):
+                return "pt-br"
+
+    # Fallback: sistema operacional (Windows / POSIX)
+    try:
+        if os.name == "nt":
+            import ctypes
+
+            lang_id = ctypes.windll.kernel32.GetUserDefaultUILanguage()
+            # 0x0416 = pt-BR (1046), 0x0816 = pt-PT (2070); 0x09 primary = English
+            if (lang_id & 0x3FF) == 0x09:
+                return "en-us"
+            if (lang_id & 0x3FF) == 0x16:
+                return "pt-br"
+    except Exception:
+        pass
+
+    try:
+        loc, _ = locale.getdefaultlocale()
+        if loc and loc.lower().startswith("en"):
+            return "en-us"
+    except Exception:
+        pass
+
+    return "pt-br"
+
+
+def detect_default_theme(st_context_headers: Dict[str, str] | None = None) -> str:
+    """Detecta automaticamente o tema padrão (Claro 'light' vs Escuro 'dark') do navegador ou SO."""
+    if st_context_headers:
+        pref = (
+            st_context_headers.get("Sec-CH-Prefers-Color-Scheme")
+            or st_context_headers.get("sec-ch-prefers-color-scheme")
+            or ""
+        ).lower()
+        if pref in ("light", "dark"):
+            return pref
+
+    # Fallback Windows Registry: AppsUseLightTheme (1 = light, 0 = dark)
+    if os.name == "nt":
+        try:
+            import winreg
+
+            key_path = r"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize"
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path) as key:
+                val, _ = winreg.QueryValueEx(key, "AppsUseLightTheme")
+                return "light" if int(val) == 1 else "dark"
+        except Exception:
+            pass
+
+    return "light"
+
+
+def sanitize_hex_color(color: str, default: str = "0F4C81") -> str:
+    """Retorna código HEX de 6 dígitos maiúsculo sem '#' para uso no pacote xcolor do LaTeX."""
+    if not color:
+        return default
+    cleaned = re.sub(r"[^0-9A-Fa-f]", "", color.strip())
+    if len(cleaned) == 3:
+        cleaned = "".join(c * 2 for c in cleaned)
+    return cleaned[:6].upper() if len(cleaned) >= 6 else default
+
+
+def apply_custom_colors_and_portfolio_to_latex(
+    latex_code: str,
+    primary_color: str = "#0F4C81",
+    secondary_color: str = "#1E293B",
+    portfolio_url: str = "",
+    lang: str = "pt-br",
+) -> str:
+    """Aplica as cores customizadas pelo usuário e o link de Portfólio ao código LaTeX."""
+    p_hex = sanitize_hex_color(primary_color, "0F4C81")
+    s_hex = sanitize_hex_color(secondary_color, "1E293B")
+
+    out = latex_code
+    # Substitui definições de cores nos modelos integrados
+    out = re.sub(r"\\definecolor\{accent\}\{HTML\}\{[0-9A-Fa-f]{6}\}", rf"\\definecolor{{accent}}{{HTML}}{{{p_hex}}}", out)
+    out = re.sub(r"\\definecolor\{acadnavy\}\{HTML\}\{[0-9A-Fa-f]{6}\}", rf"\\definecolor{{acadnavy}}{{HTML}}{{{p_hex}}}", out)
+    out = re.sub(r"\\definecolor\{primary\}\{HTML\}\{[0-9A-Fa-f]{6}\}", rf"\\definecolor{{primary}}{{HTML}}{{{p_hex}}}", out)
+    out = re.sub(r"\\definecolor\{sidecolor\}\{HTML\}\{[0-9A-Fa-f]{6}\}", rf"\\definecolor{{sidecolor}}{{HTML}}{{{s_hex}}}", out)
+
+    # No modelo minimal_ats (que não tinha cor nos títulos), adiciona a cor escolhida pelo usuário
+    if "\\definecolor{accent}" not in out and "\\definecolor{acadnavy}" not in out and "\\usepackage{xcolor}" not in out:
+        out = out.replace(
+            "\\usepackage{graphicx}",
+            f"\\usepackage{{xcolor}}\n\\definecolor{{accent}}{{HTML}}{{{p_hex}}}\n\\definecolor{{subaccent}}{{HTML}}{{{s_hex}}}\n\\usepackage{{graphicx}}",
+        )
+        out = out.replace(
+            r"\titleformat{\section}{\normalsize\bfseries\scshape}",
+            r"\titleformat{\section}{\normalsize\bfseries\scshape\color{accent}}",
+        )
+    else:
+        # Aplica cor secundária ao nome no cabeçalho quando disponível
+        if "\\definecolor{subaccent}" not in out and "\\usepackage{xcolor}" in out:
+            out = out.replace(
+                "\\pagestyle{empty}",
+                f"\\definecolor{{subaccent}}{{HTML}}{{{s_hex}}}\n\\pagestyle{{empty}}",
+            )
+            out = out.replace(r"{\large\itshape ", r"{\large\itshape\color{subaccent} ")
+
+    # Injeta link clicável para a página de Portfólio no cabeçalho se fornecido
+    if portfolio_url and portfolio_url.strip():
+        u = portfolio_url.strip()
+        if not u.startswith(("http://", "https://")):
+            u = "https://" + u
+        u_safe = u.replace("%", r"\%").replace("#", r"\#").replace("&", r"\&")
+        label = "Portfolio" if str(lang).lower().startswith("en") else "Portfólio"
+        port_link = rf"\href{{{u_safe}}}{{\textbf{{{label}}}}}"
+
+        if port_link not in out:
+            # Insere após GitHub, LinkedIn ou ORCID no cabeçalho, ou antes do fim do bloco de contatos
+            inserted = False
+            for anchor in (r"{\textbf{GitHub}}", r"{\textbf{LinkedIn}}", r"{\textbf{ORCID}}", r"{\textbf{Lattes}}"):
+                if anchor in out:
+                    sep = " \\;|\\; " if "\\;|\\;" in out else (" \\;\\textbullet\\; " if "\\textbullet" in out else " | ")
+                    out = out.replace(anchor, f"{anchor}{sep}{port_link}", 1)
+                    inserted = True
+                    break
+            if not inserted:
+                out = out.replace(r"\end{center}", f"\\\\[2pt] {{\\small {port_link}}}\n\\end{{center}}", 1)
+
+    return out
+
+
+def render_template_preview_html(
+    template_id: str,
+    primary_color: str = "#0F4C81",
+    secondary_color: str = "#1E293B",
+    lang: str = "pt-br",
+    has_photo: bool = True,
+) -> str:
+    """Gera um preview visual interativo em HTML/SVG de alta fidelidade do modelo LaTeX e cores selecionadas."""
+    is_en = str(lang).lower().startswith("en")
+    p_col = primary_color if primary_color.startswith("#") else f"#{primary_color}"
+    s_col = secondary_color if secondary_color.startswith("#") else f"#{secondary_color}"
+
+    lbl_exp = "PROFESSIONAL EXPERIENCE" if is_en else "EXPERIÊNCIA PROFISSIONAL"
+    lbl_edu = "EDUCATION" if is_en else "FORMAÇÃO ACADÊMICA"
+    lbl_pub = "SCIENTIFIC PUBLICATIONS" if is_en else "PRODUÇÃO CIENTÍFICA"
+    lbl_sk = "SKILLS & STACK" if is_en else "COMPETÊNCIAS"
+    lbl_cnt = "CONTACT & LINKS" if is_en else "CONTATO & PERFIS"
+    role_txt = "Senior AI & Software Architect" if is_en else "Arquiteto de Software & IA Sênior"
+
+    photo_circle = (
+        f'<div style="width:42px;height:42px;border-radius:8px;background:linear-gradient(135deg,{p_col},{s_col});'
+        f'display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px;'
+        f'box-shadow:0 2px 6px rgba(0,0,0,0.15);flex-shrink:0;">👤</div>'
+        if has_photo
+        else ""
+    )
+
+    if template_id == "tech_sidebar":
+        return f"""
+        <div style="background:#ffffff;color:#1e293b;border-radius:10px;border:1px solid #cbd5e1;
+                    box-shadow:0 6px 18px rgba(15,23,42,0.08);padding:14px;font-family:'Segoe UI',system-ui,sans-serif;
+                    font-size:11px;line-height:1.35;min-height:255px;display:flex;gap:12px;">
+            <div style="width:33%;border-right:1.5px solid #e2e8f0;padding-right:10px;">
+                <div style="display:flex;justify-content:center;margin-bottom:8px;">{photo_circle}</div>
+                <div style="font-weight:800;font-size:13px;color:{s_col};">Lucas Silva</div>
+                <div style="font-style:italic;font-size:10px;color:{p_col};margin-bottom:8px;">{role_txt}</div>
+                <div style="font-weight:700;font-size:9px;color:{p_col};border-bottom:1px solid {p_col};padding-bottom:2px;margin-bottom:4px;">{lbl_cnt}</div>
+                <div style="font-size:9px;color:#475569;">• LinkedIn • GitHub<br>• ORCID • Portfolio</div>
+                <div style="font-weight:700;font-size:9px;color:{p_col};border-bottom:1px solid {p_col};padding-bottom:2px;margin:8px 0 4px 0;">{lbl_sk}</div>
+                <div style="font-size:9px;color:#475569;">Python, LaTeX, PyTorch, Cloud, Docker</div>
+            </div>
+            <div style="width:67%;">
+                <div style="font-weight:700;font-size:10px;color:{p_col};border-bottom:1.5px solid {p_col};padding-bottom:2px;margin-bottom:6px;">{lbl_exp}</div>
+                <div style="display:flex;justify-content:space-between;font-weight:700;font-size:10px;color:{s_col};">
+                    <span>Lead AI Engineer — Tech Corp</span><span style="color:#64748b;font-weight:400;">2023–Present</span>
+                </div>
+                <div style="font-size:9.5px;color:#334155;margin:3px 0 8px 8px;">• Token-efficient LLM pipelines (-78% cost)<br>• High-throughput LaTeX automation</div>
+                <div style="font-weight:700;font-size:10px;color:{p_col};border-bottom:1.5px solid {p_col};padding-bottom:2px;margin-bottom:6px;">{lbl_edu}</div>
+                <div style="display:flex;justify-content:space-between;font-weight:700;font-size:10px;color:{s_col};">
+                    <span>M.Sc. Computer Science</span><span style="color:#64748b;font-weight:400;">2021–2023</span>
+                </div>
+                <div style="font-size:9.5px;color:#475569;margin-top:2px;">Universidade de São Paulo (USP)</div>
+            </div>
+        </div>
+        """
+
+    if template_id == "academic_classic":
+        return f"""
+        <div style="background:#ffffff;color:#1e293b;border-radius:10px;border:1px solid #cbd5e1;
+                    box-shadow:0 6px 18px rgba(15,23,42,0.08);padding:15px;font-family:'Georgia',serif;
+                    font-size:11px;line-height:1.35;min-height:255px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1.5px solid {p_col};padding-bottom:8px;margin-bottom:8px;">
+                <div>
+                    <div style="font-weight:700;font-size:15px;color:{p_col};">Dra. Helena Costa</div>
+                    <div style="font-style:italic;font-size:10.5px;color:{s_col};">Postdoctoral Researcher in Artificial Intelligence</div>
+                    <div style="font-size:9px;color:#475569;margin-top:3px;">ORCID • Lattes CNPq • GitHub • Portfolio</div>
+                </div>
+                {photo_circle}
+            </div>
+            <div style="font-weight:700;font-size:10px;letter-spacing:0.6px;color:{p_col};border-bottom:1px solid #cbd5e1;padding-bottom:2px;margin-bottom:5px;">{lbl_edu}</div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;">
+                <b>Ph.D. in Computer Science — USP</b><i>2020–2024</i>
+            </div>
+            <div style="font-weight:700;font-size:10px;letter-spacing:0.6px;color:{p_col};border-bottom:1px solid #cbd5e1;padding-bottom:2px;margin:8px 0 5px 0;">{lbl_pub}</div>
+            <div style="font-size:9.5px;color:#334155;">
+                1. COSTA, H.; SILVA, L. <b>Token-Efficient Reasoning in LLMs</b>. <i>JAIR</i>, 2025. <span style="color:{p_col};">DOI:10.1000/jair</span><br>
+                2. COSTA, H. <b>Graph Neural Networks in Bioinformatics</b>. <i>Nature Mach. Intell.</i>, 2024.
+            </div>
+        </div>
+        """
+
+    if template_id == "minimal_ats":
+        return f"""
+        <div style="background:#ffffff;color:#18181b;border-radius:10px;border:1px solid #cbd5e1;
+                    box-shadow:0 6px 18px rgba(15,23,42,0.08);padding:15px;font-family:'Arial',sans-serif;
+                    font-size:11px;line-height:1.35;min-height:255px;">
+            <div style="text-align:center;border-bottom:1.5px solid {p_col};padding-bottom:7px;margin-bottom:8px;">
+                <div style="font-weight:800;font-size:15px;color:{p_col};">LUCAS SILVA</div>
+                <div style="font-size:10px;color:{s_col};">{role_txt}</div>
+                <div style="font-size:9px;color:#52525b;margin-top:2px;">São Paulo, BR | lucas@email.com | LinkedIn | GitHub | Portfolio</div>
+            </div>
+            <div style="font-weight:800;font-size:9.5px;color:{p_col};border-bottom:1px solid {p_col};margin-bottom:5px;">{lbl_exp}</div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;">
+                <span>Senior Software Engineer — Global Systems</span><span>2022–Present</span>
+            </div>
+            <div style="font-size:9.5px;color:#27272a;margin:2px 0 8px 10px;">• Architected distributed microservices handling 50k req/s<br>• Automated CI/CD & LaTeX document pipelines</div>
+            <div style="font-weight:800;font-size:9.5px;color:{p_col};border-bottom:1px solid {p_col};margin-bottom:5px;">{lbl_sk}</div>
+            <div style="font-size:9.5px;color:#27272a;"><b>Languages & Tools:</b> Python, Go, TypeScript, PostgreSQL, Kubernetes, AWS</div>
+        </div>
+        """
+
+    if template_id == "overleaf_russell_ti":
+        return f"""
+        <div style="background:#ffffff;color:#1e293b;border-radius:10px;border:1px solid #cbd5e1;
+                    box-shadow:0 6px 18px rgba(15,23,42,0.08);padding:15px;font-family:'Roboto','Segoe UI',sans-serif;
+                    font-size:11px;line-height:1.35;min-height:255px;">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+                {photo_circle}
+                <div style="flex:1;text-align:center;">
+                    <div><span style="font-size:15px;color:#64748b;font-weight:300;">João Lucas</span> <span style="font-size:15px;color:{s_col};font-weight:800;">Mayrinck</span></div>
+                    <div style="font-size:9px;color:#475569;margin-top:2px;">🌐 Portfolio | 🐙 GitHub | 🆔 ORCID | 🎓 Lattes</div>
+                    <div style="font-size:9px;color:#475569;">✉️ email@ufmg.br | 📱 WhatsApp | 🔗 LinkedIn</div>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                <span style="font-weight:800;font-size:11px;"><span style="color:{p_col};">Per</span><span style="color:{s_col};">fil</span></span>
+                <div style="flex:1;height:1px;background:#94a3b8;"></div>
+            </div>
+            <div style="font-size:9.5px;color:#334155;margin-bottom:6px;">Engenheiro de Software & IA com foco em UX Design, Segurança e LLMOps.</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                <span style="font-weight:800;font-size:11px;"><span style="color:{p_col};">Hab</span><span style="color:{s_col};">ilidades</span></span>
+                <div style="flex:1;height:1px;background:#94a3b8;"></div>
+            </div>
+            <div style="font-size:9.5px;color:#334155;margin-bottom:6px;"><b>Programação:</b> Python, C/C++, JS, SQL &nbsp;•&nbsp; <b>Ferramentas:</b> Linux, LaTeX, Git</div>
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                <span style="font-weight:800;font-size:11px;"><span style="color:{p_col};">Idi</span><span style="color:{s_col};">omas</span></span>
+                <div style="flex:1;height:1px;background:#94a3b8;"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:9.5px;">
+                <span><b>Português</b> (Nativo)</span><span style="color:{p_col};">● ● ● ● ●</span>
+            </div>
+        </div>
+        """
+
+    if template_id == "overleaf_awesome_cv":
+        return f"""
+        <div style="background:#ffffff;color:#1e293b;border-radius:10px;border:1px solid #cbd5e1;
+                    box-shadow:0 6px 18px rgba(15,23,42,0.08);padding:15px;font-family:'Roboto','Segoe UI',sans-serif;
+                    font-size:11px;line-height:1.35;min-height:255px;display:flex;flex-direction:column;justify-content:space-between;">
+            <div>
+                <div style="text-align:center;margin-bottom:8px;">
+                    <div><span style="font-size:16px;color:#64748b;font-weight:300;">Jason</span> <span style="font-size:16px;color:{s_col};font-weight:800;">Richards</span></div>
+                    <div style="font-size:9.5px;font-variant:small-caps;color:{p_col};font-weight:700;">{role_txt}</div>
+                    <div style="font-size:8.5px;color:#64748b;margin-top:2px;">📱 Phone &nbsp;|&nbsp; ✉️ Email &nbsp;|&nbsp; 🐙 GitHub &nbsp;|&nbsp; 🔗 LinkedIn &nbsp;|&nbsp; 🌐 Portfolio</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                    <span style="font-weight:800;font-size:11px;"><span style="color:{p_col};">Ski</span><span style="color:{s_col};">lls</span></span>
+                    <div style="flex:1;height:1px;background:#94a3b8;"></div>
+                </div>
+                <div style="font-size:9.5px;color:#334155;margin-bottom:6px;"><b>Backend & AI:</b> Python, LaTeX, FastAPI, NVIDIA NIM, Docker</div>
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+                    <span style="font-weight:800;font-size:11px;"><span style="color:{p_col};">Exp</span><span style="color:{s_col};">erience</span></span>
+                    <div style="flex:1;height:1px;background:#94a3b8;"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:9.5px;font-weight:700;color:{s_col};">
+                    <span>Senior Software Engineer</span><span style="color:{p_col};font-style:italic;">2023–Present</span>
+                </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:8px;color:#94a3b8;border-top:1px solid #f1f5f9;padding-top:4px;margin-top:6px;">
+                <span>2026</span><span>Jason Richards · Résumé</span><span>1</span>
+            </div>
+        </div>
+        """
+
+    if template_id == "overleaf_single_page_keywords":
+        return f"""
+        <div style="background:#ffffff;color:#1e293b;border-radius:10px;border:1px solid #cbd5e1;
+                    box-shadow:0 6px 18px rgba(15,23,42,0.08);padding:14px;font-family:'Raleway','Segoe UI',sans-serif;
+                    font-size:10.5px;line-height:1.3;min-height:255px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #cbd5e1;padding-bottom:6px;margin-bottom:6px;">
+                <div>
+                    <div style="font-size:14px;font-weight:900;color:{s_col};line-height:1;">JOHN <span style="font-weight:300;color:{p_col};">DOE</span></div>
+                    <div style="font-size:9px;color:{s_col};margin-top:2px;">{role_txt}</div>
+                </div>
+                <div style="text-align:right;font-size:8.5px;color:#475569;">
+                    Email <b>john@doe.com</b><br>GitHub <b>github.com/johndoe</b><br>Web <b>portfolio.dev</b>
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;">
+                <span style="background:{s_col};color:#fff;border-radius:50%;width:15px;height:15px;display:inline-flex;align-items:center;justify-content:center;font-size:8px;">📄</span>
+                <span style="font-weight:800;font-size:10px;color:{p_col};">SUMMARY</span>
+            </div>
+            <div style="font-size:9px;color:#334155;margin-bottom:6px;">Generalist software engineer & AI researcher specialized in Python and deep learning.</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <div>
+                    <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;">
+                        <span style="background:{s_col};color:#fff;border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;font-size:7px;">✏️</span>
+                        <span style="font-weight:800;font-size:9.5px;color:{p_col};">WORK</span>
+                    </div>
+                    <div style="font-size:8.5px;"><b>ML Engineer / 2023–Now</b><br><i>Keywords: Python, PyTorch, LaTeX</i></div>
+                </div>
+                <div>
+                    <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;">
+                        <span style="background:{s_col};color:#fff;border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;font-size:7px;">🎓</span>
+                        <span style="font-weight:800;font-size:9.5px;color:{p_col};">EDUCATION</span>
+                    </div>
+                    <div style="font-size:8.5px;"><b>M.Sc. Robotics & AI</b><br>Thesis on Deep Neural Networks</div>
+                </div>
+            </div>
+        </div>
+        """
+
+    # Default: modern_pro
+    return f"""
+    <div style="background:#ffffff;color:#1e293b;border-radius:10px;border:1px solid #cbd5e1;
+                box-shadow:0 6px 18px rgba(15,23,42,0.08);padding:15px;font-family:'Segoe UI',system-ui,sans-serif;
+                font-size:11px;line-height:1.35;min-height:255px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid {p_col};padding-bottom:8px;margin-bottom:8px;">
+            <div>
+                <div style="font-weight:800;font-size:15px;color:{p_col};">Lucas Silva</div>
+                <div style="font-style:italic;font-size:10.5px;color:{s_col};">{role_txt}</div>
+                <div style="font-size:9px;color:#475569;margin-top:3px;">São Paulo • LinkedIn • GitHub • ORCID • Portfolio</div>
+            </div>
+            {photo_circle}
+        </div>
+        <div style="font-weight:700;font-size:10.5px;color:{p_col};border-bottom:1px solid {p_col};padding-bottom:2px;margin-bottom:5px;">{lbl_exp}</div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;color:{s_col};">
+            <span>Senior AI Engineer — NVIDIA NIM Partner</span><span style="color:#64748b;">2023–Present</span>
+        </div>
+        <div style="font-size:9.5px;color:#334155;margin:3px 0 8px 10px;">
+            • Reduced LLM token consumption by 78% using TOON & Caveman plugins<br>
+            • Built automated multi-source LaTeX resume synthesis engine
+        </div>
+        <div style="font-weight:700;font-size:10.5px;color:{p_col};border-bottom:1px solid {p_col};padding-bottom:2px;margin-bottom:5px;">{lbl_sk}</div>
+        <div style="font-size:9.5px;color:#334155;"><b>Core Stack:</b> Python, LaTeX, FastAPI, Streamlit, LLMOps, Docker</div>
+    </div>
+    """
+
+
+def get_theme_css(theme_mode: str = "light", primary_color: str = "#0F4C81") -> str:
+    """Gera folha de estilos CSS moderna e responsiva para Modo Claro (Light) ou Modo Escuro (Dark)."""
+    is_light = theme_mode == "light"
+    bg_main = "#F8FAFC" if is_light else "#0B0F19"
+    bg_sidebar = "#FFFFFF" if is_light else "#111827"
+    bg_card = "#FFFFFF" if is_light else "#1E293B"
+    text_main = "#0F172A" if is_light else "#F8FAFC"
+    text_muted = "#475569" if is_light else "#94A3B8"
+    border_col = "#E2E8F0" if is_light else "#334155"
+    input_bg = "#FFFFFF" if is_light else "#0F172A"
+    shadow = "0 4px 14px rgba(15, 23, 42, 0.05)" if is_light else "0 4px 18px rgba(0, 0, 0, 0.35)"
+
+    return f"""
+    <style>
+        .stApp {{
+            background-color: {bg_main} !important;
+            color: {text_main} !important;
+        }}
+        section[data-testid="stSidebar"] {{
+            background-color: {bg_sidebar} !important;
+            border-right: 1px solid {border_col} !important;
+        }}
+        section[data-testid="stSidebar"] * {{
+            color: {text_main};
+        }}
+        .stMarkdown, .stText, h1, h2, h3, h4, p, label, .stCaption {{
+            color: {text_main} !important;
+        }}
+        div[data-testid="stMetric"] {{
+            background-color: {bg_card} !important;
+            border: 1px solid {border_col} !important;
+            border-left: 4px solid {primary_color} !important;
+            border-radius: 10px !important;
+            padding: 12px 14px !important;
+            box-shadow: {shadow} !important;
+        }}
+        div[data-testid="stExpander"] {{
+            background-color: {bg_card} !important;
+            border: 1px solid {border_col} !important;
+            border-radius: 10px !important;
+            box-shadow: {shadow} !important;
+        }}
+        div[data-baseweb="input"] > div, div[data-baseweb="textarea"] > div, div[data-baseweb="select"] > div {{
+            background-color: {input_bg} !important;
+            border-color: {border_col} !important;
+            color: {text_main} !important;
+            border-radius: 8px !important;
+        }}
+        input, textarea {{
+            color: {text_main} !important;
+        }}
+        .ui-card {{
+            background-color: {bg_card};
+            border: 1px solid {border_col};
+            border-radius: 12px;
+            padding: 18px;
+            margin-bottom: 16px;
+            box-shadow: {shadow};
+        }}
+        .ui-badge {{
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            background-color: {primary_color}20;
+            color: {primary_color};
+            border: 1px solid {primary_color}50;
+            margin-right: 6px;
+        }}
+        .ui-subtitle {{
+            color: {text_muted} !important;
+            font-size: 0.92rem;
+        }}
+        button[kind="primary"] {{
+            background: linear-gradient(135deg, {primary_color}, #2563EB) !important;
+            color: #FFFFFF !important;
+            border: none !important;
+            border-radius: 10px !important;
+            font-weight: 700 !important;
+            padding: 0.65rem 1.2rem !important;
+            box-shadow: 0 4px 12px {primary_color}45 !important;
+        }}
+    </style>
+    """

@@ -1,0 +1,17 @@
+.git
+.gitignore
+.vault.key
+*.key
+nvidia-api-key.txt
+.env
+.env.*
+.cache
+output
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+examples
+tests
+.vscode
+.idea

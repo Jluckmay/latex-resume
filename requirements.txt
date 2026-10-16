@@ -1,0 +1,18 @@
+# ============================================================================
+# Requisitos do Projeto / Project Requirements
+# ============================================================================
+# 1. Requisito de Sistema Obrigatório / Mandatory System Requirement:
+#    - Compilador LaTeX (`pdflatex`) via TeX Live (2023+) ou MiKTeX no PATH
+#      Verifique com / Verify with: pdflatex --version
+#
+# 2. Dependências Python / Python Dependencies (Python >= 3.10):
+#    Instale com / Install with: pip install -r requirements.txt
+# ============================================================================
+
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+Pillow>=10.0.0
+streamlit>=1.32.0
+pypdf>=4.0.0
+flask>=3.0.0
+gunicorn>=21.2.0

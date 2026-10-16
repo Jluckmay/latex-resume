@@ -1,0 +1,238 @@
+"""Compilador LaTeX (pdflatex) com blindagem de segurança, preparação de foto e auto-reparo de erros."""
+
+from __future__ import annotations
+
+import io
+import os
+import re
+import shutil
+import subprocess
+from pathlib import Path
+from typing import Tuple
+
+from PIL import Image
+
+from .config import OUTPUT_DIR
+
+# Proteção contra Image Decompression Bomb (DoS)
+Image.MAX_IMAGE_PIXELS = 25_000_000
+
+# Primitivas LaTeX perigosas bloqueadas em templates customizados (prevenção de RCE e leitura de arquivos)
+_FORBIDDEN_LATEX_PATTERNS = (
+    r"\\write18\b",
+    r"\\immediate\s*\\write18\b",
+    r"\\openin\b",
+    r"\\openout\b",
+    r"\\read\b",
+    r"\\input\s*\{\s*(/|\\|\.\.)",
+    r"\\include\s*\{\s*(/|\\|\.\.)",
+    r"\\verbatiminput\b",
+    r"\\lstinputlisting\b",
+    r"\\import\s*\{",
+    r"\\subimport\s*\{",
+    r"\\catcode\b",
+    r"\\csname\s*write",
+    r"\\pdfprimitive\b",
+    r"\\directlua\b",
+)
+
+
+def sanitize_custom_latex(latex_code: str) -> str:
+    """Inspeciona e bloqueia primitivas LaTeX perigosas (RCE / Path Traversal / File Read)."""
+    if not latex_code:
+        return ""
+    if len(latex_code) > 250_000:
+        raise ValueError("Template LaTeX excede o tamanho máximo permitido (250 KB).")
+    for pat in _FORBIDDEN_LATEX_PATTERNS:
+        if re.search(pat, latex_code, flags=re.IGNORECASE):
+            raise ValueError(
+                "Template LaTeX bloqueado por segurança: contém comando de sistema ou leitura externa não permitido."
+            )
+    return latex_code
+
+
+def _build_safe_tex_env() -> dict[str, str]:
+    """Cria um ambiente isolado para o subprocesso pdflatex, sem vazar variáveis de ambiente do servidor."""
+    safe_keys = (
+        "PATH",
+        "SYSTEMROOT",
+        "WINDIR",
+        "COMSPEC",
+        "HOME",
+        "USERPROFILE",
+        "TEMP",
+        "TMP",
+        "TMPDIR",
+        "LANG",
+        "LC_ALL",
+        "TEXMFMAIN",
+        "TEXMFDIST",
+        "TEXMFLOCAL",
+        "TEXMFHOME",
+        "TEXMFVAR",
+        "TEXMFCONFIG",
+    )
+    env: dict[str, str] = {}
+    for k in safe_keys:
+        val = os.environ.get(k)
+        if val:
+            env[k] = val
+    # Modo paranóico do Web2C/TeX Live: proíbe leitura/escrita fora do diretório de compilação e desativa shell_escape
+    env["openin_any"] = "p"
+    env["openout_any"] = "p"
+    env["shell_escape"] = "f"
+    return env
+
+
+def prepare_photo_for_latex(
+    build_dir: Path,
+    photo_bytes: bytes | None = None,
+    photo_path: str | Path | None = None,
+    target_stem: str = "profile_photo",
+) -> str | None:
+    """Converte e salva a foto do usuário em PNG RGB compatível com pdflatex."""
+    raw_bytes: bytes | None = photo_bytes
+    if not raw_bytes and photo_path:
+        p = Path(photo_path)
+        if p.exists() and p.is_file():
+            raw_bytes = p.read_bytes()
+
+    if not raw_bytes:
+        return None
+
+    if len(raw_bytes) > 6 * 1024 * 1024:
+        raise ValueError("A imagem de perfil excede o limite máximo de 6 MB.")
+
+    build_dir.mkdir(parents=True, exist_ok=True)
+    safe_stem = re.sub(r"[^A-Za-z0-9_-]+", "_", target_stem).strip("_") or "profile_photo"
+    out_filename = f"{safe_stem}.png"
+    out_path = build_dir / out_filename
+
+    try:
+        img = Image.open(io.BytesIO(raw_bytes))
+        img.verify()
+        img = Image.open(io.BytesIO(raw_bytes))
+        if img.mode not in ("RGB", "RGBA"):
+            img = img.convert("RGB")
+        # Redimensiona mantendo proporção para evitar PDFs pesados
+        img.thumbnail((600, 600))
+        img.save(out_path, format="PNG")
+        return out_filename
+    except Exception:
+        return None
+
+
+def extract_concise_latex_error(log_text: str) -> str:
+    """Extrai apenas as linhas decisivas de erro do log do pdflatex (economia de tokens)."""
+    lines = log_text.splitlines()
+    err_lines = []
+    for idx, line in enumerate(lines):
+        if line.startswith("!"):
+            snippet = lines[max(0, idx - 1) : min(len(lines), idx + 6)]
+            err_lines.extend(snippet)
+            break
+    if err_lines:
+        return "\n".join(err_lines)
+    return "\n".join(lines[-20:])
+
+
+def get_pdflatex_path() -> str | None:
+    """Localiza o executável `pdflatex` no PATH ou em instalações padrão do TeX Live / MiKTeX."""
+    found = shutil.which("pdflatex")
+    if found:
+        return found
+    candidates = [
+        "/usr/bin/pdflatex",
+        "/usr/local/bin/pdflatex",
+        r"C:\texlive\2025\bin\windows\pdflatex.exe",
+        r"C:\texlive\2024\bin\windows\pdflatex.exe",
+        r"C:\texlive\2023\bin\windows\pdflatex.exe",
+        str(Path.home() / r"AppData\Local\Programs\MiKTeX\miktex\bin\x64\pdflatex.exe"),
+        r"C:\Program Files\MiKTeX\miktex\bin\x64\pdflatex.exe",
+    ]
+    for c in candidates:
+        if Path(c).exists():
+            return c
+    return None
+
+
+def check_latex_compiler() -> Tuple[bool, str]:
+    """Verifica se o compilador LaTeX (`pdflatex`) obrigatório está instalado e funcional."""
+    bin_path = get_pdflatex_path()
+    if not bin_path:
+        return (
+            False,
+            "pdflatex não encontrado (instale TeX Live ou MiKTeX) / pdflatex not found (install TeX Live or MiKTeX).",
+        )
+    try:
+        proc = subprocess.run(
+            [bin_path, "--version"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=8,
+            env=_build_safe_tex_env(),
+        )
+        first_line = (proc.stdout or "").splitlines()[0].strip() if proc.stdout else "pdflatex"
+        return True, first_line
+    except Exception:
+        return False, "Erro ao verificar pdflatex / Error checking pdflatex"
+
+
+def compile_latex_to_pdf(
+    latex_code: str,
+    output_stem: str = "curriculo",
+    build_dir: Path | None = None,
+) -> Tuple[bool, Path | None, Path, str]:
+    """Compila código LaTeX em PDF usando pdflatex em ambiente restrito (-no-shell-escape).
+
+    Retorna: (sucesso, caminho_pdf, caminho_tex, log_resumido)
+    """
+    sanitize_custom_latex(latex_code)
+
+    target_dir = (build_dir or OUTPUT_DIR).resolve()
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    safe_stem = re.sub(r"[^A-Za-z0-9_-]+", "_", output_stem).strip("_") or "curriculo"
+    tex_path = target_dir / f"{safe_stem}.tex"
+    pdf_path = target_dir / f"{safe_stem}.pdf"
+
+    tex_path.write_text(latex_code, encoding="utf-8")
+
+    pdflatex_bin = get_pdflatex_path()
+    if not pdflatex_bin:
+        return (
+            False,
+            None,
+            tex_path,
+            "Requisito ausente: compilador `pdflatex` (TeX Live / MiKTeX) não encontrado no sistema.",
+        )
+
+    cmd = [
+        pdflatex_bin,
+        "-no-shell-escape",
+        "-interaction=nonstopmode",
+        "-halt-on-error",
+        tex_path.name,
+    ]
+
+    try:
+        proc = subprocess.run(
+            cmd,
+            cwd=str(target_dir),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=45,
+            env=_build_safe_tex_env(),
+        )
+        if pdf_path.exists() and pdf_path.stat().st_size > 0:
+            return True, pdf_path, tex_path, "Compilado com sucesso via pdflatex."
+        err_msg = extract_concise_latex_error(proc.stdout + "\n" + proc.stderr)
+        return False, None, tex_path, err_msg
+    except Exception as exc:
+        return False, None, tex_path, f"Falha na compilação LaTeX ({type(exc).__name__})."
+
+
