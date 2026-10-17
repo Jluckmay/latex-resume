@@ -1,9 +1,8 @@
 """Servidor Web (Flask / Gunicorn) para compilação remota de currículos LaTeX.
 
 Implementa bloqueio estrito de conexões (aceitando exclusivamente solicitações
-vindas de https://github.com/Jluckmay/latex-resume e https://jluckmay.github.io/),
-verificação de Referer e cabeçalhos de atestação mútua, proteção contra DoS/Rate
-Limiting e compilação em diretórios isolados.
+vindas de https://jluckmay.github.io/), verificação de Referer e cabeçalhos
+de atestação mútua, proteção contra DoS/Rate Limiting e compilação em diretórios isolados.
 """
 
 from __future__ import annotations
@@ -36,14 +35,10 @@ from src._vault import (
 app = Flask(__name__, static_folder=str(PROJECT_ROOT))
 app.config["MAX_CONTENT_LENGTH"] = 12 * 1024 * 1024  # Limite máximo de 12 MB por requisição
 
-# Origens e páginas autorizadas exclusivamente em produção:
-# 1. GitHub Pages oficial do usuário: https://jluckmay.github.io/
-# 2. Repositório oficial do GitHub: https://github.com/Jluckmay/latex-resume
+# Origem autorizada exclusivamente em produção:
+# GitHub Pages oficial do usuário: https://jluckmay.github.io/
 PAGES_ORIGIN = "https://jluckmay.github.io"
 PAGES_REFERER_PREFIX = "https://jluckmay.github.io"
-
-GITHUB_ORIGIN = "https://github.com"
-GITHUB_REPO_URL_LOWER = "https://github.com/jluckmay/latex-resume"
 
 LOCAL_ORIGINS = {
     "http://127.0.0.1:5000",
@@ -67,7 +62,6 @@ ALLOW_LOCAL_DEV = os.environ.get("ALLOW_LOCAL_DEV", "0") == "1"
 CLIENT_HEADER_NAME = "X-Resume-Client"
 ALLOWED_CLIENT_HEADERS = {
     "jluckmay-github-pages-v1",
-    "jluckmay-github-repo-v1",
     "jluckmay-latex-resume-v1",
 }
 BACKEND_ATTESTATION = "latex-resume-render-v1"
@@ -91,9 +85,8 @@ def _is_rate_limited(ip: str) -> bool:
 
 
 def _validate_origin_and_referer() -> tuple[bool, str]:
-    """Valida se a solicitação vem exclusivamente das páginas autorizadas:
+    """Valida se a solicitação vem exclusivamente da página autorizada:
     - https://jluckmay.github.io/
-    - https://github.com/Jluckmay/latex-resume
     (ou ambiente local quando em desenvolvimento / loopback).
     
     Retorna (True, origin_para_cors) se válida, ou (False, mensagem_de_erro) se rejeitada.
@@ -101,7 +94,6 @@ def _validate_origin_and_referer() -> tuple[bool, str]:
     origin = request.headers.get("Origin", "").strip()
     referer = request.headers.get("Referer", "").strip()
     referer_lower = referer.lower()
-    is_options = request.method == "OPTIONS"
 
     # Verificação de loopback / desenvolvimento local
     is_loopback = request.remote_addr in ("127.0.0.1", "::1", "localhost")
@@ -114,29 +106,12 @@ def _validate_origin_and_referer() -> tuple[bool, str]:
             return False, "Referer não autorizado para a origem jluckmay.github.io"
         return True, PAGES_ORIGIN
 
-    # 2. Validação de solicitações vindas de https://github.com/Jluckmay/latex-resume
-    # Navegadores em páginas do GitHub utilizam Origin: https://github.com
-    # e Referer iniciando com https://github.com/Jluckmay/latex-resume (ou jluckmay/latex-resume)
-    if origin == GITHUB_ORIGIN:
-        if is_options:
-            if not referer or referer_lower.startswith(GITHUB_REPO_URL_LOWER) or referer_lower.startswith("https://github.com"):
-                return True, GITHUB_ORIGIN
-        if not referer_lower.startswith(GITHUB_REPO_URL_LOWER):
-            return False, "Referer não autorizado: permitido exclusivamente https://github.com/Jluckmay/latex-resume"
-        return True, GITHUB_ORIGIN
-
-    # Caso a Origin seja diretamente a URL completa do repositório
-    if origin.lower().startswith(GITHUB_REPO_URL_LOWER):
-        return True, origin
-
-    # 3. Solicitações diretas sem cabeçalho Origin (validando exclusivamente via Referer)
+    # 2. Solicitações diretas sem cabeçalho Origin (validando exclusivamente via Referer)
     if not origin:
         if referer_lower.startswith(PAGES_REFERER_PREFIX.lower()):
             return True, PAGES_ORIGIN
-        if referer_lower.startswith(GITHUB_REPO_URL_LOWER):
-            return True, GITHUB_ORIGIN
 
-    return False, "Origem não autorizada: o backend aceita exclusivamente requisições de https://github.com/Jluckmay/latex-resume e https://jluckmay.github.io/"
+    return False, "Origem não autorizada: o backend aceita exclusivamente requisições de https://jluckmay.github.io/"
 
 
 @app.after_request
@@ -187,7 +162,7 @@ def serve_index() -> Response:
     """Serve a interface index.html se acessada localmente ou redireciona."""
     if not ALLOW_LOCAL_DEV and not (request.remote_addr in ("127.0.0.1", "::1")):
         return jsonify({
-            "message": "LaTeX Resume Compiler API. Interfaces oficiais: https://github.com/Jluckmay/latex-resume e https://jluckmay.github.io/"
+            "message": "LaTeX Resume Compiler API. Interface oficial: https://jluckmay.github.io/latex-resume/"
         })
     return send_file(PROJECT_ROOT / "index.html")
 
@@ -302,7 +277,7 @@ def api_generate() -> Response | tuple[Response, int]:
     if request.method == "OPTIONS":
         return jsonify({"status": "ok"})
 
-    # Validação estrita de origem e referer (aceita exclusivamente https://github.com/Jluckmay/latex-resume e https://jluckmay.github.io/)
+    # Validação estrita de origem e referer (aceita exclusivamente https://jluckmay.github.io/)
     is_valid, err_msg = _validate_origin_and_referer()
     if not is_valid:
         return jsonify({"error": f"Acesso negado: {err_msg}"}), 403

@@ -331,3 +331,40 @@ def test_google_missing_key_informative_error(client):
     assert decrypted["error"] != "Falha no processamento: RuntimeError"
 
 
+def test_github_repo_origin_and_referer_strictly_rejected(client):
+    """Garante que qualquer tentativa de comunicação com origem ou referer do repositório GitHub seja estritamente rejeitada (403 Forbidden)."""
+    # 1. Tentativa via Origin: https://github.com
+    res1 = client.get(
+        "/api/status",
+        headers={
+            "Origin": "https://github.com",
+            "Referer": "https://github.com/Jluckmay/latex-resume",
+        },
+    )
+    assert res1.status_code == 403
+    assert "Origem não autorizada" in (res1.get_json() or {}).get("error", "")
+
+    # 2. Tentativa direta com Origin da URL completa do repositório
+    res2 = client.get(
+        "/api/status",
+        headers={
+            "Origin": "https://github.com/Jluckmay/latex-resume",
+        },
+    )
+    assert res2.status_code == 403
+
+    # 3. Tentativa de geração POST originária do repositório
+    res3 = client.post(
+        "/api/generate",
+        headers={
+            "Origin": "https://github.com",
+            "Referer": "https://github.com/Jluckmay/latex-resume",
+            "Content-Type": "application/json",
+            "X-Resume-Client": "jluckmay-github-repo-v1",
+        },
+        data=json.dumps({"test": "data"}),
+    )
+    assert res3.status_code == 403
+
+
+

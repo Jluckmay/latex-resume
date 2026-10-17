@@ -163,7 +163,7 @@ O projeto foi arquitetado para separação segura entre Frontend Estático (GitH
 
 ```mermaid
 flowchart LR
-    A["🌐 Frontend Web Oficial<br>(https://jluckmay.github.io/ ou<br>https://github.com/Jluckmay/latex-resume)"] -- "1. POST /api/generate<br>(Origin: https://jluckmay.github.io ou https://github.com<br>+ Envelope SECKEY_V1 Opcional)" --> B["🛡️ Backend no Render<br>(Docker + pdflatex + Gunicorn)"]
+    A["🌐 Frontend Web Oficial<br>(https://jluckmay.github.io/latex-resume/)"] -- "1. POST /api/generate<br>(Origin: https://jluckmay.github.io<br>+ Envelope SECKEY_V1 Opcional)" --> B["🛡️ Backend no Render<br>(Docker + pdflatex + Gunicorn)"]
     B -- "2. Síntese com Economia de Tokens<br>(TLS 1.3 + Zero-Storage Vault)" --> C["⚡ Motor de IA Multi-Provedor<br>(NVIDIA NIM / Gemini / Claude / OpenAI / DeepSeek)"]
     C -- "3. JSON Estruturado / TOON" --> B
     B -- "4. Compilação LaTeX Segura<br>(-no-shell-escape + openin_any=p)" --> B
@@ -181,10 +181,10 @@ flowchart LR
    - `NVIDIA_API_KEY`: sua chave de API da NVIDIA (`nvapi-...`).
 4. O backend expõe o endpoint de monitoramento de saúde `/healthz`.
 
-#### 3. Bloqueio Estrito de Conexão Mútua (Exclusivo para `https://github.com/Jluckmay/latex-resume` e `https://jluckmay.github.io/`)
-- O backend (`server.py`) rejeita **qualquer conexão** cuja origem ou `Referer` não provenha de `https://github.com/Jluckmay/latex-resume` ou `https://jluckmay.github.io/` (retornando `403 Forbidden`).
-- **Chamada direta a partir das páginas autorizadas**:
-  Qualquer página ou script hospedado em `https://jluckmay.github.io/` ou no repositório `https://github.com/Jluckmay/latex-resume` pode solicitar a criação de currículos diretamente via `fetch`:
+#### 3. Bloqueio Estrito de Conexão Mútua (Exclusivo para `https://jluckmay.github.io/`)
+- O backend (`server.py`) rejeita **qualquer conexão** cuja origem ou `Referer` não provenha de `https://jluckmay.github.io/` (retornando `403 Forbidden`).
+- **Chamada direta a partir da página autorizada**:
+  Qualquer script hospedado em `https://jluckmay.github.io/` pode solicitar a criação de currículos diretamente via `fetch`:
   ```javascript
   const formData = new FormData();
   formData.append("resume_type", "profissional"); // ou "academico"
@@ -212,7 +212,7 @@ flowchart LR
 | **Execução Arbitrária de Código LaTeX (RCE)** | Primitivas `\write18` ou `\directlua` em templates customizados. | **Sanitização Prévia + Isolamento TeX**: bloqueio por regex de comandos do sistema (`\write18`, `\csname`, `\catcode`, `\input{/`). Execução do `pdflatex` com `-no-shell-escape`, ambiente de subprocesso higienizado e parâmetros Web2C `openin_any=p` e `openout_any=p` (impede leitura/escrita de arquivos fora do diretório de compilação). |
 | **SSRF (Server-Side Request Forgery)** | Usuário informar URLs de metadados AWS/GCP (`169.254.169.254`) ou rede interna (`127.0.0.1`, `10.0.0.0/8`). | **Validador de IP Público (`_safe_http_get`)**: resolução DNS com verificação `ip.is_global == True`. Bloqueio de loopback, ranges privados e link-local, além de limite de download de 1.5 MB e validação de redirecionamentos. |
 | **ZIP Bomb / XXE Bomb (Billion Laughs)** | Upload de ZIP malicioso ou XML com entidades recursivas do Lattes. | Limite estrito de descompressão (15 MB), bloqueio de declarações `<!DOCTYPE` e `<!ENTITY` antes de invocar o parser XML, e limite de 25 MP para fotos com Pillow (`Image.MAX_IMAGE_PIXELS`). |
-| **Acesso Não Autorizado ao Backend** | Terceiros usarem o backend no Render para consumir créditos da API. | **Bloqueio Estrito de Origem e Referer**: CORS restrito exclusivamente a `https://github.com/Jluckmay/latex-resume` e `https://jluckmay.github.io`, validação de cabeçalhos mútuos (`X-Resume-Client`, `X-Backend-Attestation`) e Rate Limiting em memória por IP (máx. 15 gerações / 10 min). |
+| **Acesso Não Autorizado ao Backend** | Terceiros usarem o backend no Render para consumir créditos da API. | **Bloqueio Estrito de Origem e Referer**: CORS restrito exclusivamente a `https://jluckmay.github.io`, validação de cabeçalhos mútuos (`X-Resume-Client`, `X-Backend-Attestation`) e Rate Limiting em memória por IP (máx. 15 gerações / 10 min). |
 | **Interceptação e Eavesdropping de Rede** | Sniffing de pacotes ou inspeção na aba Network do DevTools expondo currículos, dados pessoais ou credenciais em trânsito. | **Criptografia Bidirecional de Ponta a Ponta (`ENC_PAYLOAD_V1`)**: toda a comunicação entre o frontend (`index.html`) e o backend (`server.py`) trafega cifrada via envelope **AES-256-GCM** com vetor de inicialização aleatório e chave derivada dinamicamente por timestamp (`crypto.subtle`). Qualquer ferramenta de inspeção de rede (DevTools, Wireshark, proxies) visualiza estritamente texto cifrado (`ciphertext`), tornando ilegível e inacessível qualquer dado em trânsito. |
 | **Tentativa de Extração de Chaves via Console / Probing** | Usuários executarem scripts no Console do navegador (`window.apiKey`, `fetch('/api/status')`) ou ferramentas (curl/Postman) para recuperar a chave padrão de API do servidor. | **Blindagem de Console & Defesa Zero-Leak**: A chave padrão do servidor reside exclusivamente em memória volátil de backend (Render Enclave) e **nunca** é transmitida ao cliente em nenhuma circunstância. O endpoint `/api/status` é sanitizado expurgando qualquer nome de variável (`env_vars`). Todos os endpoints e tratadores de erro (`400`, `403`, `404`, `500`) passam pelo filtro recursivo `scrub_sensitive_api_keys`, que detecta e substitui qualquer padrão de chave ou segredo ativo por `[REDACTED_API_KEY]`. No frontend, o escopo `window` possui propriedades congeladas (`window.apiKey = undefined`), impedindo exfiltração via console. |
 
@@ -377,8 +377,7 @@ O projeto permite que os usuários utilizem a chave padrão do servidor ou utili
 6. **Visualização e Download**: O PDF compilado é exibido diretamente no visualizador embutido da página, com opção para copiar o código LaTeX fonte ou baixar o arquivo `.pdf` gerado.
 
 #### 5. Restrição Estrita de Comunicação
-Por medidas de segurança, o backend no Render aceita conexões e compilações **exclusivamente** das origens:
-- `https://github.com/Jluckmay/latex-resume`
+Por medidas de segurança, o backend no Render aceita conexões e compilações **exclusivamente** da origem:
 - `https://jluckmay.github.io/`
 
 Qualquer solicitação proveniente de outros sites, domínios ou scrapers é automaticamente bloqueada com status `403 Forbidden`.
@@ -544,7 +543,7 @@ The project is architected for strict separation between the Static Frontend (Gi
 
 ```mermaid
 flowchart LR
-    A["🌐 Official Web Frontend<br>(https://jluckmay.github.io/ or<br>https://github.com/Jluckmay/latex-resume)"] -- "1. POST /api/generate<br>(Origin: https://jluckmay.github.io or https://github.com<br>+ Optional SECKEY_V1 Envelope)" --> B["🛡️ Render Backend<br>(Docker + pdflatex + Gunicorn)"]
+    A["🌐 Official Web Frontend<br>(https://jluckmay.github.io/latex-resume/)"] -- "1. POST /api/generate<br>(Origin: https://jluckmay.github.io<br>+ Optional SECKEY_V1 Envelope)" --> B["🛡️ Render Backend<br>(Docker + pdflatex + Gunicorn)"]
     B -- "2. Token-Saving LLM Synthesis<br>(TLS 1.3 + Zero-Storage Vault)" --> C["⚡ Multi-Provider AI Engine<br>(NVIDIA NIM / Gemini / Claude / OpenAI / DeepSeek)"]
     C -- "3. Structured JSON / TOON" --> B
     B -- "4. Sandboxed LaTeX Compilation<br>(-no-shell-escape + openin_any=p)" --> B
@@ -562,10 +561,10 @@ flowchart LR
    - `NVIDIA_API_KEY`: your NVIDIA API key (`nvapi-...`).
 4. The service exposes the `/healthz` endpoint for zero-downtime health checking.
 
-#### 3. Strict Mutual Communication Lockdown (Exclusive to `https://github.com/Jluckmay/latex-resume` and `https://jluckmay.github.io/`)
-- The backend (`server.py`) rejects **any connection** whose `Origin` or `Referer` does not originate from `https://github.com/Jluckmay/latex-resume` or `https://jluckmay.github.io/` (returning `403 Forbidden`).
-- **Direct Integration from Authorized Pages**:
-  Any page, embed, or script hosted on `https://jluckmay.github.io/` or within the `https://github.com/Jluckmay/latex-resume` repository can request resume compilation directly via standard `fetch`:
+#### 3. Strict Mutual Communication Lockdown (Exclusive to `https://jluckmay.github.io/`)
+- The backend (`server.py`) rejects **any connection** whose `Origin` or `Referer` does not originate from `https://jluckmay.github.io/` (returning `403 Forbidden`).
+- **Direct Integration from Authorized Page**:
+  Any script hosted on `https://jluckmay.github.io/` can request resume compilation directly via standard `fetch`:
   ```javascript
   const formData = new FormData();
   formData.append("resume_type", "professional"); // or "academic"
@@ -593,7 +592,7 @@ flowchart LR
 | **LaTeX Arbitrary Code Execution (RCE)** | `\write18` or `\directlua` primitives inside custom templates. | **Upstream Sanitization + TeX Sandbox**: regex blocking of system commands (`\write18`, `\csname`, `\catcode`, `\input{/`). `pdflatex` runs with `-no-shell-escape`, a sanitized environment, and Web2C parameters `openin_any=p` and `openout_any=p` (preventing file reads outside the ephemeral build directory). |
 | **SSRF (Server-Side Request Forgery)** | Malicious URLs targeting cloud metadata (`169.254.169.254`) or internal networks (`127.0.0.1`, `10.0.0.0/8`). | **Public IP Validator (`_safe_http_get`)**: DNS resolution asserting `ip.is_global == True`. Rejection of loopback, private, and link-local ranges, with a 1.5 MB response download cap and safe redirect evaluation. |
 | **ZIP Bomb / XXE Bomb (Billion Laughs)** | Malicious ZIP or recursive entity XML uploads via Lattes. | Strict uncompressed size ceiling (15 MB), regex rejection of `<!DOCTYPE` and `<!ENTITY` declarations prior to XML parsing, and 25 MP image cap in Pillow (`Image.MAX_IMAGE_PIXELS`). |
-| **Unauthorized Backend Abuse** | Third parties abusing the Render endpoint to drain API tokens. | **Strict Origin & Referer Gate**: CORS restricted exclusively to `https://github.com/Jluckmay/latex-resume` and `https://jluckmay.github.io`, mutual attestation verification (`X-Resume-Client`, `X-Backend-Attestation`), and in-memory sliding-window IP rate limiting (max 15 generations / 10 min). |
+| **Unauthorized Backend Abuse** | Third parties abusing the Render endpoint to drain API tokens. | **Strict Origin & Referer Gate**: CORS restricted exclusively to `https://jluckmay.github.io`, mutual attestation verification (`X-Resume-Client`, `X-Backend-Attestation`), and in-memory sliding-window IP rate limiting (max 15 generations / 10 min). |
 | **Network Eavesdropping & Snooping** | Packet sniffing or browser DevTools Network tab inspection exposing resume parameters, personal data, or credentials in transit. | **End-to-End Application-Layer Encryption (`ENC_PAYLOAD_V1`)**: all communication between the frontend (`index.html`) and backend (`server.py`) travels inside an **AES-256-GCM** cryptographic envelope with dynamic timestamp salt and random IV (`crypto.subtle`). Any network inspection tool (DevTools Network panel, Wireshark, proxy) observes exclusively opaque `ciphertext`, rendering traffic completely unreadable in transit. |
 | **Console & API Key Probing Attacks** | Users running scripts in the browser DevTools Console (`window.apiKey`, probing `/api/status`) or command-line tools (curl/Postman) trying to exfiltrate the server's default API key. | **Console Lockdown & Zero-Leak Defense**: The backend's default API key lives strictly in volatile memory within the Render Enclave and is **never** transmitted to the client in any response or header. The `/api/status` endpoint is sanitized with all internal variable names (`env_vars`) stripped. All endpoints and error handlers (`400`, `403`, `404`, `500`) pass through the recursive `scrub_sensitive_api_keys` filter, ensuring any active secret key pattern is redacted to `[REDACTED_API_KEY]`. In the browser, global namespace variables are frozen (`window.apiKey = undefined`), preventing console exfiltration. |
 
@@ -759,7 +758,6 @@ Users can choose between the secure server-provided default or **provide their o
 
 #### 5. Strict Communication Lockdown
 For end-to-end security, the Render backend strictly permits incoming connections and compilation requests **only** from:
-- `https://github.com/Jluckmay/latex-resume`
 - `https://jluckmay.github.io/`
 
 Any unauthorized request from other origins, third-party sites, or scrapers is immediately rejected with HTTP `403 Forbidden`.
