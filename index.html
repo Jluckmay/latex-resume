@@ -1886,7 +1886,10 @@
 
         function getBackendBaseUrl() {
             const custom = localStorage.getItem("latex_resume_backend_url");
-            if (custom && custom.trim() && !BackendEnclave.isProtectedAlias(custom.trim())) {
+            if (custom && custom.trim()) {
+                if (BackendEnclave.isProtectedAlias(custom.trim())) {
+                    return BackendEnclave.resolve();
+                }
                 return custom.trim().replace(/\/+$/, "");
             }
 
@@ -1956,7 +1959,12 @@
             if (resBox) resBox.style.display = "none";
             if (inp) {
                 const stored = localStorage.getItem("latex_resume_backend_url");
-                inp.value = (stored && !BackendEnclave.isProtectedAlias(stored)) ? stored : BackendEnclave.aliasLabel;
+                if (stored && stored.trim()) {
+                    inp.value = BackendEnclave.isProtectedAlias(stored.trim()) ? BackendEnclave.aliasLabel : stored.trim();
+                } else {
+                    const isLocal = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" || window.location.protocol === "file:";
+                    inp.value = isLocal ? "http://127.0.0.1:5000" : BackendEnclave.aliasLabel;
+                }
             }
             if (modal) modal.classList.remove("hidden");
         }
@@ -2045,8 +2053,20 @@
             const inp = document.getElementById("inp-backend-url");
             if (!inp) return;
             const val = inp.value.trim().replace(/\/+$/, "");
-            if (val && !BackendEnclave.isProtectedAlias(val)) {
-                localStorage.setItem("latex_resume_backend_url", val);
+            const isLocal = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" || window.location.protocol === "file:";
+
+            if (BackendEnclave.isProtectedAlias(val)) {
+                if (isLocal) {
+                    localStorage.setItem("latex_resume_backend_url", BackendEnclave.aliasLabel);
+                } else {
+                    localStorage.removeItem("latex_resume_backend_url");
+                }
+            } else if (val) {
+                if (isLocal && (val === "http://127.0.0.1:5000" || val === "http://localhost:5000")) {
+                    localStorage.removeItem("latex_resume_backend_url");
+                } else {
+                    localStorage.setItem("latex_resume_backend_url", val);
+                }
             } else {
                 localStorage.removeItem("latex_resume_backend_url");
             }

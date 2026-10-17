@@ -225,3 +225,54 @@ def test_backend_enclave_obfuscated_url():
     assert sensitive_subdomain not in html_text
     assert dec not in html_text
 
+
+def test_no_plaintext_backend_url_in_project_files():
+    """Garante que a URL do backend de produção e seu subdomínio não vazem em texto puro em nenhum arquivo do projeto."""
+    import re
+    import os
+
+    html_text = (PROJECT_ROOT / "index.html").read_text(encoding="utf-8")
+    c1_match = re.search(r"_C1\s*=\s*\[([0-9,\s]+)\]", html_text)
+    c2_match = re.search(r"_C2\s*=\s*\[([0-9,\s]+)\]", html_text)
+    assert c1_match and c2_match
+
+    c1 = [int(x.strip()) for x in c1_match.group(1).split(",")]
+    c2 = [int(x.strip()) for x in c2_match.group(1).split(",")]
+    cipher = c1 + c2
+    key = [0x53, 0x79, 0x6E, 0x74, 0x68, 0x65, 0x73, 0x69, 0x73]
+    salt = 0xA7
+
+    dec = ""
+    for i, b in enumerate(cipher):
+        k = key[i % len(key)]
+        diff = (b - (i * 7) - salt) % 256
+        if diff < 0:
+            diff += 256
+        dec += chr(diff ^ k)
+
+    sensitive_subdomain = dec.split("://")[1].split(".")[0]
+
+    # Verifica todos os arquivos de código e documentação do repositório
+    excluded_dirs = {".git", ".pytest_cache", "__pycache__", "venv", ".venv", "node_modules"}
+    for root, dirs, files in os.walk(PROJECT_ROOT):
+        dirs[:] = [d for d in dirs if d not in excluded_dirs]
+        for f in files:
+            file_path = Path(root) / f
+            if file_path.suffix.lower() in [".png", ".ico", ".svg", ".pdf", ".pyc"]:
+                continue
+            content = file_path.read_text(encoding="utf-8", errors="ignore")
+            assert sensitive_subdomain not in content, f"Subdomínio sensível do backend vazou em {file_path}"
+            assert dec not in content, f"URL completa do backend vazou em {file_path}"
+
+
+def test_index_html_auto_environment_detection():
+    """Valida se o index.html detecta automaticamente localhost/file vs nuvem web para o backend."""
+    html_text = (PROJECT_ROOT / "index.html").read_text(encoding="utf-8")
+
+    assert "window.location.hostname === \"127.0.0.1\"" in html_text
+    assert "window.location.hostname === \"localhost\"" in html_text
+    assert "window.location.protocol === \"file:\"" in html_text
+    assert "http://127.0.0.1:5000" in html_text
+    assert "BackendEnclave.resolve()" in html_text
+
+
