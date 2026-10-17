@@ -379,15 +379,23 @@ class LaTeXPreambleSplitPlugin:
 
 
 class SHA256DiskCachePlugin:
-    """Cache persistente SHA-256 para evitar chamadas duplicadas à API NVIDIA."""
+    """Cache de tokens SHA-256 com isolamento volátil em memória (Zero-Storage).
 
-    name = "SHA256DiskCachePlugin (Local Token Cache)"
+    Por padrão opera estritamente em memória volátil (`in_memory_only=True`),
+    impedindo que dados pessoais, currículos ou prompts sejam gravados no disco do servidor.
+    """
 
-    def __init__(self, cache_dir: Path = CACHE_DIR) -> None:
+    name = "SHA256EphemeralCachePlugin (Zero-Storage RAM Cache)"
+
+    def __init__(self, cache_dir: Path = CACHE_DIR, in_memory_only: bool = True) -> None:
         self.cache_dir = cache_dir
         self.cache_file = self.cache_dir / "nvidia_token_cache.json"
+        self.in_memory_only = in_memory_only
+        self._memory_cache: Dict[str, Dict[str, str]] = {}
 
     def _load(self) -> Dict[str, Any]:
+        if self.in_memory_only:
+            return self._memory_cache
         if not self.cache_file.exists():
             return {}
         try:
@@ -396,6 +404,9 @@ class SHA256DiskCachePlugin:
             return {}
 
     def _save(self, data: Dict[str, Any]) -> None:
+        if self.in_memory_only:
+            self._memory_cache = data
+            return
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.cache_file.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -415,4 +426,5 @@ class SHA256DiskCachePlugin:
         data = self._load()
         data[key] = {"content": content, "model": model}
         self._save(data)
+
 

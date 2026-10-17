@@ -31,7 +31,7 @@ class LLMResumeGenerator:
         provider: str = DEFAULT_PROVIDER,
         api_key: str | None = None,
         model: str | None = None,
-        use_cache: bool = True,
+        use_cache: bool = False,
     ) -> None:
         self.provider = (provider or DEFAULT_PROVIDER).strip().lower()
         self._custom_key = api_key.strip() if api_key and api_key.strip() else None

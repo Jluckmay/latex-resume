@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import base64
+import tempfile
+from pathlib import Path
 
 import streamlit as st
 
-from src.compiler import check_latex_compiler
+from src.compiler import check_latex_compiler, secure_wipe_and_remove_dir
 from src.config import (
     DEFAULT_MODEL,
     DEFAULT_PROVIDER,
@@ -285,6 +287,8 @@ with col_right:
     st.subheader(txt["res_header"])
     if generate_btn:
         with st.spinner(txt["spinner_msg"]):
+            tmp_build_dir = tempfile.mkdtemp(prefix="st_session_ephemeral_")
+            build_path = Path(tmp_build_dir)
             try:
                 res = build_resume_pipeline(
                     resume_type=resume_type,
@@ -310,68 +314,96 @@ with col_right:
                     provider=selected_provider,
                     api_key=custom_api_key if custom_api_key.strip() else None,
                     model=selected_model,
-                    use_cache=use_cache,
+                    use_cache=False,  # Zero-storage: nenhum documento persistido em disco
                     output_stem=f"resume_{resume_lang}_{resume_type}_{selected_template_id}",
+                    build_dir=build_path,
                     lang=resume_lang,
                 )
 
-                tm = res.token_metrics
-                m1, m2, m3, m4 = st.columns(4)
-                m1.metric(txt["metric_total"], tm.get("total_tokens_actual", 0))
-                m2.metric(txt["metric_reasoning"], tm.get("reasoning_tokens_actual", 0))
-                m3.metric(txt["metric_saved"], f"~{tm.get('estimated_tokens_saved', 0)}")
-                m4.metric(txt["metric_pct"], f"{tm.get('estimated_savings_pct', 0)}%")
-
-                cache_str = txt["yes_zero_tokens"] if tm.get("cache_hit") else txt["no_lbl"]
-                st.caption(
-                    f"**{txt['model_used_lbl']}:** `{tm.get('model_used')}` • "
-                    f"**{txt['cache_hit_lbl']}:** `{cache_str}`"
-                )
+                # Armazena os documentos estritamente na memória volátil da sessão (RAM)
+                st.session_state["session_has_run"] = True
+                st.session_state["session_success"] = res.success
+                st.session_state["session_latex_code"] = res.latex_code
+                st.session_state["session_token_metrics"] = res.token_metrics
+                st.session_state["session_structured_cv"] = res.structured_cv
+                st.session_state["session_compiler_message"] = res.compiler_message
+                st.session_state["session_tex_name"] = f"resume_{resume_lang}_{resume_type}_{selected_template_id}.tex"
 
                 if res.success and res.pdf_path and res.pdf_path.exists():
-                    st.success(f"{txt['pdf_ok_msg']}: `{res.pdf_path.name}`")
-                    pdf_bytes = res.pdf_path.read_bytes()
-                    d1, d2 = st.columns(2)
-                    with d1:
-                        st.download_button(
-                            txt["dl_pdf_btn"],
-                            data=pdf_bytes,
-                            file_name=res.pdf_path.name,
-                            mime="application/pdf",
-                            type="primary",
-                            use_container_width=True,
-                        )
-                    with d2:
-                        st.download_button(
-                            txt["dl_tex_btn"],
-                            data=res.latex_code.encode("utf-8"),
-                            file_name=res.tex_path.name,
-                            mime="text/plain",
-                            use_container_width=True,
-                        )
-
-                    b64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
-                    pdf_iframe = (
-                        f'<iframe src="data:application/pdf;base64,{b64_pdf}" '
-                        f'width="100%" height="680" type="application/pdf"></iframe>'
-                    )
-                    st.markdown(pdf_iframe, unsafe_allow_html=True)
+                    st.session_state["session_pdf_bytes"] = res.pdf_path.read_bytes()
+                    st.session_state["session_pdf_name"] = f"resume_{resume_lang}_{resume_type}_{selected_template_id}.pdf"
                 else:
-                    st.warning(f"{txt['pdf_warn_msg']}:\n\n`{res.compiler_message}`")
-                    st.download_button(
-                        txt["dl_tex_btn"],
-                        data=res.latex_code.encode("utf-8"),
-                        file_name=res.tex_path.name,
-                        mime="text/plain",
-                    )
-
-                with st.expander(txt["view_tex_exp"]):
-                    st.code(res.latex_code, language="latex")
-
-                with st.expander(txt["view_audit_exp"]):
-                    st.json({"token_metrics": tm, "structured_cv": res.structured_cv})
-
+                    st.session_state["session_pdf_bytes"] = None
+                    st.session_state["session_pdf_name"] = ""
             except Exception as exc:
                 st.error(f"{txt['err_msg']}: {exc}")
+            finally:
+                # Destrói imediatamente e com segurança o diretório temporário do disco do servidor
+                secure_wipe_and_remove_dir(build_path)
+
+    if st.session_state.get("session_has_run"):
+        tm = st.session_state.get("session_token_metrics", {})
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric(txt["metric_total"], tm.get("total_tokens_actual", 0))
+        m2.metric(txt["metric_reasoning"], tm.get("reasoning_tokens_actual", 0))
+        m3.metric(txt["metric_saved"], f"~{tm.get('estimated_tokens_saved', 0)}")
+        m4.metric(txt["metric_pct"], f"{tm.get('estimated_savings_pct', 0)}%")
+
+        cache_str = txt["yes_zero_tokens"] if tm.get("cache_hit") else txt["no_lbl"]
+        st.caption(
+            f"**{txt['model_used_lbl']}:** `{tm.get('model_used')}` • "
+            f"**{txt['cache_hit_lbl']}:** `{cache_str}`"
+        )
+
+        pdf_bytes = st.session_state.get("session_pdf_bytes")
+        latex_code = st.session_state.get("session_latex_code", "")
+        pdf_name = st.session_state.get("session_pdf_name", "curriculo.pdf")
+        tex_name = st.session_state.get("session_tex_name", "curriculo.tex")
+        comp_msg = st.session_state.get("session_compiler_message", "")
+
+        if st.session_state.get("session_success") and pdf_bytes:
+            st.success(f"{txt['pdf_ok_msg']}: `{pdf_name}`")
+            d1, d2 = st.columns(2)
+            with d1:
+                st.download_button(
+                    txt["dl_pdf_btn"],
+                    data=pdf_bytes,
+                    file_name=pdf_name,
+                    mime="application/pdf",
+                    type="primary",
+                    use_container_width=True,
+                )
+            with d2:
+                st.download_button(
+                    txt["dl_tex_btn"],
+                    data=latex_code.encode("utf-8"),
+                    file_name=tex_name,
+                    mime="text/plain",
+                    use_container_width=True,
+                )
+
+            b64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
+            pdf_iframe = (
+                f'<iframe src="data:application/pdf;base64,{b64_pdf}" '
+                f'width="100%" height="680" type="application/pdf"></iframe>'
+            )
+            st.markdown(pdf_iframe, unsafe_allow_html=True)
+        else:
+            st.warning(f"{txt['pdf_warn_msg']}:\n\n`{comp_msg}`")
+            st.download_button(
+                txt["dl_tex_btn"],
+                data=latex_code.encode("utf-8"),
+                file_name=tex_name,
+                mime="text/plain",
+            )
+
+        with st.expander(txt["view_tex_exp"]):
+            st.code(latex_code, language="latex")
+
+        with st.expander(txt["view_audit_exp"]):
+            st.json({
+                "token_metrics": tm,
+                "structured_cv": st.session_state.get("session_structured_cv", {}),
+            })
     else:
         st.info(txt["idle_info"])

@@ -61,7 +61,7 @@ def build_resume_pipeline(
     provider: str = DEFAULT_PROVIDER,
     api_key: str | None = None,
     model: str = DEFAULT_MODEL,
-    use_cache: bool = True,
+    use_cache: bool = False,
     output_stem: str = "curriculo_gerado",
     build_dir: Path | None = None,
     lang: str = "pt-br",

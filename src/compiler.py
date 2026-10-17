@@ -236,3 +236,33 @@ def compile_latex_to_pdf(
         return False, None, tex_path, f"Falha na compilação LaTeX ({type(exc).__name__})."
 
 
+def secure_wipe_and_remove_dir(dir_path: Path | str | None) -> None:
+    """Sobrescreve com bytes nulos e remove com segurança todos os arquivos de um diretório efêmero.
+
+    Garante a política de Zero-Storage no servidor: documentos recebidos (fotos, PDFs, XMLs)
+    e gerados (.tex, .pdf, .aux, .log) são destruídos imediatamente após a requisição.
+    """
+    if not dir_path:
+        return
+    try:
+        p = Path(dir_path).resolve()
+        if not p.exists() or not p.is_dir():
+            return
+        for item in p.iterdir():
+            try:
+                if item.is_file():
+                    size = item.stat().st_size
+                    if size > 0:
+                        with open(item, "wb") as f:
+                            f.write(b"\x00" * min(size, 65536))
+                    item.unlink(missing_ok=True)
+                elif item.is_dir():
+                    shutil.rmtree(item, ignore_errors=True)
+            except Exception:
+                pass
+        shutil.rmtree(p, ignore_errors=True)
+    except Exception:
+        pass
+
+
+

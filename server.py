@@ -17,7 +17,7 @@ from pathlib import Path
 
 from flask import Flask, Response, jsonify, request, send_file
 
-from src.compiler import check_latex_compiler
+from src.compiler import check_latex_compiler, secure_wipe_and_remove_dir
 from src.config import (
     DEFAULT_MODEL,
     DEFAULT_PROVIDER,
@@ -291,9 +291,10 @@ def api_generate() -> Response | tuple[Response, int]:
             else None
         )
 
-        # Compilação em diretório temporário isolado por requisição (previne colisões concorrentes e vazamento em disco)
-        with tempfile.TemporaryDirectory(prefix="cv_build_") as tmp_build_dir:
-            build_path = Path(tmp_build_dir)
+        # Compilação em diretório efêmero isolado por requisição com política estrita de Zero-Storage
+        tmp_build_dir = tempfile.mkdtemp(prefix="cv_session_ephemeral_")
+        build_path = Path(tmp_build_dir)
+        try:
             result = build_resume_pipeline(
                 resume_type=resume_type,
                 linkedin_url=form.get("linkedin", ""),
@@ -318,7 +319,7 @@ def api_generate() -> Response | tuple[Response, int]:
                 provider=provider,
                 api_key=form.get("api_key", "").strip() or None,
                 model=model,
-                use_cache=True,
+                use_cache=False,  # Zero-storage: documentos nunca gravados em disco de cache
                 output_stem=f"web_{lang}_{resume_type}_{template_id}",
                 build_dir=build_path,
                 lang=lang,
@@ -326,7 +327,8 @@ def api_generate() -> Response | tuple[Response, int]:
 
             pdf_b64 = ""
             if result.success and result.pdf_path and result.pdf_path.exists():
-                pdf_b64 = base64.b64encode(result.pdf_path.read_bytes()).decode("ascii")
+                pdf_bytes = result.pdf_path.read_bytes()
+                pdf_b64 = base64.b64encode(pdf_bytes).decode("ascii")
 
             return jsonify(
                 {
@@ -338,6 +340,9 @@ def api_generate() -> Response | tuple[Response, int]:
                     "structured_cv": result.structured_cv,
                 }
             )
+        finally:
+            # Destruição segura e imediata: sobrescreve com zeros e remove todos os arquivos efêmeros
+            secure_wipe_and_remove_dir(build_path)
     except Exception as exc:
         return jsonify({"error": f"Falha no processamento: {type(exc).__name__}"}), 500
 
