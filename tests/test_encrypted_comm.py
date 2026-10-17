@@ -273,6 +273,61 @@ def test_server_runtime_error_message_is_informative_and_scrubbed(client):
 def test_csp_explicit_font_and_style_directives():
     """Valida se a política CSP no index.html declara explicitamente font-src e style-src para evitar bloqueio de fontes."""
     html_text = (Path(__file__).parent.parent / "index.html").read_text(encoding="utf-8")
-    assert "font-src 'self' https://fonts.gstatic.com data: blob:;" in html_text
-    assert "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;" in html_text
+    assert "font-src 'self' https://fonts.gstatic.com" in html_text
+    assert "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com" in html_text
+
+
+def test_api_status_reports_has_nvidia_key(client):
+    """Garante que /api/status informe com segurança se a chave NVIDIA está presente no servidor."""
+    res = client.get(
+        "/api/status",
+        headers={
+            "Origin": "https://jluckmay.github.io",
+            "Referer": "https://jluckmay.github.io/latex-resume",
+        },
+    )
+    assert res.status_code == 200
+    data = res.get_json()
+    assert "has_nvidia_key" in data
+    assert isinstance(data["has_nvidia_key"], bool)
+
+
+def test_server_key_sharing_default_and_nvidia():
+    """Garante que o enclave compartilhe a chave de infraestrutura entre 'default' e 'nvidia'."""
+    from src._vault import _get_server_key_for_provider, _SERVER_ENCLAVE_STORE
+    _SERVER_ENCLAVE_STORE.clear()
+    with patch.dict(os.environ, {"NVIDIA_API_KEY": "nvapi-test1234567890abcdef"}):
+        key_default = _get_server_key_for_provider("default")
+        assert key_default == "nvapi-test1234567890abcdef"
+        # Mesmo tendo sido removido de os.environ, o provedor 'nvidia' ainda tem acesso
+        key_nvidia = _get_server_key_for_provider("nvidia")
+        assert key_nvidia == "nvapi-test1234567890abcdef"
+
+
+def test_google_missing_key_informative_error(client):
+    """Garante que requisições com provedores de chave própria sem chave retornem erro claro em vez de 'RuntimeError' genérico."""
+    raw_payload = {
+        "resume_type": "profissional",
+        "provider": "google",
+        "use_ai": True,
+    }
+    enc_payload = encrypt_payload_envelope(raw_payload, direction="req")
+    res = client.post(
+        "/api/generate",
+        headers={
+            "Origin": "https://jluckmay.github.io",
+            "Referer": "https://jluckmay.github.io/latex-resume",
+            "Content-Type": "application/json",
+            "X-Resume-Client": "jluckmay-github-pages-v1",
+            "X-Client-Timestamp": str(int(time.time() * 1000)),
+            "X-Encrypted-Payload": "1",
+        },
+        data=json.dumps(enc_payload),
+    )
+    assert res.status_code == 500
+    decrypted = decrypt_payload_envelope(res.get_json(), direction="resp")
+    assert decrypted["success"] is False
+    assert "Google Gemini" in decrypted["error"]
+    assert decrypted["error"] != "Falha no processamento: RuntimeError"
+
 

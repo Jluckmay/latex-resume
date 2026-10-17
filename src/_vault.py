@@ -30,6 +30,7 @@ _ALLOWED_MODES = (
     "MODE:CAVEMAN_JSON_ONLY",
     "MODE:CAVEMAN_LATEX_ONLY",
     "MODE:CAVEMAN_LATEX_REPAIR",
+    "MODE:CAVEMAN_LATEX_REVIEW",
 )
 
 _ALLOWED_MARKERS = (
@@ -37,6 +38,7 @@ _ALLOWED_MARKERS = (
     "DADOS_PERFIL_TOON:",
     "CORPO_TEMPLATE_LATEX:",
     "ERROR:\n",
+    "LATEX_BODY_TO_REVIEW:",
 )
 
 _ENV_INTERCEPT_VARS = (
@@ -94,6 +96,9 @@ _SERVER_ENCLAVE_STORE: Dict[str, str] = {}
 def _get_server_key_for_provider(prov: str) -> str:
     """Recupera chave do servidor armazenada no enclave em RAM, lendo do ambiente se disponível."""
     global _SERVER_ENCLAVE_STORE
+    lookup_prov = "default" if prov == "nvidia" else prov
+    if lookup_prov in _SERVER_ENCLAVE_STORE and _SERVER_ENCLAVE_STORE[lookup_prov]:
+        return _SERVER_ENCLAVE_STORE[lookup_prov]
     if prov in _SERVER_ENCLAVE_STORE and _SERVER_ENCLAVE_STORE[prov]:
         return _SERVER_ENCLAVE_STORE[prov]
 
@@ -102,9 +107,18 @@ def _get_server_key_for_provider(prov: str) -> str:
         val = os.environ.get(ev, "").strip()
         if val:
             _SERVER_ENCLAVE_STORE[prov] = val
+            if prov in ("default", "nvidia"):
+                _SERVER_ENCLAVE_STORE["default"] = val
+                _SERVER_ENCLAVE_STORE["nvidia"] = val
             # Limpa de os.environ para que nenhum processo-filho herde as credenciais
             os.environ.pop(ev, None)
             return val
+
+    # Fallback cruzado entre default e nvidia
+    if prov in ("default", "nvidia"):
+        fallback = _SERVER_ENCLAVE_STORE.get("default") or _SERVER_ENCLAVE_STORE.get("nvidia")
+        if fallback:
+            return fallback
     return ""
 
 
@@ -301,26 +315,34 @@ def dispatch_secure_llm_chat(
         if prov in ("default", "nvidia"):
             raise RuntimeError(
                 "Chave de API NVIDIA não configurada no servidor backend. "
-                "Informe sua própria chave de API (iniciando em 'nvapi-...') no campo 'Chave de API do Provedor'."
+                "Informe sua própria chave de API (iniciando em 'nvapi-...') no campo 'Chave de API do Provedor', "
+                "ou selecione 'Sem IA / Offline (0 Tokens)' para compilar diretamente sem necessidade de chave."
             )
         elif prov == "google":
             raise RuntimeError(
-                "Chave de API do Google Gemini não fornecida. Informe sua chave (AIza...) no campo 'Chave de API do Provedor'."
+                "Chave de API do Google Gemini não fornecida. Informe sua chave (iniciando em 'AIza...') no campo 'Chave de API do Provedor' "
+                "ou selecione 'NVIDIA NIM (Padrão do Servidor)' / 'Sem IA / Offline'."
             )
         elif prov == "claude":
             raise RuntimeError(
-                "Chave de API da Anthropic Claude não fornecida. Informe sua chave (sk-ant-...) no campo 'Chave de API do Provedor'."
+                "Chave de API da Anthropic Claude não fornecida. Informe sua chave (iniciando em 'sk-ant-...') no campo 'Chave de API do Provedor' "
+                "ou selecione 'NVIDIA NIM (Padrão do Servidor)' / 'Sem IA / Offline'."
             )
         elif prov == "openai":
             raise RuntimeError(
-                "Chave de API da OpenAI não fornecida. Informe sua chave (sk-...) no campo 'Chave de API do Provedor'."
+                "Chave de API da OpenAI não fornecida. Informe sua chave (iniciando em 'sk-...') no campo 'Chave de API do Provedor' "
+                "ou selecione 'NVIDIA NIM (Padrão do Servidor)' / 'Sem IA / Offline'."
             )
         elif prov == "deepseek":
             raise RuntimeError(
-                "Chave de API da DeepSeek não fornecida. Informe sua chave (sk-...) no campo 'Chave de API do Provedor'."
+                "Chave de API da DeepSeek não fornecida. Informe sua chave (iniciando em 'sk-...') no campo 'Chave de API do Provedor' "
+                "ou selecione 'NVIDIA NIM (Padrão do Servidor)' / 'Sem IA / Offline'."
             )
         else:
-            raise RuntimeError(f"Chave de API não informada para o provedor '{prov}'.")
+            raise RuntimeError(
+                f"Chave de API não informada para o provedor '{prov}'. "
+                "Informe sua chave no campo 'Chave de API do Provedor' ou selecione 'NVIDIA NIM (Padrão do Servidor)'."
+            )
 
     sys_msg = (messages[0].get("content") or "").strip()
     usr_msg = (messages[1].get("content") or "").strip()

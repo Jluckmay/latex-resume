@@ -27,6 +27,7 @@ from src.config import (
 )
 from src.pipeline import build_resume_pipeline
 from src._vault import (
+    _get_server_key_for_provider,
     decrypt_payload_envelope,
     encrypt_payload_envelope,
     scrub_sensitive_api_keys,
@@ -269,10 +270,13 @@ def api_status() -> Response | tuple[Response, int]:
         prov_dict.pop("env_vars", None)
         safe_providers[prov_id] = prov_dict
 
+    has_nvidia_key = bool(_get_server_key_for_provider("default"))
+
     status_data = {
         "status": "ok",
         "latex_ok": latex_ok,
         "latex_version": latex_ver,
+        "has_nvidia_key": has_nvidia_key,
         "providers": safe_providers,
         "models": RECOMMENDED_MODELS,
         "service": "latex-resume-backend",
@@ -501,12 +505,15 @@ def api_generate() -> Response | tuple[Response, int]:
             secure_wipe_and_remove_dir(build_path)
     except Exception as exc:
         raw_msg = str(exc).strip()
-        exc_msg = raw_msg if raw_msg else type(exc).__name__
+        if raw_msg:
+            exc_msg = raw_msg
+        else:
+            exc_msg = f"{type(exc).__name__}: Erro inesperado durante o processamento do pipeline. Verifique as configurações de entrada ou selecione 'Sem IA / Offline'."
         err_msg = scrub_sensitive_api_keys(f"Falha no processamento: {exc_msg}")
         if is_encrypted_transport:
             enc_err = encrypt_payload_envelope({"error": err_msg, "success": False}, direction="resp")
             return jsonify(enc_err), 500
-        return jsonify({"error": err_msg}), 500
+        return jsonify({"error": err_msg, "success": False}), 500
 
 
 def main() -> None:
