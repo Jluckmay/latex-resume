@@ -240,6 +240,7 @@ def api_generate() -> Response | tuple[Response, int]:
                 user_phone=form.get("phone", ""),
                 user_location=form.get("location", ""),
                 extra_notes=form.get("extra", ""),
+                api_key=form.get("api_key", "").strip() or None,
                 model=model,
                 use_cache=True,
                 output_stem=f"web_{lang}_{resume_type}_{template_id}",

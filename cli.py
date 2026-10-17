@@ -65,6 +65,11 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_MODEL,
         help=f"Modelo da API NVIDIA NIM / NVIDIA NIM model (default: {DEFAULT_MODEL}).",
     )
+    parser.add_argument(
+        "--api-key",
+        default="",
+        help="Chave de API NVIDIA NIM (opcional se NVIDIA_API_KEY estiver definida no ambiente) / NVIDIA NIM API Key (optional if NVIDIA_API_KEY is set).",
+    )
     parser.add_argument("--no-cache", action="store_true", help="Desativa o cache local / Disable local token cache.")
     parser.add_argument("--output", default="curriculo_gerado", help="Nome-base de saída / Output filename stem.")
     parser.add_argument("--list-models", action="store_true", help="Lista modelos recomendados / List recommended models.")
@@ -151,6 +156,7 @@ def main() -> int:
         user_phone=args.phone,
         user_location=args.location,
         extra_notes=args.extra,
+        api_key=args.api_key.strip() or None,
         model=args.model,
         use_cache=not args.no_cache,
         output_stem=args.output,
