@@ -1,4 +1,4 @@
-# 📄 Gerador Automático de Currículos LaTeX / Automatic LaTeX Resume Generator (NVIDIA NIM AI)
+# 📄 Gerador Automático de Currículos LaTeX / Automatic LaTeX Resume Generator (Multi-Provider AI: NVIDIA NIM, Gemini, Claude, OpenAI, DeepSeek)
 
 > 🌐 **Idioma / Language:** [🇧🇷 Português (pt-BR)](#-português-pt-br) | [🇺🇸 English (en-US)](#-english-en-us)
 
@@ -6,7 +6,7 @@
 
 ## 🇧🇷 Português (`pt-BR`)
 
-Gerador automático de currículos **Acadêmicos** e **Profissionais** em **LaTeX + PDF** (nos idiomas `pt-BR` e `en-US`), alimentado pela API **NVIDIA NIM** com arquitetura modular de **Plugins de Economia de Tokens** e **Cofre Criptográfico Vinculado à Tarefa (Task-Bound Enclave)**.
+Gerador automático de currículos **Acadêmicos** e **Profissionais** em **LaTeX + PDF** (nos idiomas `pt-BR` e `en-US`), alimentado por **Múltiplos Provedores de IA** (**NVIDIA NIM**, **Google Gemini**, **Anthropic Claude**, **OpenAI**, **DeepSeek**) com arquitetura modular de **Plugins de Economia de Tokens**, **Criptografia Efêmera em Navegador (AES-256-GCM)** e **Cofre de Memória Zero-Storage (Task-Bound Enclave)**.
 
 ### 📋 Requisitos do Projeto
 
@@ -43,6 +43,7 @@ Para executar o gerador e compilar os currículos em PDF, o ambiente deve atende
    - `streamlit >= 1.32.0`
    - `pypdf >= 4.0.0`
    - `flask >= 3.0.0`
+   - `cryptography >= 41.0.0`
    - **Instalação**:
      ```powershell
      pip install -r requirements.txt
@@ -75,6 +76,10 @@ Para executar o gerador e compilar os currículos em PDF, o ambiente deve atende
    - `google_standard`: **Padrão Google (Big Tech / Software Engineer)** — Baseado nas diretrizes de recrutamento Big Tech (Google SWE / Gayle Laakmann McDowell). Página única densa, margens de 0.5 polegadas, estrutura XYZ de realizações ("Conquistou [X] medido por [Y], realizando [Z]"), divisórias horizontais limpas e formatação clean sem espaços ociosos.
    - `ai_ats_max`: **Otimizado para IA & ATS (Máxima Legibilidade por LLMs)** — Desenvolvido especificamente para triagem automatizada por LLMs (Gemini, Claude, GPT) e sistemas ATS neurais (Workday, Greenhouse, Lever). Fluxo textual 100% linear em coluna única, metadados semânticos explícitos (tags textuais ASCII: Location, Email, Phone, LinkedIn, GitHub, Portfolio), matriz de competências e palavras-chave (Core Competencies & Keywords) dedicada para match semântico e compatibilidade Unicode nativa (`glyphtounicode`).
    - **Template Customizado (`.tex`)**: envie qualquer arquivo `.tex` próprio e o modelo preencherá a estrutura mantendo o preâmbulo original.
+5. **Suporte Multi-Provedor com Chaves Próprias Opcionais e Criptografia em Navegador (Zero-Storage)**:
+   - **6 Provedores de IA Suportados**: escolha entre **NVIDIA NIM** (padrão de servidor ou chave própria), **Google Gemini**, **Anthropic Claude**, **OpenAI** e **DeepSeek**, com modelos de última geração e fallback automático.
+   - **Criptografia Efêmera no Navegador (`SECKEY_V1`)**: ao inserir uma chave própria na interface web, ela é criptografada e ofuscada em tempo real via **Web Crypto API (AES-256-GCM)** com vetor de inicialização aleatório e derivação dinâmica baseada em timestamp antes de transitar na rede.
+   - **Isolamento de Memória & Destruição Imediata (Zero-Storage)**: o backend abre o envelope criptográfico exclusivamente em buffers voláteis na RAM (`src/_vault.py`), despacha a requisição via TLS 1.3 puro e preenche a memória com bytes nulos (`0x00`) no bloco `finally`, expurgando credenciais com `os.environ.pop` para impedir que processos-filhos (como o `pdflatex`) tenham acesso a qualquer segredo.
 
 ### 🚀 Publicação no GitHub, GitHub Pages e Backend no Render
 
@@ -82,8 +87,8 @@ O projeto foi arquitetado para separação segura entre Frontend Estático (GitH
 
 ```mermaid
 flowchart LR
-    A["🌐 Frontend Web Oficial<br>(https://jluckmay.github.io/ ou<br>https://github.com/Jluckmay/latex-resume)"] -- "1. POST /api/generate<br>(Origin: https://jluckmay.github.io ou https://github.com)" --> B["🛡️ Backend no Render<br>(Docker + pdflatex + Gunicorn)"]
-    B -- "2. Síntese com Economia de Tokens<br>(TLS 1.3 Pinned + Task-Bound Vault)" --> C["⚡ NVIDIA NIM API<br>(Nemotron 120B / MoE)"]
+    A["🌐 Frontend Web Oficial<br>(https://jluckmay.github.io/ ou<br>https://github.com/Jluckmay/latex-resume)"] -- "1. POST /api/generate<br>(Origin: https://jluckmay.github.io ou https://github.com<br>+ Envelope SECKEY_V1 Opcional)" --> B["🛡️ Backend no Render<br>(Docker + pdflatex + Gunicorn)"]
+    B -- "2. Síntese com Economia de Tokens<br>(TLS 1.3 + Zero-Storage Vault)" --> C["⚡ Motor de IA Multi-Provedor<br>(NVIDIA NIM / Gemini / Claude / OpenAI / DeepSeek)"]
     C -- "3. JSON Estruturado / TOON" --> B
     B -- "4. Compilação LaTeX Segura<br>(-no-shell-escape + openin_any=p)" --> B
     B -- "5. PDF Compilado (Base64) + X-Backend-Attestation" --> A
@@ -127,16 +132,23 @@ flowchart LR
 
 | Vulnerabilidade Auditada | Risco em Produção | Correção Aplicada |
 | :--- | :--- | :--- |
-| **Exposição da Chave em Repositório Público** | Bots/scrapers ou usuários extraírem a credencial do código, documentos ou commits do GitHub. | **Política Zero-Secret no Git & Cofre Efêmero Desacoplado**: O repositório Git, commits, documentos e arquivos distribuídos contêm **zero credenciais, zero shards e zero chaves embutidas**. A chave da API é configurada exclusivamente no ambiente privado do backend no Render (`NVIDIA_API_KEY`), fora do Git. Ao iniciar, o `_vault.py` purga a variável de `os.environ` imediatamente (`os.environ.pop`), valida a atestação de chamada (`src/nvidia_client.py`), despacha via TLS 1.3 puro com pinning de certificado e preenche buffers voláteis na memória RAM com zeros (`0x00`) em bloco `finally:`. Os usuários finais do GitHub Pages utilizam a compilação do backend sem jamais ter acesso ou capacidade de recuperar a chave da API. Para uso local independente, a chave pode ser informada pelo usuário via variável de ambiente, parâmetro `--api-key` ou na interface. |
+| **Exposição da Chave em Repositório Público** | Bots/scrapers ou usuários extraírem a credencial do código, documentos ou commits do GitHub. | **Política Zero-Secret no Git & Cofre Efêmero Desacoplado**: O repositório Git, commits, documentos e arquivos distribuídos contêm **zero credenciais, zero shards e zero chaves embutidas**. A chave padrão da API é configurada exclusivamente no ambiente privado do backend no Render (`NVIDIA_API_KEY`), fora do Git. Ao iniciar, o `_vault.py` purga a variável de `os.environ` imediatamente (`os.environ.pop`), valida a atestação de chamada (`src/nvidia_client.py` e `src/llm_client.py`), despacha via TLS 1.3 puro e preenche buffers voláteis na memória RAM com zeros (`0x00`) em bloco `finally:`. Os usuários finais do GitHub Pages utilizam a compilação do backend sem jamais ter acesso ou capacidade de recuperar a chave da API. Chaves próprias informadas na interface web trafegam criptografadas com Web Crypto AES-256-GCM (`SECKEY_V1`) e são igualmente destruídas em RAM após a geração. Para uso local independente, as chaves podem ser informadas pelo usuário via variáveis de ambiente, parâmetro `--api-key` ou na interface. |
 | **Execução Arbitrária de Código LaTeX (RCE)** | Primitivas `\write18` ou `\directlua` em templates customizados. | **Sanitização Prévia + Isolamento TeX**: bloqueio por regex de comandos do sistema (`\write18`, `\csname`, `\catcode`, `\input{/`). Execução do `pdflatex` com `-no-shell-escape`, ambiente de subprocesso higienizado e parâmetros Web2C `openin_any=p` e `openout_any=p` (impede leitura/escrita de arquivos fora do diretório de compilação). |
 | **SSRF (Server-Side Request Forgery)** | Usuário informar URLs de metadados AWS/GCP (`169.254.169.254`) ou rede interna (`127.0.0.1`, `10.0.0.0/8`). | **Validador de IP Público (`_safe_http_get`)**: resolução DNS com verificação `ip.is_global == True`. Bloqueio de loopback, ranges privados e link-local, além de limite de download de 1.5 MB e validação de redirecionamentos. |
 | **ZIP Bomb / XXE Bomb (Billion Laughs)** | Upload de ZIP malicioso ou XML com entidades recursivas do Lattes. | Limite estrito de descompressão (15 MB), bloqueio de declarações `<!DOCTYPE` e `<!ENTITY` antes de invocar o parser XML, e limite de 25 MP para fotos com Pillow (`Image.MAX_IMAGE_PIXELS`). |
 | **Acesso Não Autorizado ao Backend** | Terceiros usarem o backend no Render para consumir créditos da API. | **Bloqueio Estrito de Origem e Referer**: CORS restrito exclusivamente a `https://github.com/Jluckmay/latex-resume` e `https://jluckmay.github.io`, validação de cabeçalhos mútuos (`X-Resume-Client`, `X-Backend-Attestation`) e Rate Limiting em memória por IP (máx. 15 gerações / 10 min). |
 
-### Seleção do Melhor Modelo da API NVIDIA
+### 🧠 Provedores de IA Suportados & Seleção de Modelos
 
-- **Modelo Primário (`nvidia/nemotron-3.5-super-vl-120b-a12b`)**: arquitetura Mixture-of-Experts de 120B parâmetros (12B ativos), latência média **< 1.0s**, altíssima precisão na geração de JSON/LaTeX e suporte nativo a `enable_thinking: False` (**0 tokens gastos em raciocínio oculto**).
-- **Fallbacks Automáticos**: `stepfun-ai/step-5-preview`, `google/gemma-4-31b-it` e `z-ai/glm-5.3`.
+O gerador suporta múltiplos provedores de inteligência artificial de ponta, permitindo o uso da infraestrutura padrão do servidor ou chaves de API próprias fornecidas pelo usuário:
+
+| Provedor | Modelo Primário Recomendado | Modelos Alternativos / Fallbacks | Características Principais |
+| :--- | :--- | :--- | :--- |
+| **NVIDIA NIM** *(Padrão / Chave)* | `nvidia/nemotron-3.5-super-vl-120b-a12b` | `stepfun-ai/step-5-preview`, `google/gemma-4-31b-it`, `z-ai/glm-5.3` | 120B MoE (12B ativos), latência < 1.0s, suporte a `enable_thinking: False` (0 tokens ocultos). Padrão do backend. |
+| **Google Gemini** *(Chave própria)* | `gemini-2.5-flash` | `gemini-2.5-pro`, `gemini-1.5-pro`, `gemini-1.5-flash` | Altíssima velocidade, raciocínio aprimorado, conformidade estrita com schemas JSON estruturados. |
+| **Anthropic Claude** *(Chave própria)* | `claude-3-7-sonnet-20250219` | `claude-3-5-sonnet-20241022`, `claude-3-5-haiku-20241022` | Síntese de perfil executivo e acadêmico impecável, alta precisão textual e vocabulário formal polido. |
+| **OpenAI** *(Chave própria)* | `gpt-4o` | `gpt-4o-mini`, `o3-mini`, `gpt-4-turbo` | Modelo emblemático multimodal, consistência determinística em bullet points XYZ e métricas de impacto. |
+| **DeepSeek** *(Chave própria)* | `deepseek-chat` (DeepSeek V3) | `deepseek-reasoner` (DeepSeek R1) | Excelente relação custo-benefício, forte desempenho em codificação técnica e resumo curricular estruturado. |
 
 ### Plugins de Economia de Tokens (`src/token_plugins.py`)
 
@@ -173,15 +185,25 @@ pip install -r requirements.txt
 python cli.py --lang pt-br --check-deps
 ```
 
-#### 2. Configuração da Chave da API NVIDIA NIM
-Defina sua chave de API no terminal antes da execução (ou informe-a diretamente na interface gráfica, sem que seja gravada em disco):
+#### 2. Configuração de Chaves de API (Multi-Provedor)
+Defina a chave de API do provedor desejado no terminal antes da execução (ou informe-a interativamente/via interface gráfica, sem gravação em disco):
 ```powershell
-# Windows (PowerShell):
+# NVIDIA NIM (Padrão para execução local com NVIDIA):
 $env:NVIDIA_API_KEY = "nvapi-sua-chave-aqui"
 
-# Linux / macOS (Bash / Zsh):
-export NVIDIA_API_KEY="nvapi-sua-chave-aqui"
+# Google Gemini:
+$env:GEMINI_API_KEY = "AIzaSy-sua-chave-aqui"
+
+# Anthropic Claude:
+$env:ANTHROPIC_API_KEY = "sk-ant-sua-chave-aqui"
+
+# OpenAI:
+$env:OPENAI_API_KEY = "sk-sua-chave-aqui"
+
+# DeepSeek:
+$env:DEEPSEEK_API_KEY = "sk-sua-chave-aqui"
 ```
+*(No Linux ou macOS, substitua `$env:NOME = "..."` por `export NOME="..."`)*
 
 #### 3. Modos de Execução Disponíveis
 
@@ -192,6 +214,7 @@ python server.py
 ```
 - Acesse no navegador: `http://127.0.0.1:5000`
 - O servidor roda em modo de desenvolvimento local com compilação direta via `pdflatex` da sua máquina, sem latência de rede.
+- Suporta alternância dinâmica de provedores e inserção de chave de API própria com criptografia Web Crypto AES-256-GCM.
 
 ##### Modo B: Interface Interativa Streamlit (`app.py`)
 Inicia a interface visual rica do Streamlit com alternância de temas claro/escuro e preview instantâneo:
@@ -199,19 +222,25 @@ Inicia a interface visual rica do Streamlit com alternância de temas claro/escu
 streamlit run app.py
 ```
 - Acesse no navegador: `http://localhost:8501`
-- Possui prévia interativa dos 9 modelos LaTeX, seletor de paletas executivas e upload de arquivos.
+- Possui seletor lateral de provedor (`NVIDIA`, `Google`, `Claude`, `OpenAI`, `DeepSeek`), modelos correspondentes, campo de chave segura e prévia interativa dos 9 modelos LaTeX.
 
 ##### Modo C: Linha de Comando / CLI (`cli.py`)
-Geração rápida e automatizada via terminal:
+Geração rápida e automatizada via terminal, com suporte a seleção de provedores:
 ```powershell
-# Exemplo 1: Currículo Profissional com Modelo Padrão Google e Portfólio
+# Listar todos os provedores e modelos suportados:
+python cli.py --list-providers
+
+# Exemplo 1: Currículo Padrão Google com o provedor padrão (NVIDIA NIM)
 python cli.py --lang pt-br --type profissional --template google_standard --github octocat --linkedin "https://linkedin.com/in/exemplo" --portfolio "https://jluckmay.github.io/" --output cv_google
 
-# Exemplo 2: Currículo Otimizado para IA & ATS com Cores Customizadas
-python cli.py --lang pt-br --type profissional --template ai_ats_max --github octocat --primary-color "#0F4C81" --secondary-color "#1E293B" --output cv_ats
+# Exemplo 2: Currículo Otimizado para IA & ATS usando Google Gemini (chave lida de $env:GEMINI_API_KEY)
+python cli.py --lang pt-br --type profissional --template ai_ats_max --provider google --github octocat --primary-color "#0F4C81" --secondary-color "#1E293B" --output cv_gemini
 
-# Exemplo 3: Currículo Acadêmico com Lattes XML e ORCID
-python cli.py --lang pt-br --type academic --template academic_classic --orcid 0000-0002-1825-0097 --lattes-file examples/sample_lattes.xml --output cv_academico
+# Exemplo 3: Currículo Acadêmico usando Anthropic Claude com chave via parâmetro seguro
+python cli.py --lang pt-br --type academic --template academic_classic --provider claude --api-key "sk-ant-..." --orcid 0000-0002-1825-0097 --lattes-file examples/sample_lattes.xml --output cv_claude
+
+# Exemplo 4: Currículo usando OpenAI informando a chave via prompt oculto no terminal
+python cli.py --lang pt-br --type profissional --template modern_pro --provider openai --github octocat --output cv_openai
 ```
 
 ### 🌐 Guia de Uso da Aplicação Web Online (`https://github.com/Jluckmay/latex-resume`)
@@ -267,7 +296,7 @@ Qualquer solicitação proveniente de outros sites, domínios ou scrapers é aut
 
 ## 🇺🇸 English (`en-US`)
 
-Automatic generator for **Academic** and **Professional** resumes in **LaTeX + PDF** (supporting both `en-US` and `pt-BR`), powered by the **NVIDIA NIM API** with a modular **Token-Saving Plugin Architecture** and a **Task-Bound Cryptographic Enclave Vault**.
+Automatic generator for **Academic** and **Professional** resumes in **LaTeX + PDF** (supporting both `en-US` and `pt-BR`), powered by **Multiple AI Providers** (**NVIDIA NIM**, **Google Gemini**, **Anthropic Claude**, **OpenAI**, **DeepSeek**) with a modular **Token-Saving Plugin Architecture**, **In-Browser Ephemeral Encryption (AES-256-GCM)**, and a **Task-Bound Cryptographic Zero-Storage Enclave Vault**.
 
 ### 📋 Project Requirements
 
@@ -304,6 +333,7 @@ To run the generator and compile resumes into PDF, your environment must meet th
    - `streamlit >= 1.32.0`
    - `pypdf >= 4.0.0`
    - `flask >= 3.0.0`
+   - `cryptography >= 41.0.0`
    - **Installation**:
      ```powershell
      pip install -r requirements.txt
@@ -336,6 +366,10 @@ To run the generator and compile resumes into PDF, your environment must meet th
    - `google_standard`: **Google Standard (Big Tech / Software Engineer)** — Built upon Big Tech recruitment guidelines (Google SWE / Gayle Laakmann McDowell). Dense single-page layout, 0.5-inch margins, XYZ accomplishment format ("Accomplished [X] as measured by [Y], by doing [Z]"), clean horizontal rules, and zero wasted white space.
    - `ai_ats_max`: **AI & ATS Max-Readability (LLM & Neural ATS Evaluators)** — Engineered specifically for automated screening by LLMs (Gemini, Claude, GPT) and neural ATS parsers (Workday, Greenhouse, Lever). Strict 100% linear single-column text stream, explicit semantic ASCII metadata tags (Location, Email, Phone, LinkedIn, GitHub, Portfolio), dedicated Core Competencies & Keywords matrix, and native Unicode mapping (`glyphtounicode`).
    - **Custom Template (`.tex`)**: upload or paste your own `.tex` template and the engine populates the document body while preserving your custom preamble and macros.
+5. **Multi-Provider AI Engine with Optional Custom API Keys & Zero-Storage In-Browser Encryption**:
+   - **6 Supported AI Providers**: choose between **NVIDIA NIM** (secure server default or custom key), **Google Gemini**, **Anthropic Claude**, **OpenAI**, and **DeepSeek**, featuring state-of-the-art models and automated fallback resilience.
+   - **In-Browser Ephemeral Encryption (`SECKEY_V1`)**: custom API keys entered into the web interface are encrypted and obfuscated on-the-fly using the **Web Crypto API (AES-256-GCM)** with a dynamic timestamp-derived key and random IV prior to network transit.
+   - **RAM Enclave & Immediate Zeroing (Zero-Storage)**: the backend opens the cryptographic envelope solely within volatile RAM bytearray buffers (`src/_vault.py`), dispatches via pinned TLS 1.3, overwrites memory with null bytes (`0x00`) in `finally:` blocks, and scrubs environment variables with `os.environ.pop` to protect credentials against child processes (such as `pdflatex`).
 
 ### 🚀 Publishing to GitHub, GitHub Pages & Render Backend
 
@@ -343,8 +377,8 @@ The project is architected for strict separation between the Static Frontend (Gi
 
 ```mermaid
 flowchart LR
-    A["🌐 Official Web Frontend<br>(https://jluckmay.github.io/ or<br>https://github.com/Jluckmay/latex-resume)"] -- "1. POST /api/generate<br>(Origin: https://jluckmay.github.io or https://github.com)" --> B["🛡️ Render Backend<br>(Docker + pdflatex + Gunicorn)"]
-    B -- "2. Token-Saving LLM Synthesis<br>(TLS 1.3 Pinned + Task-Bound Vault)" --> C["⚡ NVIDIA NIM API<br>(Nemotron 120B / MoE)"]
+    A["🌐 Official Web Frontend<br>(https://jluckmay.github.io/ or<br>https://github.com/Jluckmay/latex-resume)"] -- "1. POST /api/generate<br>(Origin: https://jluckmay.github.io or https://github.com<br>+ Optional SECKEY_V1 Envelope)" --> B["🛡️ Render Backend<br>(Docker + pdflatex + Gunicorn)"]
+    B -- "2. Token-Saving LLM Synthesis<br>(TLS 1.3 + Zero-Storage Vault)" --> C["⚡ Multi-Provider AI Engine<br>(NVIDIA NIM / Gemini / Claude / OpenAI / DeepSeek)"]
     C -- "3. Structured JSON / TOON" --> B
     B -- "4. Sandboxed LaTeX Compilation<br>(-no-shell-escape + openin_any=p)" --> B
     B -- "5. Compiled PDF (Base64) + X-Backend-Attestation" --> A
@@ -388,16 +422,23 @@ flowchart LR
 
 | Audited Vector | Production Risk | Applied Countermeasure |
 | :--- | :--- | :--- |
-| **Credential Exposure on Public Git Repo** | Bots/scrapers or repository users extracting credentials from source code, documents, or Git commits. | **Zero-Secret Git Policy & Decoupled Ephemeral Vault**: The public Git repository, commit history, documentation, and distributed files contain **zero credentials, zero shards, and zero embedded keys**. The production API key is configured solely within the Render backend's private environment variables (`NVIDIA_API_KEY`), entirely decoupled from Git. Upon initialization, `_vault.py` purges the variable from `os.environ` immediately (`os.environ.pop`), enforces call-stack attestation (`src/nvidia_client.py`), dispatches via strict pinned TLS 1.3, and overwrites all volatile memory buffers with zeros (`0x00`) in a `finally:` block. End users on GitHub Pages compile resumes through the backend without ever having access to or the ability to retrieve the API key. For independent local usage, users can supply their own key via environment variables, the `--api-key` flag, or the UI. |
+| **Credential Exposure on Public Git Repo** | Bots/scrapers or repository users extracting credentials from source code, documents, or Git commits. | **Zero-Secret Git Policy & Decoupled Ephemeral Vault**: The public Git repository, commit history, documentation, and distributed files contain **zero credentials, zero shards, and zero embedded keys**. The production API key is configured solely within the Render backend's private environment variables (`NVIDIA_API_KEY`), entirely decoupled from Git. Upon initialization, `_vault.py` purges the variable from `os.environ` immediately (`os.environ.pop`), enforces call-stack attestation (`src/nvidia_client.py` and `src/llm_client.py`), dispatches via strict pinned TLS 1.3, and overwrites all volatile memory buffers with zeros (`0x00`) in a `finally:` block. End users on GitHub Pages compile resumes through the backend without ever having access to or the ability to retrieve the default API key. Custom keys provided in the web interface are encrypted on the client side with Web Crypto AES-256-GCM (`SECKEY_V1`) and are immediately zeroed out in RAM post-generation. For independent local usage, users can supply their own keys via environment variables, the `--api-key` flag, or the UI. |
 | **LaTeX Arbitrary Code Execution (RCE)** | `\write18` or `\directlua` primitives inside custom templates. | **Upstream Sanitization + TeX Sandbox**: regex blocking of system commands (`\write18`, `\csname`, `\catcode`, `\input{/`). `pdflatex` runs with `-no-shell-escape`, a sanitized environment, and Web2C parameters `openin_any=p` and `openout_any=p` (preventing file reads outside the ephemeral build directory). |
 | **SSRF (Server-Side Request Forgery)** | Malicious URLs targeting cloud metadata (`169.254.169.254`) or internal networks (`127.0.0.1`, `10.0.0.0/8`). | **Public IP Validator (`_safe_http_get`)**: DNS resolution asserting `ip.is_global == True`. Rejection of loopback, private, and link-local ranges, with a 1.5 MB response download cap and safe redirect evaluation. |
 | **ZIP Bomb / XXE Bomb (Billion Laughs)** | Malicious ZIP or recursive entity XML uploads via Lattes. | Strict uncompressed size ceiling (15 MB), regex rejection of `<!DOCTYPE` and `<!ENTITY` declarations prior to XML parsing, and 25 MP image cap in Pillow (`Image.MAX_IMAGE_PIXELS`). |
 | **Unauthorized Backend Abuse** | Third parties abusing the Render endpoint to drain API tokens. | **Strict Origin & Referer Gate**: CORS restricted exclusively to `https://github.com/Jluckmay/latex-resume` and `https://jluckmay.github.io`, mutual attestation verification (`X-Resume-Client`, `X-Backend-Attestation`), and in-memory sliding-window IP rate limiting (max 15 generations / 10 min). |
 
-### Best NVIDIA NIM Model Selection
+### 🧠 Supported AI Providers & Model Selection
 
-- **Primary Model (`nvidia/nemotron-3.5-super-vl-120b-a12b`)**: 120B Mixture-of-Experts (12B active parameters), average latency **< 1.0s**, superior structured JSON/LaTeX compliance, and native support for `enable_thinking: False` (**0 tokens wasted on hidden chain-of-thought**).
-- **Automatic Fallbacks**: `stepfun-ai/step-5-preview`, `google/gemma-4-31b-it`, and `z-ai/glm-5.3`.
+The generator supports multiple leading AI providers, accommodating the default server infrastructure as well as user-supplied custom API keys:
+
+| Provider | Recommended Primary Model | Alternative / Fallback Models | Key Characteristics |
+| :--- | :--- | :--- | :--- |
+| **NVIDIA NIM** *(Default / Custom Key)* | `nvidia/nemotron-3.5-super-vl-120b-a12b` | `stepfun-ai/step-5-preview`, `google/gemma-4-31b-it`, `z-ai/glm-5.3` | 120B MoE (12B active), latency < 1.0s, native `enable_thinking: False` (0 hidden tokens). Backend default. |
+| **Google Gemini** *(Custom Key)* | `gemini-2.5-flash` | `gemini-2.5-pro`, `gemini-1.5-pro`, `gemini-1.5-flash` | Ultra-fast throughput, enhanced reasoning, strict adherence to structured JSON schemas. |
+| **Anthropic Claude** *(Custom Key)* | `claude-3-7-sonnet-20250219` | `claude-3-5-sonnet-20241022`, `claude-3-5-haiku-20241022` | Flawless executive and academic synthesis, high-precision phrasing, and polished formal prose. |
+| **OpenAI** *(Custom Key)* | `gpt-4o` | `gpt-4o-mini`, `o3-mini`, `gpt-4-turbo` | Flagship multimodal model, deterministic consistency for XYZ impact bullet points and metrics. |
+| **DeepSeek** *(Custom Key)* | `deepseek-chat` (DeepSeek V3) | `deepseek-reasoner` (DeepSeek R1) | Highly cost-effective, exceptional performance on technical coding backgrounds and structured summaries. |
 
 ### Token-Saving Plugins (`src/token_plugins.py`)
 
@@ -434,15 +475,25 @@ pip install -r requirements.txt
 python cli.py --lang en-us --check-deps
 ```
 
-#### 2. Configure NVIDIA NIM API Key
-Set your API key in your terminal before launching (or input it directly in the graphical UI without saving to disk):
+#### 2. Configure API Keys (Multi-Provider)
+Set the API key for your desired provider in your terminal before launching (or input it interactively/via the web UI without saving to disk):
 ```powershell
-# Windows (PowerShell):
+# NVIDIA NIM (Default for local NVIDIA execution):
 $env:NVIDIA_API_KEY = "nvapi-your-key-here"
 
-# Linux / macOS (Bash / Zsh):
-export NVIDIA_API_KEY="nvapi-your-key-here"
+# Google Gemini:
+$env:GEMINI_API_KEY = "AIzaSy-your-key-here"
+
+# Anthropic Claude:
+$env:ANTHROPIC_API_KEY = "sk-ant-your-key-here"
+
+# OpenAI:
+$env:OPENAI_API_KEY = "sk-your-key-here"
+
+# DeepSeek:
+$env:DEEPSEEK_API_KEY = "sk-your-key-here"
 ```
+*(On Linux or macOS, replace `$env:NAME = "..."` with `export NAME="..."`)*
 
 #### 3. Available Execution Modes
 
@@ -453,6 +504,7 @@ python server.py
 ```
 - Open in your browser: `http://127.0.0.1:5000`
 - Runs in local development mode with direct compilation via your local `pdflatex`, eliminating network latency.
+- Supports live multi-provider switching and custom client-side API keys with Web Crypto AES-256-GCM encryption.
 
 ##### Mode B: Interactive Streamlit Web UI (`app.py`)
 Launches the rich Streamlit dashboard with light/dark theme toggling and live template previews:
@@ -460,19 +512,25 @@ Launches the rich Streamlit dashboard with light/dark theme toggling and live te
 streamlit run app.py
 ```
 - Open in your browser: `http://localhost:8501`
-- Includes live visual previews for all 9 LaTeX templates, curated palettes, and full multi-source file upload.
+- Includes sidebar provider selection (`NVIDIA`, `Google`, `Claude`, `OpenAI`, `DeepSeek`), corresponding models, secure key input, and interactive live previews for all 9 LaTeX templates.
 
 ##### Mode C: Command-Line Interface / CLI (`cli.py`)
-Fast, scriptable resume generation directly from the terminal:
+Fast, scriptable resume generation directly from the terminal, with full multi-provider support:
 ```powershell
-# Example 1: Professional Resume with Google Standard Template & Portfolio
+# List all supported AI providers and models:
+python cli.py --list-providers
+
+# Example 1: Google Standard Resume with the default provider (NVIDIA NIM)
 python cli.py --lang en-us --type professional --template google_standard --github octocat --linkedin "https://linkedin.com/in/example" --portfolio "https://jluckmay.github.io/" --output resume_google
 
-# Example 2: AI & ATS-Optimized Resume with Custom Corporate Colors
-python cli.py --lang en-us --type professional --template ai_ats_max --github octocat --primary-color "#0F4C81" --secondary-color "#1E293B" --output resume_ats
+# Example 2: AI & ATS-Optimized Resume using Google Gemini (key read from $env:GEMINI_API_KEY)
+python cli.py --lang en-us --type professional --template ai_ats_max --provider google --github octocat --primary-color "#0F4C81" --secondary-color "#1E293B" --output resume_gemini
 
-# Example 3: Academic CV with Lattes XML & ORCID
-python cli.py --lang en-us --type academic --template academic_classic --orcid 0000-0002-1825-0097 --lattes-file examples/sample_lattes.xml --output resume_academic
+# Example 3: Academic CV using Anthropic Claude with key supplied via secure parameter
+python cli.py --lang en-us --type academic --template academic_classic --provider claude --api-key "sk-ant-..." --orcid 0000-0002-1825-0097 --lattes-file examples/sample_lattes.xml --output resume_claude
+
+# Example 4: Resume using OpenAI prompting for the API key via hidden password prompt
+python cli.py --lang en-us --type professional --template modern_pro --provider openai --github octocat --output resume_openai
 ```
 
 ### 🌐 Web Interface & Repository Usage Guide (`https://github.com/Jluckmay/latex-resume`)
