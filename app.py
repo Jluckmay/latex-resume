@@ -7,7 +7,13 @@ import base64
 import streamlit as st
 
 from src.compiler import check_latex_compiler
-from src.config import DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDERS_CONFIG, RECOMMENDED_MODELS
+from src.config import (
+    DEFAULT_MODEL,
+    DEFAULT_PROVIDER,
+    PROJECT_ROOT,
+    PROVIDERS_CONFIG,
+    RECOMMENDED_MODELS,
+)
 from src.i18n import MODELS_I18N, TEMPLATES_I18N, UI_TEXT, normalize_lang
 from src.pipeline import build_resume_pipeline
 from src.templates import BUILTIN_TEMPLATES
@@ -19,9 +25,11 @@ from src.ui_theme import (
     render_template_preview_html,
 )
 
+FAVICON_PATH = PROJECT_ROOT / "favicon.png"
+
 st.set_page_config(
     page_title="LaTeX Resume Generator — NVIDIA AI",
-    page_icon="📄",
+    page_icon=str(FAVICON_PATH) if FAVICON_PATH.exists() else "📄",
     layout="wide",
 )
 
@@ -42,6 +50,11 @@ default_lang_idx = 1 if st.session_state["auto_lang"] == "en-us" else 0
 default_theme_idx = 0 if st.session_state["auto_theme"] == "light" else 1
 
 with st.sidebar:
+    if FAVICON_PATH.exists():
+        st.image(str(FAVICON_PATH), width=56)
+    st.markdown("### **LaTeX Resume Generator**\n*NVIDIA NIM • Multi-Provider*")
+    st.divider()
+
     lang_choice = st.selectbox(
         "🌐 Idioma / Language",
         options=["🇧🇷 Português (pt-BR)", "🇺🇸 English (en-US)"],
@@ -123,7 +136,12 @@ with st.sidebar:
     st.markdown(txt["plugins_md"])
 
 # Cabeçalho da página
-st.title(txt["app_title"])
+head_col1, head_col2 = st.columns([0.08, 0.92], vertical_alignment="center")
+with head_col1:
+    if FAVICON_PATH.exists():
+        st.image(str(FAVICON_PATH), width=58)
+with head_col2:
+    st.title(txt["app_title"])
 st.caption(txt["app_caption"])
 
 col_left, col_right = st.columns([1.08, 0.92], gap="large")

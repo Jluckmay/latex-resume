@@ -181,6 +181,46 @@ def serve_index() -> Response:
     return send_file(PROJECT_ROOT / "index.html")
 
 
+@app.route("/favicon.ico")
+def serve_favicon_ico() -> Response:
+    """Serve o favicon.ico oficial do projeto para a guia do navegador."""
+    ico_path = PROJECT_ROOT / "favicon.ico"
+    if ico_path.exists():
+        return send_file(ico_path, mimetype="image/x-icon", max_age=86400)
+    return "", 404
+
+
+@app.route("/favicon.svg")
+def serve_favicon_svg() -> Response:
+    """Serve o ícone vetorial SVG de alta definição."""
+    svg_path = PROJECT_ROOT / "favicon.svg"
+    if svg_path.exists():
+        return send_file(svg_path, mimetype="image/svg+xml", max_age=86400)
+    return "", 404
+
+
+@app.route("/favicon.png")
+@app.route("/favicon-32.png")
+@app.route("/favicon-192.png")
+@app.route("/apple-touch-icon.png")
+def serve_favicon_png_variants() -> Response:
+    """Serve as variantes de ícone PNG para dispositivos móveis e navegadores."""
+    filename = Path(request.path).name
+    img_path = PROJECT_ROOT / filename
+    if img_path.exists():
+        return send_file(img_path, mimetype="image/png", max_age=86400)
+    return "", 404
+
+
+@app.route("/assets/<path:filename>")
+def serve_assets(filename: str) -> Response:
+    """Serve arquivos da pasta de assets."""
+    target = (PROJECT_ROOT / "assets" / filename).resolve()
+    if target.exists() and str(target).startswith(str((PROJECT_ROOT / "assets").resolve())):
+        return send_file(target, max_age=86400)
+    return "", 404
+
+
 @app.route("/api/status", methods=["GET", "OPTIONS"])
 def api_status() -> Response | tuple[Response, int]:
     if request.method == "OPTIONS":

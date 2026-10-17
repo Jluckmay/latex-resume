@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B192C"/>
+      <stop offset="45%" stop-color="#0F4C81"/>
+      <stop offset="100%" stop-color="#1E3A8A"/>
+    </linearGradient>
+
+    <!-- Squircle Border Gradient -->
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#818CF8" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#2563EB" stop-opacity="0.2"/>
+    </linearGradient>
+
+    <!-- Document Page Gradient -->
+    <linearGradient id="pageGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#F1F5F9"/>
+    </linearGradient>
+
+    <!-- Fold Flap Gradient -->
+    <linearGradient id="foldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#CBD5E1"/>
+      <stop offset="100%" stop-color="#94A3B8"/>
+    </linearGradient>
+
+    <!-- AI Sparkle Gradient -->
+    <linearGradient id="starGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="50%" stop-color="#60A5FA"/>
+      <stop offset="100%" stop-color="#FBBF24"/>
+    </linearGradient>
+
+    <!-- Soft Drop Shadows -->
+    <filter id="cardShadow" x="-10%" y="-10%" width="125%" height="125%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+    <filter id="starGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Outer Rounded Container (Squircle) -->
+  <rect x="18" y="18" width="476" height="476" rx="108" ry="108" fill="url(#bgGrad)" stroke="url(#borderGrad)" stroke-width="4"/>
+
+  <!-- Subtle Inner Ambient Mesh -->
+  <circle cx="120" cy="110" r="140" fill="#2563EB" opacity="0.18" filter="blur(40px)"/>
+  <circle cx="400" cy="400" r="130" fill="#38BDF8" opacity="0.15" filter="blur(40px)"/>
+
+  <!-- Document Page with Folded Corner -->
+  <g filter="url(#cardShadow)">
+    <!-- Document Base Sheet: cut at top right (330, 78) to (400, 148) -->
+    <path d="M 136 78
+             L 330 78
+             L 404 152
+             L 404 410
+             A 22 22 0 0 1 382 432
+             L 136 432
+             A 22 22 0 0 1 114 410
+             L 114 100
+             A 22 22 0 0 1 136 78 Z"
+          fill="url(#pageGrad)"/>
+
+    <!-- Document Corner Fold Flap -->
+    <path d="M 330 78
+             L 330 136
+             A 16 16 0 0 0 346 152
+             L 404 152 Z"
+          fill="url(#foldGrad)"/>
+    <path d="M 330 78
+             L 330 136
+             A 16 16 0 0 0 346 152
+             L 404 152 Z"
+          fill="none" stroke="#E2E8F0" stroke-width="1.5"/>
+  </g>
+
+  <!-- Document Header Bar -->
+  <rect x="146" y="116" width="158" height="18" rx="9" fill="#0F4C81"/>
+  <rect x="146" y="144" width="105" height="10" rx="5" fill="#94A3B8"/>
+
+  <!-- LaTeX Typography Feature Box -->
+  <rect x="144" y="174" width="230" height="92" rx="14" fill="#0F172A" opacity="0.04"/>
+  <rect x="144" y="174" width="230" height="92" rx="14" fill="none" stroke="#E2E8F0" stroke-width="1.5"/>
+
+  <!-- Stylized LaTeX Logo: L - A (raised) - T - E (lowered) - X -->
+  <g fill="#0F4C81" font-family="'Times New Roman', 'Latin Modern Roman', 'Computer Modern', Georgia, serif" font-weight="bold">
+    <text x="168" y="235" font-size="42">L</text>
+    <text x="198" y="222" font-size="30">A</text>
+    <text x="224" y="235" font-size="42">T</text>
+    <text x="254" y="247" font-size="30">E</text>
+    <text x="278" y="235" font-size="42">X</text>
+  </g>
+
+  <!-- Document Section 1: Experience Lines -->
+  <rect x="146" y="292" width="76" height="11" rx="5.5" fill="#0F4C81"/>
+  <rect x="146" y="315" width="226" height="7" rx="3.5" fill="#CBD5E1"/>
+  <rect x="146" y="331" width="186" height="7" rx="3.5" fill="#E2E8F0"/>
+
+  <!-- Document Section 2: Education & Skills Lines -->
+  <rect x="146" y="356" width="94" height="11" rx="5.5" fill="#0F4C81"/>
+  <rect x="146" y="379" width="226" height="7" rx="3.5" fill="#CBD5E1"/>
+  <rect x="146" y="395" width="160" height="7" rx="3.5" fill="#E2E8F0"/>
+
+  <!-- AI Sparks / Intelligence Star (Top Right Corner Accent) -->
+  <g filter="url(#starGlow)">
+    <!-- Primary 4-point Star -->
+    <path d="M 412 60
+             Q 412 94 446 94
+             Q 412 94 412 128
+             Q 412 94 378 94
+             Q 412 94 412 60 Z"
+          fill="url(#starGrad)"/>
+    <!-- Center white core for sparkle -->
+    <circle cx="412" cy="94" r="5" fill="#FFFFFF"/>
+    <!-- Secondary Mini Sparkle -->
+    <path d="M 452 126
+             Q 452 142 468 142
+             Q 452 142 452 158
+             Q 452 142 436 142
+             Q 452 142 452 126 Z"
+          fill="#38BDF8"/>
+  </g>
+</svg>

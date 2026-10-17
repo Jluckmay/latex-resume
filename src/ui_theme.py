@@ -546,6 +546,36 @@ def get_theme_css(theme_mode: str = "light", primary_color: str = "#0F4C81") -> 
             font-weight: 700 !important;
             padding: 0.65rem 1.2rem !important;
             box-shadow: 0 4px 12px {primary_color}45 !important;
+            min-height: 44px !important;
+        }}
+        .st-brand-logo {{
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(15, 76, 129, 0.25);
+            object-fit: cover;
+        }}
+
+        /* Mobile & Tablet Responsiveness */
+        @media (max-width: 820px) {{
+            .block-container {{
+                padding: 1.25rem 0.85rem 3rem 0.85rem !important;
+            }}
+            .ui-card {{
+                padding: 12px !important;
+                margin-bottom: 12px !important;
+            }}
+            div[data-testid="column"] {{
+                min-width: 100% !important;
+                margin-bottom: 0.75rem !important;
+            }}
+            button[kind="primary"], button[kind="secondary"] {{
+                min-height: 44px !important;
+                width: 100% !important;
+            }}
+            div[data-testid="stMetric"] {{
+                padding: 10px 12px !important;
+            }}
         }}
     </style>
     """

@@ -52,6 +52,8 @@ Para executar o gerador e compilar os currículos em PDF, o ambiente deve atende
 ### Principais Recursos
 
 1. **Duas Interfaces Web Completas (HTML5 `index.html` + `server.py` e Streamlit `app.py`) com Detecção Automática de Tema e Idioma**:
+   - **Design 100% Responsivo & Mobile-First**: interfaces otimizadas para smartphones, tablets e monitores desktop com breakpoints fluidos, ajuste adaptativo de grades (`grid-template-columns`), áreas de toque acessíveis (min 44px) e visualizador de PDF redimensionável dinamicamente (`clamp()`).
+   - **Identidade Visual & Ícone Oficial**: logotipo vetorial moderno nos formatos `SVG`, `PNG` (512x512, 192x192, 32x32, 16x16) e `ICO` multi-resolução, integrado na guia do navegador (`favicon`), barra de navegação e cabeçalhos de ambas as interfaces.
    - **Paridade Total de Recursos**: tanto a interface web HTML nativa (`index.html` servida por `python server.py`) quanto a interface Streamlit (`streamlit run app.py`) compartilham um design limpo, agradável e intuitivo com exatamente os mesmos recursos.
    - **Detecção Automática**: detectam automaticamente na inicialização o **idioma padrão** (`navigator.language` / `Accept-Language` ou idioma do SO) e o **tema visual padrão** (`prefers-color-scheme` / registro do SO), adotando-os sem necessidade de configuração manual.
    - **Alternância Instantânea**: incluem seletor rápido entre **☀️ Modo Claro** e **🌙 Modo Escuro** e alternância instantânea entre **Português (`pt-BR`)** e **Inglês (`en-US`)**.
@@ -342,6 +344,8 @@ To run the generator and compile resumes into PDF, your environment must meet th
 ### Key Features
 
 1. **Two Full-Featured Web Interfaces (Standalone HTML5 `index.html` + `server.py` and Streamlit `app.py`) with Auto Theme & Language Detection**:
+   - **100% Fluid Responsive & Mobile-First Layouts**: optimized across smartphones, tablets, and high-DPI desktop viewports with adaptive column wrapping, touch-friendly interactive targets (min 44px), and fluid PDF viewport scaling (`clamp()`).
+   - **Official Project Brand & Browser Tab Favicon**: high-definition vector logo provided in `SVG`, `PNG` (512x512, 192x192, 32x32, 16x16), and multi-frame `ICO` formats, appearing in the browser tab (`favicon`), sidebar, and page headers.
    - **Full Feature Parity**: both the standalone HTML5 web interface (`index.html` served via `python server.py`) and the Streamlit interface (`streamlit run app.py`) share a clean, pleasant, and intuitive visual design with identical capabilities.
    - **Automatic Detection**: automatically detects your **default language** (`navigator.language` / `Accept-Language` or OS locale) and **default color scheme** (`prefers-color-scheme` / OS registry theme) on startup and adopts them seamlessly.
    - **Instant Switching**: includes a one-click switcher between **☀️ Light Mode** and **🌙 Dark Mode**, plus instant toggling between **English (`en-US`)** and **Portuguese (`pt-BR`)**.
