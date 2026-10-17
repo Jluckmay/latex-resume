@@ -15,7 +15,8 @@ src/
 ├── pipeline.py          # Orquestrador central do pipeline de síntese e compilação
 ├── templates.py         # 9 modelos LaTeX integrados (Overleaf, Google, IA/ATS) e suporte a template customizado
 ├── token_plugins.py     # Plugins modulares de economia de tokens (Caveman, TOON, ShortKey, Cache)
-└── ui_theme.py          # Definições de tema visual, CSS responsivo e paletas de cores para Streamlit
+├── ui_theme.py          # Definições de tema visual, CSS responsivo e paletas de cores para Streamlit
+└── py.typed             # Marcador PEP 561 de suporte a tipagem estática
 ```
 
 ## 📋 Responsabilidades de Cada Módulo

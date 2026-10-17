@@ -481,10 +481,15 @@ def api_generate() -> Response | tuple[Response, int]:
         return jsonify({"error": err_msg}), 500
 
 
-if __name__ == "__main__":
-    # Permite desenvolvimento local quando executado diretamente
+def main() -> None:
+    """Ponto de entrada para execução local do servidor Flask backend."""
+    global ALLOW_LOCAL_DEV
     os.environ["ALLOW_LOCAL_DEV"] = "1"
     ALLOW_LOCAL_DEV = True
     port = int(os.environ.get("PORT", 5000))
     print(f"Servidor Web iniciado em http://127.0.0.1:{port} (ALLOW_LOCAL_DEV=True)")
     app.run(host="0.0.0.0", port=port, debug=False)
+
+
+if __name__ == "__main__":
+    main()

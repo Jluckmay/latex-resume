@@ -24,7 +24,24 @@ keywords = [
     "deepseek",
     "pdf-generator",
     "token-saving",
-    "zero-storage"
+    "zero-storage",
+    "cryptography",
+    "ats-friendly",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Text Processing :: Markup :: LaTeX",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Framework :: Flask",
+    "Framework :: Streamlit",
 ]
 dependencies = [
     "requests>=2.31.0",
@@ -33,6 +50,7 @@ dependencies = [
     "streamlit>=1.32.0",
     "pypdf>=4.0.0",
     "flask>=3.0.0",
+    "gunicorn>=21.2.0",
     "cryptography>=41.0.0",
 ]
 
@@ -41,11 +59,27 @@ dev = [
     "pytest>=7.4.0",
     "pytest-cov>=4.1.0",
     "anyio>=4.0.0",
+    "ruff>=0.4.0",
+    "mypy>=1.9.0",
 ]
+
+[project.urls]
+Homepage = "https://jlmayrinck.github.io/latex-resume/"
+Repository = "https://github.com/jlmayrinck/latex-resume"
+Issues = "https://github.com/jlmayrinck/latex-resume/issues"
+Documentation = "https://github.com/jlmayrinck/latex-resume#readme"
+
+[project.scripts]
+latex-resume = "cli:main"
+latex-resume-server = "server:main"
+latex-resume-app = "app:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["src*"]
+
+[tool.setuptools.package-data]
+src = ["py.typed"]
 
 [tool.pytest.ini_options]
 minversion = "7.0"
@@ -56,3 +90,34 @@ filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning",
 ]
+
+[tool.coverage.run]
+source = ["src", "server", "cli", "app"]
+omit = [
+    "tests/*",
+    "scripts/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true

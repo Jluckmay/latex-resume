@@ -128,17 +128,20 @@ latex-resume/
 │   ├── templates.py            # 9 modelos LaTeX integrados e suporte a templates customizados
 │   ├── token_plugins.py        # Plugins de economia de tokens (Caveman, TOON, ShortKey, Cache)
 │   ├── ui_theme.py             # Temas visuais e CSS responsivo para Streamlit
+│   ├── py.typed                # Marcador PEP 561 de tipagem estática
 │   └── README.md               # Documentação detalhada da arquitetura de módulos
-├── tests/                      # Suíte de testes automatizados com Pytest
+├── tests/                      # Suíte de testes automatizados com Pytest (63+ testes)
 │   ├── conftest.py             # Configurações globais e fixtures compartilhadas do Pytest
+│   ├── test_awards_and_orcid.py# Testes de higienização de prêmios/certificações e ORCID
 │   ├── test_encrypted_comm.py  # Testes de criptografia de ponta a ponta e blindagem contra extração de chaves
 │   ├── test_ui_assets.py       # Testes de integridade de ícones, favicons e responsividade
-│   └── test_zero_storage.py    # Testes de política estrita de Zero-Storage e destruição de memória
+│   ├── test_zero_storage.py    # Testes de política estrita de Zero-Storage e destruição de memória
+│   └── README.md               # Guia de execução e invariantes de segurança testados
 ├── app.py                      # Interface gráfica interativa em Streamlit
 ├── server.py                   # Servidor backend de API (Flask / Gunicorn) para GitHub Pages e Render
 ├── cli.py                      # Interface de linha de comando (CLI)
 ├── index.html                  # Interface gráfica web nativa para GitHub Pages e servidor local
-├── pyproject.toml              # Metadados do projeto, dependências e configuração do Pytest
+├── pyproject.toml              # Metadados do projeto, entrypoints CLI, linters e Pytest
 ├── requirements.txt            # Dependências Python para pip
 ├── Dockerfile                  # Container Docker de produção com TeX Live e pdflatex
 ├── render.yaml                 # Especificação de infraestrutura como código para o Render
@@ -486,17 +489,20 @@ latex-resume/
 │   ├── templates.py            # 9 built-in LaTeX templates and custom template processor
 │   ├── token_plugins.py        # Token-saving plugins (Caveman, TOON, ShortKey, Cache)
 │   ├── ui_theme.py             # Dynamic themes, responsive CSS, and color palettes for Streamlit
+│   ├── py.typed                # PEP 561 static typing compliance marker
 │   └── README.md               # Comprehensive module architecture documentation
-├── tests/                      # Automated test suite (Pytest)
+├── tests/                      # Automated test suite (Pytest - 63+ tests)
 │   ├── conftest.py             # Global Pytest configuration and shared test fixtures
+│   ├── test_awards_and_orcid.py# Awards sanitization, section omission and ORCID placement tests
 │   ├── test_encrypted_comm.py  # End-to-end encryption & anti-key-leakage verification tests
 │   ├── test_ui_assets.py       # Icon integrity, favicon endpoints, and responsive CSS tests
-│   └── test_zero_storage.py    # Strict Zero-Storage & memory destruction tests
+│   ├── test_zero_storage.py    # Strict Zero-Storage & memory destruction tests
+│   └── README.md               # Test suite documentation & verified security invariants
 ├── app.py                      # Interactive visual Streamlit application
 ├── server.py                   # Production API backend server (Flask / Gunicorn) for GitHub Pages & Render
 ├── cli.py                      # Command-line interface (CLI)
 ├── index.html                  # Standalone client web application for GitHub Pages & local server
-├── pyproject.toml              # Modern project metadata, dependencies & Pytest configuration
+├── pyproject.toml              # Modern project metadata, CLI entrypoints, linters & Pytest
 ├── requirements.txt            # Pip dependency declarations
 ├── Dockerfile                  # Production Docker container with full TeX Live & pdflatex
 ├── render.yaml                 # Infrastructure-as-code specification for Render

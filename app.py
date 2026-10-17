@@ -407,3 +407,24 @@ with col_right:
             })
     else:
         st.info(txt["idle_info"])
+
+
+def main() -> None:
+    """Ponto de entrada CLI para iniciar a aplicação Streamlit."""
+    import sys
+    from streamlit.web import cli as stcli
+
+    sys.argv = ["streamlit", "run", str(Path(__file__).resolve()), *sys.argv[1:]]
+    sys.exit(stcli.main())
+
+
+if __name__ == "__main__":
+    try:
+        import streamlit.runtime as st_rt
+
+        is_st_running = st_rt.exists()
+    except Exception:
+        is_st_running = False
+
+    if not is_st_running:
+        main()
