@@ -483,6 +483,14 @@
                             <div class="tpl-option-title" id="tpl-name-keywords">🍃 Overleaf: Single-Page + Keywords</div>
                             <div class="tpl-option-desc" id="tpl-desc-keywords">Duas colunas compactas com fonte Raleway, ícones circulares TikZ e Keywords.</div>
                         </div>
+                        <div class="tpl-option" data-tpl="google_standard" onclick="selectTemplate('google_standard')">
+                            <div class="tpl-option-title" id="tpl-name-google">🏢 Padrão Google (Big Tech / SWE)</div>
+                            <div class="tpl-option-desc" id="tpl-desc-google">Página única densa, margens 0.5in, formato XYZ de realizações e formatação clean.</div>
+                        </div>
+                        <div class="tpl-option" data-tpl="ai_ats_max" onclick="selectTemplate('ai_ats_max')">
+                            <div class="tpl-option-title" id="tpl-name-aiats">🤖 Otimizado para IA & ATS (Máx. Legibilidade)</div>
+                            <div class="tpl-option-desc" id="tpl-desc-aiats">Triagem automatizada por LLMs (Gemini, Claude, GPT) e ATS. Fluxo 100% linear e sem ícones proprietários.</div>
+                        </div>
                     </div>
                 </div>
 
@@ -739,6 +747,10 @@
                 tplAwesomeDesc: "Cabeçalho centralizado, tipografia Roboto/Source Sans e rodapé executivo.",
                 tplKeywordsName: "🍃 Overleaf: Single-Page + Keywords",
                 tplKeywordsDesc: "Duas colunas compactas com fonte Raleway, ícones circulares TikZ e Keywords.",
+                tplGoogleName: "🏢 Padrão Google (Big Tech / SWE)",
+                tplGoogleDesc: "Página única densa, margens 0.5in, formato XYZ de realizações e formatação clean.",
+                tplAiAtsName: "🤖 Otimizado para IA & ATS (Máx. Legibilidade)",
+                tplAiAtsDesc: "Triagem automatizada por LLMs (Gemini, Claude, GPT) e ATS. Fluxo 100% linear e sem ícones proprietários.",
                 uploadTexLbl: "Arquivo de Template LaTeX (.tex)",
                 pasteTexLbl: "Ou cole seu código LaTeX abaixo",
                 step2: "Personalização de Cores do Currículo",
@@ -802,6 +814,10 @@
                 tplAwesomeDesc: "Centered header, Roboto/Source Sans typography & 3-column executive footer.",
                 tplKeywordsName: "🍃 Overleaf: Single-Page + Keywords",
                 tplKeywordsDesc: "Compact two-column layout with Raleway font, TikZ circled icons & Keywords.",
+                tplGoogleName: "🏢 Google Standard (Big Tech / SWE)",
+                tplGoogleDesc: "Dense single-page design, 0.5in margins, XYZ accomplishment format & clean Big Tech layout.",
+                tplAiAtsName: "🤖 AI & ATS Max-Readability (LLM Evaluators)",
+                tplAiAtsDesc: "Automated screening by LLMs (Gemini, Claude, GPT) and neural ATS parsers. 100% linear stream, ASCII/Unicode only.",
                 uploadTexLbl: "LaTeX Template File (.tex)",
                 pasteTexLbl: "Or paste your custom LaTeX code below",
                 step2: "Resume Color Customization",
@@ -906,6 +922,10 @@
             document.getElementById("tpl-desc-awesome").textContent = t.tplAwesomeDesc;
             document.getElementById("tpl-name-keywords").textContent = t.tplKeywordsName;
             document.getElementById("tpl-desc-keywords").textContent = t.tplKeywordsDesc;
+            document.getElementById("tpl-name-google").textContent = t.tplGoogleName;
+            document.getElementById("tpl-desc-google").textContent = t.tplGoogleDesc;
+            document.getElementById("tpl-name-aiats").textContent = t.tplAiAtsName;
+            document.getElementById("tpl-desc-aiats").textContent = t.tplAiAtsDesc;
             document.getElementById("ui-upload-tex-lbl").textContent = t.uploadTexLbl;
             document.getElementById("ui-paste-tex-lbl").textContent = t.pasteTexLbl;
             document.getElementById("ui-step2-title").textContent = t.step2;
@@ -1174,6 +1194,54 @@
                             <div style="font-size:8.5px;"><b>M.Sc. Computer Science</b><br>Thesis on Deep Neural Networks</div>
                         </div>
                     </div>
+                </div>`;
+            } else if (state.templateId === "google_standard") {
+                html = `
+                <div style="background:#fff;color:#1f1f1f;border-radius:10px;border:1px solid #cbd5e1;padding:14px;font-family:'Segoe UI',sans-serif;font-size:10.5px;min-height:240px;">
+                    <div style="text-align:center;border-bottom:1.5px solid ${pCol};padding-bottom:5px;margin-bottom:6px;">
+                        <div style="font-weight:800;font-size:15px;color:${sCol};letter-spacing:-0.2px;">${nameVal.toUpperCase()}</div>
+                        <div style="font-size:9.5px;color:${pCol};font-weight:600;">${roleVal}</div>
+                        <div style="font-size:8.5px;color:#444746;margin-top:2px;">${locVal} | email@domain.com | LinkedIn | GitHub${portBadge}</div>
+                    </div>
+                    <div style="font-weight:800;font-size:9.5px;color:${sCol};border-bottom:1px solid ${pCol};margin-bottom:4px;letter-spacing:0.5px;">EXPERIENCE</div>
+                    <div style="display:flex;justify-content:space-between;font-size:9.5px;font-weight:700;color:${sCol};">
+                        <span>Google — Senior Software Engineer</span><span style="color:#444746;">2022–Present</span>
+                    </div>
+                    <div style="font-size:9px;color:#334155;margin:2px 0 6px 8px;">
+                        • Designed distributed caching architecture reducing P99 latency by 42% across 10M daily active users.<br>
+                        • Built deterministic resume synthesis pipeline saving 78% tokens via NVIDIA NIM.
+                    </div>
+                    <div style="font-weight:800;font-size:9.5px;color:${sCol};border-bottom:1px solid ${pCol};margin-bottom:4px;letter-spacing:0.5px;">EDUCATION</div>
+                    <div style="display:flex;justify-content:space-between;font-size:9.5px;font-weight:700;color:${sCol};">
+                        <span>Universidade de São Paulo (USP)</span><span style="color:#444746;">2018–2022</span>
+                    </div>
+                    <div style="font-size:9px;color:#475569;font-style:italic;">B.S. in Computer Science — GPA: 3.9/4.0</div>
+                    <div style="font-weight:800;font-size:9.5px;color:${sCol};border-bottom:1px solid ${pCol};margin:6px 0 4px 0;letter-spacing:0.5px;">TECHNICAL SKILLS</div>
+                    <div style="font-size:9px;color:#334155;"><b>Languages & Cloud:</b> Python, Go, C++, SQL, TypeScript, GCP, Docker, Kubernetes</div>
+                </div>`;
+            } else if (state.templateId === "ai_ats_max") {
+                html = `
+                <div style="background:#fff;color:#0f172a;border-radius:10px;border:1px solid #cbd5e1;padding:14px;font-family:'Segoe UI',sans-serif;font-size:10.5px;min-height:240px;">
+                    <div style="text-align:center;border-bottom:1.5px solid ${sCol};padding-bottom:5px;margin-bottom:6px;">
+                        <div style="font-weight:900;font-size:15px;color:${sCol};">${nameVal.toUpperCase()}</div>
+                        <div style="font-size:9.5px;font-weight:700;color:${pCol};">${roleVal.toUpperCase()}</div>
+                        <div style="font-size:8px;color:#334155;margin-top:2px;">LOCATION: ${locVal} &nbsp;|&nbsp; EMAIL: contact@email.com &nbsp;|&nbsp; LINKEDIN: in/profile &nbsp;|&nbsp; GITHUB: github.com${portBadge}</div>
+                    </div>
+                    <div style="font-weight:800;font-size:9px;color:${sCol};border-bottom:1px solid #cbd5e1;margin-bottom:3px;">CORE COMPETENCIES & KEYWORDS</div>
+                    <div style="font-size:8.5px;color:#1e293b;margin-bottom:5px;">
+                        • <b>AI & LLMs:</b> RAG, Fine-Tuning, NVIDIA NIM, PyTorch, Embeddings, Prompt Engineering<br>
+                        • <b>Backend & Cloud:</b> Python, FastAPI, Docker, Kubernetes, PostgreSQL, AWS/GCP, CI/CD
+                    </div>
+                    <div style="font-weight:800;font-size:9px;color:${sCol};border-bottom:1px solid #cbd5e1;margin-bottom:3px;">PROFESSIONAL EXPERIENCE</div>
+                    <div style="display:flex;justify-content:space-between;font-size:9px;font-weight:700;">
+                        <span>Lead AI Architect | Enterprise Systems</span><span>2023–Present</span>
+                    </div>
+                    <div style="font-size:8.5px;color:#334155;margin:1px 0 5px 6px;">
+                        • Architected neural parsing pipelines processing 2M docs/day with 99.9% uptime.<br>
+                        • Engineered zero-leakage TLS 1.3 token vault for enterprise LLM infrastructure.
+                    </div>
+                    <div style="font-weight:800;font-size:9px;color:${sCol};border-bottom:1px solid #cbd5e1;margin-bottom:3px;">EDUCATION</div>
+                    <div style="font-size:8.5px;"><b>B.S. in Computer Science</b> — Universidade Federal (2018–2022)</div>
                 </div>`;
             } else {
                 html = `

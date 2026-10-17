@@ -39,6 +39,8 @@ LATEX_I18N: Dict[str, Dict[str, str]] = {
         "sec_skills": "Competências Técnicas e Metodológicas",
         "sec_languages": "Idiomas",
         "sec_awards": "Prêmios, Títulos e Certificações",
+        "sec_competencies": "Competências Principais e Palavras-Chave",
+        "sec_tech_stack": "Stack Tecnológica e Ferramentas",
         "default_skill_cat": "Habilidades",
         "link_label": "Link",
     },
@@ -64,6 +66,8 @@ LATEX_I18N: Dict[str, Dict[str, str]] = {
         "sec_skills": r"Technical \& Methodological Skills",
         "sec_languages": "Languages",
         "sec_awards": r"Awards, Honors \& Certifications",
+        "sec_competencies": "Core Competencies & Keywords",
+        "sec_tech_stack": "Technical Stack & Tools",
         "default_skill_cat": "Skills",
         "link_label": "Link",
     },
@@ -121,6 +125,20 @@ TEMPLATES_I18N: Dict[str, Dict[str, Dict[str, str]]] = {
                 "com fonte Raleway, ícones circulares TikZ, Resumo e Keywords de stack por experiência."
             ),
         },
+        "google_standard": {
+            "name": "Padrão Google (Big Tech / Software Engineer)",
+            "description": (
+                "Modelo padrão de recrutamento Big Tech (Google SWE / Gayle Laakmann McDowell). "
+                "Página única densa, margens de 0.5 polegadas, estrutura XYZ de realizações e formatação clean."
+            ),
+        },
+        "ai_ats_max": {
+            "name": "Otimizado para IA & ATS (Máxima Legibilidade)",
+            "description": (
+                "Desenvolvido especificamente para triagem automatizada por LLMs (Gemini, Claude, GPT) e sistemas ATS. "
+                "Fluxo textual 100% linear, metadados semânticos, matriz de competências e compatibilidade Unicode nativa."
+            ),
+        },
     },
     "en-us": {
         "modern_pro": {
@@ -170,6 +188,20 @@ TEMPLATES_I18N: Dict[str, Dict[str, Dict[str, str]]] = {
             "description": (
                 "Overleaf two-column single-page template (https://www.overleaf.com/latex/templates/sample-single-page-resume-with-keywords/wmcxcgmtkxzk) "
                 "by Primož Godec & Salman Maqbool with Raleway font, TikZ circled icons, Summary, and per-job stack Keywords."
+            ),
+        },
+        "google_standard": {
+            "name": "Google Standard (Big Tech / Software Engineer)",
+            "description": (
+                "Big Tech standard recruitment layout (Google SWE / Gayle Laakmann McDowell). "
+                "Dense single-page design, 0.5-inch margins, XYZ accomplishment bullets, and clean horizontal lines."
+            ),
+        },
+        "ai_ats_max": {
+            "name": "AI & ATS Max-Readability (LLM Evaluators)",
+            "description": (
+                "Engineered specifically for automated screening by LLMs (Gemini, Claude, GPT) and neural ATS parsers. "
+                "Strict single-column text stream, semantic metadata tags, core competencies matrix, and native Unicode mapping."
             ),
         },
     },

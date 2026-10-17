@@ -381,6 +381,62 @@ def render_template_preview_html(
         </div>
         """
 
+    if template_id == "google_standard":
+        return f"""
+        <div style="background:#ffffff;color:#1f1f1f;border-radius:10px;border:1px solid #cbd5e1;
+                    box-shadow:0 6px 18px rgba(15,23,42,0.08);padding:14px;font-family:'Segoe UI',system-ui,sans-serif;
+                    font-size:10.5px;line-height:1.3;min-height:255px;">
+            <div style="text-align:center;border-bottom:1.5px solid {p_col};padding-bottom:5px;margin-bottom:6px;">
+                <div style="font-weight:800;font-size:15px;color:{s_col};letter-spacing:-0.2px;">LUCAS SILVA</div>
+                <div style="font-size:9.5px;color:{p_col};font-weight:600;">{role_txt}</div>
+                <div style="font-size:8.5px;color:#444746;margin-top:2px;">São Paulo, Brazil &nbsp;|&nbsp; lucas@email.com &nbsp;|&nbsp; +55 11 99999-9999 &nbsp;|&nbsp; LinkedIn &nbsp;|&nbsp; GitHub &nbsp;|&nbsp; Portfolio</div>
+            </div>
+            <div style="font-weight:800;font-size:9.5px;color:{s_col};border-bottom:1px solid {p_col};margin-bottom:4px;letter-spacing:0.5px;">EXPERIENCE</div>
+            <div style="display:flex;justify-content:space-between;font-size:9.5px;font-weight:700;color:{s_col};">
+                <span>Google &nbsp;—&nbsp; Senior Software Engineer</span><span style="color:#444746;">2022–Present</span>
+            </div>
+            <div style="font-size:9px;color:#334155;margin:2px 0 6px 8px;">
+                • Designed distributed caching architecture reducing P99 latency by 42% across 10M daily active users.<br>
+                • Built deterministic resume synthesis pipeline saving 78% tokens via NVIDIA NIM.
+            </div>
+            <div style="font-weight:800;font-size:9.5px;color:{s_col};border-bottom:1px solid {p_col};margin-bottom:4px;letter-spacing:0.5px;">EDUCATION</div>
+            <div style="display:flex;justify-content:space-between;font-size:9.5px;font-weight:700;color:{s_col};">
+                <span>Universidade de São Paulo (USP)</span><span style="color:#444746;">2018–2022</span>
+            </div>
+            <div style="font-size:9px;color:#475569;font-style:italic;">B.S. in Computer Science — GPA: 3.9/4.0</div>
+            <div style="font-weight:800;font-size:9.5px;color:{s_col};border-bottom:1px solid {p_col};margin:6px 0 4px 0;letter-spacing:0.5px;">TECHNICAL SKILLS</div>
+            <div style="font-size:9px;color:#334155;"><b>Languages & Cloud:</b> Python, Go, C++, SQL, TypeScript, GCP, Docker, Kubernetes</div>
+        </div>
+        """
+
+    if template_id == "ai_ats_max":
+        return f"""
+        <div style="background:#ffffff;color:#0f172a;border-radius:10px;border:1px solid #cbd5e1;
+                    box-shadow:0 6px 18px rgba(15,23,42,0.08);padding:14px;font-family:'Segoe UI',sans-serif;
+                    font-size:10.5px;line-height:1.3;min-height:255px;">
+            <div style="text-align:center;border-bottom:1.5px solid {s_col};padding-bottom:5px;margin-bottom:6px;">
+                <div style="font-weight:900;font-size:15px;color:{s_col};">LUCAS SILVA</div>
+                <div style="font-size:9.5px;font-weight:700;color:{p_col};">{role_txt.upper()}</div>
+                <div style="font-size:8px;color:#334155;margin-top:2px;">LOCATION: São Paulo, BR &nbsp;|&nbsp; EMAIL: lucas@email.com &nbsp;|&nbsp; PHONE: +55 11 99999-9999 &nbsp;|&nbsp; LINKEDIN: in/lucas &nbsp;|&nbsp; GITHUB: github.com/lucas</div>
+            </div>
+            <div style="font-weight:800;font-size:9px;color:{s_col};border-bottom:1px solid #cbd5e1;margin-bottom:3px;">CORE COMPETENCIES & KEYWORDS</div>
+            <div style="font-size:8.5px;color:#1e293b;margin-bottom:5px;">
+                • <b>AI & LLMs:</b> RAG, Fine-Tuning, NVIDIA NIM, PyTorch, Embeddings, Prompt Engineering<br>
+                • <b>Backend & Cloud:</b> Python, FastAPI, Docker, Kubernetes, PostgreSQL, AWS/GCP, CI/CD
+            </div>
+            <div style="font-weight:800;font-size:9px;color:{s_col};border-bottom:1px solid #cbd5e1;margin-bottom:3px;">PROFESSIONAL EXPERIENCE</div>
+            <div style="display:flex;justify-content:space-between;font-size:9px;font-weight:700;">
+                <span>Lead AI Architect | Enterprise Systems</span><span>2023–Present</span>
+            </div>
+            <div style="font-size:8.5px;color:#334155;margin:1px 0 5px 6px;">
+                • Architected neural parsing pipelines processing 2M docs/day with 99.9% uptime.<br>
+                • Engineered zero-leakage TLS 1.3 token vault for enterprise LLM infrastructure.
+            </div>
+            <div style="font-weight:800;font-size:9px;color:{s_col};border-bottom:1px solid #cbd5e1;margin-bottom:3px;">EDUCATION</div>
+            <div style="font-size:8.5px;"><b>B.S. in Computer Science</b> — Universidade Federal (2018–2022)</div>
+        </div>
+        """
+
     # Default: modern_pro
     return f"""
     <div style="background:#ffffff;color:#1e293b;border-radius:10px;border:1px solid #cbd5e1;

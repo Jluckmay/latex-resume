@@ -79,6 +79,24 @@ BUILTIN_TEMPLATES: Dict[str, Dict[str, str]] = {
             "ícones circulares TikZ, seção de Resumo e palavras-chave (Keywords) de stack por experiência."
         ),
     },
+    "google_standard": {
+        "id": "google_standard",
+        "name": "Padrão Google (Big Tech / SWE) / Google Standard",
+        "recommended_for": "profissional",
+        "description": (
+            "Modelo padrão de recrutamento Big Tech (Google SWE / Gayle Laakmann McDowell). "
+            "Página única densa, margens de 0.5 polegadas, estrutura XYZ de realizações e formatação clean."
+        ),
+    },
+    "ai_ats_max": {
+        "id": "ai_ats_max",
+        "name": "Otimizado para IA & ATS (Máxima Legibilidade) / AI & ATS Max-Readability",
+        "recommended_for": "profissional",
+        "description": (
+            "Desenvolvido especificamente para triagem automatizada por LLMs (Gemini, Claude, GPT) e sistemas ATS. "
+            "Fluxo textual 100% linear, metadados semânticos, matriz de competências e compatibilidade Unicode nativa."
+        ),
+    },
 }
 
 
@@ -167,6 +185,10 @@ def render_builtin_template(
         return _render_overleaf_awesome_cv(cv, links, resume_type, photo_filename, norm_lang)
     if template_id == "overleaf_single_page_keywords":
         return _render_overleaf_single_page_keywords(cv, links, resume_type, photo_filename, norm_lang)
+    if template_id == "google_standard":
+        return _render_google_standard(cv, links, resume_type, photo_filename, norm_lang)
+    if template_id == "ai_ats_max":
+        return _render_ai_ats_max(cv, links, resume_type, photo_filename, norm_lang)
     return _render_modern_pro(cv, links, resume_type, photo_filename, norm_lang)
 
 
@@ -246,12 +268,14 @@ def _build_education_block(educations: List[Dict[str, Any]], lang: str = "pt-br"
         inst = escape_latex(ed.get("institution"))
         per = escape_latex(ed.get("period"))
         det = escape_latex(ed.get("details"))
-        lines.append(rf"\noindent\textbf{{{deg}}} \hfill \textit{{{per}}}\\")
-        if inst:
-            lines.append(rf"\textit{{{inst}}}")
-        if det:
-            lines.append(rf"\\{{\small {det}}}")
-        lines.append(r"\vspace{4pt}" + "\n")
+        entry_lines = [rf"\noindent\textbf{{{deg}}} \hfill \textit{{{per}}}"]
+        if inst and det:
+            entry_lines.append(rf"\textit{{{inst}}} \\ {{\small {det}}}")
+        elif inst:
+            entry_lines.append(rf"\textit{{{inst}}}")
+        elif det:
+            entry_lines.append(rf"{{\small {det}}}")
+        lines.append(r" \\ ".join(entry_lines) + r"\par\vspace{3pt}")
     return "\n".join(lines)
 
 
@@ -269,12 +293,13 @@ def _build_experience_block(experiences: List[Dict[str, Any]], resume_type: str,
         header_left = f"{role} --- \\textit{{{org}}}" if org else role
         lines.append(rf"\noindent\textbf{{{header_left}}} \hfill \textit{{{per}}}")
         if bullets:
-            lines.append(r"\begin{itemize}[leftmargin=1.2em,itemsep=1pt,topsep=2pt]")
+            lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
             for b in bullets:
                 lines.append(rf"    \item {b}")
             lines.append(r"\end{itemize}")
+            lines.append(r"\vspace{2pt}")
         else:
-            lines.append(r"\vspace{4pt}")
+            lines.append(r"\par\vspace{3pt}")
     return "\n".join(lines)
 
 
@@ -284,7 +309,7 @@ def _build_projects_block(projects: List[Dict[str, Any]], resume_type: str, lang
     t = LATEX_I18N[normalize_lang(lang)]
     title = t["sec_proj_acad"] if resume_type == "academico" else t["sec_proj_prof"]
     lines = [rf"\section*{{{title}}}"]
-    lines.append(r"\begin{itemize}[leftmargin=1.2em,itemsep=3pt,topsep=2pt]")
+    lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
     for pj in projects:
         nm = escape_latex(pj.get("name"))
         tech = escape_latex(pj.get("tech"))
@@ -311,7 +336,7 @@ def _build_publications_block(publications: List[Dict[str, Any]], lang: str = "p
         return ""
     t = LATEX_I18N[normalize_lang(lang)]
     lines = [rf"\section*{{{t['sec_publications']}}}"]
-    lines.append(r"\begin{enumerate}[leftmargin=1.5em,itemsep=3pt,topsep=2pt]")
+    lines.append(r"\begin{enumerate}[leftmargin=1.5em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
     for pb in publications:
         title = escape_latex(pb.get("title"))
         venue = escape_latex(pb.get("venue"))
@@ -339,7 +364,7 @@ def _build_skills_block(skills: List[Dict[str, Any]], lang: str = "pt-br") -> st
         return ""
     t = LATEX_I18N[normalize_lang(lang)]
     lines = [rf"\section*{{{t['sec_skills']}}}"]
-    lines.append(r"\begin{itemize}[leftmargin=1.2em,itemsep=2pt,topsep=2pt]")
+    lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
     for sk in skills:
         cat = escape_latex(sk.get("category"))
         items = escape_latex(sk.get("items"))
@@ -360,7 +385,7 @@ def _build_languages_and_awards_block(languages: List[str], awards: List[str], l
             parts.append(rf"\section*{{{t['sec_languages']}}}" + "\n" + langs_esc)
     if awards:
         lines = [rf"\section*{{{t['sec_awards']}}}"]
-        lines.append(r"\begin{itemize}[leftmargin=1.2em,itemsep=2pt,topsep=2pt]")
+        lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
         for aw in awards:
             if str(aw).strip():
                 lines.append(rf"    \item {escape_latex(aw)}")
@@ -390,19 +415,24 @@ def _render_modern_pro(
 \usepackage[T1]{{fontenc}}
 \usepackage[{t['babel']}]{{babel}}
 \usepackage{{lmodern}}
-\usepackage[margin=1.5cm]{{geometry}}
+\usepackage[margin=1.4cm]{{geometry}}
 \usepackage{{xcolor}}
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
 \usepackage{{titlesec}}
 \usepackage[hidelinks]{{hyperref}}
 
+\input{{glyphtounicode}}
+\pdfgentounicode=1
+
+\raggedbottom
+\setlist{{noitemsep, topsep=1pt, parsep=0pt, partopsep=0pt}}
 \definecolor{{accent}}{{HTML}}{{0F4C81}}
 \pagestyle{{empty}}
 \setlength{{\parindent}}{{0pt}}
 
 \titleformat{{\section}}{{\large\bfseries\color{{accent}}}}{{}}{{0em}}{{}}[\titlerule]
-\titlespacing*{{\section}}{{0pt}}{{10pt}}{{5pt}}
+\titlespacing*{{\section}}{{0pt}}{{8pt}}{{4pt}}
 
 \begin{{document}}
 {header}
@@ -430,19 +460,24 @@ def _render_academic_classic(
 \usepackage[T1]{{fontenc}}
 \usepackage[{t['babel']}]{{babel}}
 \usepackage{{lmodern}}
-\usepackage[margin=1.6cm]{{geometry}}
+\usepackage[margin=1.5cm]{{geometry}}
 \usepackage{{xcolor}}
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
 \usepackage{{titlesec}}
 \usepackage[hidelinks]{{hyperref}}
 
+\input{{glyphtounicode}}
+\pdfgentounicode=1
+
+\raggedbottom
+\setlist{{noitemsep, topsep=1pt, parsep=0pt, partopsep=0pt}}
 \definecolor{{acadnavy}}{{HTML}}{{1B365D}}
 \pagestyle{{empty}}
 \setlength{{\parindent}}{{0pt}}
 
 \titleformat{{\section}}{{\normalsize\bfseries\scshape\color{{acadnavy}}}}{{}}{{0em}}{{}}[\vspace{{1pt}}\titlerule]
-\titlespacing*{{\section}}{{0pt}}{{11pt}}{{5pt}}
+\titlespacing*{{\section}}{{0pt}}{{9pt}}{{4pt}}
 
 \begin{{document}}
 {header}
@@ -505,20 +540,25 @@ def _render_tech_sidebar(
 \usepackage[T1]{{fontenc}}
 \usepackage[{t['babel']}]{{babel}}
 \usepackage{{lmodern}}
-\usepackage[margin=1.3cm]{{geometry}}
+\usepackage[margin=1.2cm]{{geometry}}
 \usepackage{{xcolor}}
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
 \usepackage{{titlesec}}
 \usepackage[hidelinks]{{hyperref}}
 
+\input{{glyphtounicode}}
+\pdfgentounicode=1
+
+\raggedbottom
+\setlist{{noitemsep, topsep=1pt, parsep=0pt, partopsep=0pt}}
 \definecolor{{sidecolor}}{{HTML}}{{1E293B}}
 \definecolor{{accent}}{{HTML}}{{2563EB}}
 \pagestyle{{empty}}
 \setlength{{\parindent}}{{0pt}}
 
 \titleformat{{\section}}{{\normalsize\bfseries\scshape\color{{accent}}}}{{}}{{0em}}{{}}[\titlerule]
-\titlespacing*{{\section}}{{0pt}}{{9pt}}{{4pt}}
+\titlespacing*{{\section}}{{0pt}}{{8pt}}{{3pt}}
 
 \begin{{document}}
 \noindent
@@ -565,17 +605,22 @@ def _render_minimal_ats(
 \usepackage[T1]{{fontenc}}
 \usepackage[{t['babel']}]{{babel}}
 \usepackage{{lmodern}}
-\usepackage[margin=1.4cm]{{geometry}}
+\usepackage[margin=1.3cm]{{geometry}}
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
 \usepackage{{titlesec}}
 \usepackage[hidelinks]{{hyperref}}
 
+\input{{glyphtounicode}}
+\pdfgentounicode=1
+
+\raggedbottom
+\setlist{{noitemsep, topsep=1pt, parsep=0pt, partopsep=0pt}}
 \pagestyle{{empty}}
 \setlength{{\parindent}}{{0pt}}
 
 \titleformat{{\section}}{{\normalsize\bfseries\scshape}}{{}}{{0em}}{{}}[\titlerule]
-\titlespacing*{{\section}}{{0pt}}{{8pt}}{{4pt}}
+\titlespacing*{{\section}}{{0pt}}{{8pt}}{{3pt}}
 
 \begin{{document}}
 {header}
@@ -858,6 +903,11 @@ def _render_overleaf_russell_ti(
 \usepackage{{enumitem}}
 \usepackage[hidelinks]{{hyperref}}
 
+\input{{glyphtounicode}}
+\pdfgentounicode=1
+
+\raggedbottom
+\setlist{{noitemsep, topsep=1pt, parsep=0pt, partopsep=0pt}}
 \definecolor{{accent}}{{HTML}}{{0F4C81}}
 \definecolor{{sidecolor}}{{HTML}}{{1E293B}}
 \definecolor{{graytext}}{{HTML}}{{5D5D5D}}
@@ -958,6 +1008,11 @@ def _render_overleaf_awesome_cv(
 \usepackage{{enumitem}}
 \usepackage[hidelinks]{{hyperref}}
 
+\input{{glyphtounicode}}
+\pdfgentounicode=1
+
+\raggedbottom
+\setlist{{noitemsep, topsep=1pt, parsep=0pt, partopsep=0pt}}
 \definecolor{{accent}}{{HTML}}{{0395DE}}
 \definecolor{{sidecolor}}{{HTML}}{{333333}}
 \definecolor{{graytext}}{{HTML}}{{5D5D5D}}
@@ -1151,6 +1206,11 @@ def _render_overleaf_single_page_keywords(
 \usepackage{{enumitem}}
 \usepackage[hidelinks]{{hyperref}}
 
+\input{{glyphtounicode}}
+\pdfgentounicode=1
+
+\raggedbottom
+\setlist{{noitemsep, topsep=1pt, parsep=0pt, partopsep=0pt}}
 \definecolor{{accent}}{{HTML}}{{52ADE3}}
 \definecolor{{sidecolor}}{{HTML}}{{111827}}
 \pagestyle{{empty}}
@@ -1205,6 +1265,410 @@ def _render_overleaf_single_page_keywords(
 \columnbreak
 {col2_body}
 \end{{multicols}}
+\end{{document}}
+"""
+
+
+def _render_google_standard(
+    cv: Dict[str, Any],
+    links: Dict[str, str],
+    resume_type: str,
+    photo_filename: str | None,
+    lang: str = "pt-br",
+) -> str:
+    """Renderiza o modelo Padrão Google (Big Tech / Software Engineer) — baseado em Gayle Laakmann McDowell.
+
+    Layout em página única densa, margens de 0.5 polegadas, estrutura XYZ de realizações,
+    divisórias horizontais limpas e total conformidade com triagem humana e automatizada.
+    """
+    t = LATEX_I18N[normalize_lang(lang)]
+    is_en = normalize_lang(lang) == "en-us"
+    name = escape_latex(cv.get("name") or t["default_candidate"])
+    default_tl = t["default_researcher"] if resume_type == "academico" else t["default_tech_title"]
+    title = escape_latex(cv.get("title") or default_tl)
+
+    contact_parts: List[str] = []
+    if cv.get("location"):
+        contact_parts.append(escape_latex(cv["location"]))
+    if cv.get("phone"):
+        contact_parts.append(escape_latex(cv["phone"]))
+    if cv.get("email"):
+        em = cv["email"].strip()
+        contact_parts.append(rf"\href{{mailto:{escape_url(em)}}}{{{escape_latex(em)}}}")
+    if links.get("linkedin"):
+        contact_parts.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\textbf{{LinkedIn}}}}")
+    if links.get("github"):
+        contact_parts.append(rf"\href{{{escape_url(links['github'])}}}{{\textbf{{GitHub}}}}")
+    if links.get("portfolio"):
+        lbl_port = "Portfolio" if is_en else "Portfólio"
+        contact_parts.append(rf"\href{{{escape_url(links['portfolio'])}}}{{\textbf{{{lbl_port}}}}}")
+    if links.get("orcid"):
+        contact_parts.append(rf"\href{{{escape_url(links['orcid'])}}}{{\textbf{{ORCID}}}}")
+    if links.get("lattes"):
+        contact_parts.append(rf"\href{{{escape_url(links['lattes'])}}}{{\textbf{{Lattes}}}}")
+
+    contacts_str = " \\;\\textbar\\; ".join(contact_parts)
+
+    if photo_filename:
+        header_tex = rf"""\noindent
+\begin{{minipage}}[c]{{0.78\textwidth}}
+    {{\fontsize{{24pt}}{{28pt}}\selectfont\bfseries\color{{sidecolor}} {name}}}\\[3pt]
+    {{\large\color{{accent}} {title}}}\\[4pt]
+    {{\small {contacts_str}}}
+\end{{minipage}}%
+\hfill
+\begin{{minipage}}[c]{{0.20\textwidth}}
+    \raggedleft
+    \includegraphics[width=2.5cm,height=2.5cm,keepaspectratio]{{{photo_filename}}}
+\end{{minipage}}
+\vspace{{3pt}}
+\hrule height 0.8pt
+\vspace{{4pt}}"""
+    else:
+        header_tex = rf"""\begin{{center}}
+    {{\fontsize{{26pt}}{{30pt}}\selectfont\bfseries\color{{sidecolor}} {name}}}\\[3pt]
+    {{\large\color{{accent}} {title}}}\\[4pt]
+    {{\small {contacts_str}}}
+\end{{center}}
+\vspace{{2pt}}
+\hrule height 0.8pt
+\vspace{{4pt}}"""
+
+    # Summary
+    sum_block = ""
+    if cv.get("summary"):
+        sec_sum = "SUMMARY" if is_en else "RESUMO PROFISSIONAL"
+        sum_block = rf"\section*{{{sec_sum}}}" + "\n" + rf"{{\small {escape_latex(cv['summary'])}}}"
+
+    # Experience
+    xp_block = ""
+    xp_list = cv.get("experience") or []
+    if xp_list:
+        sec_xp = "WORK EXPERIENCE" if is_en else (t["sec_exp_acad"] if resume_type == "academico" else t["sec_exp_prof"])
+        xp_lines = [rf"\section*{{{sec_xp}}}"]
+        for xp in xp_list:
+            role = escape_latex(xp.get("role"))
+            org = escape_latex(xp.get("organization"))
+            per = escape_latex(xp.get("period"))
+            bullets = [escape_latex(b) for b in (xp.get("bullets") or []) if str(b).strip()]
+            head_l = f"\\textbf{{{org}}}" if org else f"\\textbf{{{role}}}"
+            sub_l = f"\\textit{{{role}}}" if org else ""
+            xp_lines.append(rf"\noindent{head_l} \hfill \textbf{{{per}}}")
+            if sub_l:
+                xp_lines.append(rf"\\ {sub_l}")
+            if bullets:
+                xp_lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
+                for b in bullets:
+                    xp_lines.append(rf"    \item {b}")
+                xp_lines.append(r"\end{itemize}")
+                xp_lines.append(r"\vspace{3pt}")
+            else:
+                xp_lines.append(r"\par\vspace{3pt}")
+        xp_block = "\n".join(xp_lines)
+
+    # Education
+    edu_block = ""
+    edu_list = cv.get("education") or []
+    if edu_list:
+        sec_edu = "EDUCATION" if is_en else t["sec_education"]
+        ed_lines = [rf"\section*{{{sec_edu}}}"]
+        for ed in edu_list:
+            deg = escape_latex(ed.get("degree"))
+            inst = escape_latex(ed.get("institution"))
+            per = escape_latex(ed.get("period"))
+            det = escape_latex(ed.get("details"))
+            head_i = f"\\textbf{{{inst}}}" if inst else f"\\textbf{{{deg}}}"
+            sub_d = f"\\textit{{{deg}}}" if inst else ""
+            ed_lines.append(rf"\noindent{head_i} \hfill \textbf{{{per}}}")
+            if sub_d and det:
+                ed_lines.append(rf"\\ {sub_d} \hfill {{\small {det}}}\par\vspace{{3pt}}")
+            elif sub_d:
+                ed_lines.append(rf"\\ {sub_d}\par\vspace{{3pt}}")
+            elif det:
+                ed_lines.append(rf"\\ {{\small {det}}}\par\vspace{{3pt}}")
+            else:
+                ed_lines.append(r"\par\vspace{3pt}")
+        edu_block = "\n".join(ed_lines)
+
+    # Projects
+    pj_block = ""
+    pj_list = cv.get("projects") or []
+    if pj_list:
+        sec_pj = "KEY PROJECTS" if is_en else (t["sec_proj_acad"] if resume_type == "academico" else t["sec_proj_prof"])
+        pj_lines = [rf"\section*{{{sec_pj}}}"]
+        for pj in pj_list:
+            nm = escape_latex(pj.get("name"))
+            tech = escape_latex(pj.get("tech"))
+            url = (pj.get("url") or "").strip()
+            desc = escape_latex(pj.get("description"))
+            link_tex = rf"\href{{{escape_url(url)}}}{{\textit{{{t['link_label']}}}}}" if url.startswith("http") else escape_latex(url)
+            tech_str = rf" \textbar{{}} \textit{{{tech}}}" if tech else ""
+            pj_lines.append(rf"\noindent\textbf{{{nm}}}{tech_str} \hfill {link_tex}")
+            if desc:
+                pj_lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
+                pj_lines.append(rf"    \item {desc}")
+                pj_lines.append(r"\end{itemize}")
+                pj_lines.append(r"\vspace{2pt}")
+            else:
+                pj_lines.append(r"\par\vspace{2pt}")
+        pj_block = "\n".join(pj_lines)
+
+    # Skills
+    sk_block = ""
+    sk_list = cv.get("skills") or []
+    if sk_list:
+        sec_sk = "TECHNICAL SKILLS" if is_en else t["sec_skills"]
+        sk_lines = [rf"\section*{{{sec_sk}}}", r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]"]
+        for sk in sk_list:
+            cat = escape_latex(sk.get("category") or t["default_skill_cat"])
+            items = escape_latex(sk.get("items"))
+            if items:
+                sk_lines.append(rf"    \item \textbf{{{cat}:}} {items}")
+        sk_lines.append(r"\end{itemize}")
+        sk_block = "\n".join(sk_lines)
+
+    # Publications & Awards & Languages
+    pub_block = _build_publications_block(cv.get("publications") or [], lang)
+    lg_aw_block = _build_languages_and_awards_block(cv.get("languages") or [], cv.get("awards") or [], lang)
+
+    if resume_type == "academico":
+        ordered = [sum_block, edu_block, pub_block, pj_block, xp_block, sk_block, lg_aw_block]
+    else:
+        ordered = [sum_block, xp_block, pj_block, edu_block, sk_block, pub_block, lg_aw_block]
+
+    body_tex = "\n\n".join(b for b in ordered if b)
+
+    return rf"""% Template Google Standard (Big Tech / Software Engineer) — Gayle Laakmann McDowell Standard
+\documentclass[10pt,a4paper]{{article}}
+\usepackage[utf8]{{inputenc}}
+\usepackage[T1]{{fontenc}}
+\usepackage[{t['babel']}]{{babel}}
+\usepackage{{lmodern}}
+\usepackage[margin=0.5in]{{geometry}}
+\usepackage{{xcolor}}
+\usepackage{{graphicx}}
+\usepackage{{enumitem}}
+\usepackage{{titlesec}}
+\usepackage[hidelinks]{{hyperref}}
+
+\input{{glyphtounicode}}
+\pdfgentounicode=1
+
+\raggedbottom
+\setlist{{noitemsep, topsep=1pt, parsep=0pt, partopsep=0pt}}
+\definecolor{{accent}}{{HTML}}{{0B57D0}}
+\definecolor{{sidecolor}}{{HTML}}{{1F1F1F}}
+\definecolor{{graytext}}{{HTML}}{{444746}}
+\pagestyle{{empty}}
+\setlength{{\parindent}}{{0pt}}
+
+\titleformat{{\section}}{{\large\bfseries\scshape\color{{sidecolor}}}}{{}}{{0em}}{{}}[\vspace{{1pt}}\titlerule]
+\titlespacing*{{\section}}{{0pt}}{{7pt}}{{3pt}}
+
+\begin{{document}}
+{header_tex}
+{body_tex}
+\end{{document}}
+"""
+
+
+def _render_ai_ats_max(
+    cv: Dict[str, Any],
+    links: Dict[str, str],
+    resume_type: str,
+    photo_filename: str | None,
+    lang: str = "pt-br",
+) -> str:
+    """Renderiza o modelo Otimizado para IA & ATS (Máxima Legibilidade por LLMs e Parsers Neurais).
+
+    Características arquiteturais essenciais:
+    - Fluxo textual 100% linear em coluna única (sem colunas paralelas que quebram o fluxo de leitura de parsers de PDF).
+    - Metadados semânticos explícitos (TAGS textuais ASCII: LOCATION, EMAIL, PHONE, GITHUB, LINKEDIN).
+    - Mapeamento nativo Unicode (glyphtounicode e pdfgentounicode=1).
+    - Matriz de Competências e Palavras-Chave (Core Competencies & Keywords) dedicada para match semântico em embeddings.
+    - Seções padrão em caixa alta universalmente indexadas por ATS (Workday, Greenhouse, Lever, Taleo) e LLMs.
+    """
+    t = LATEX_I18N[normalize_lang(lang)]
+    is_en = normalize_lang(lang) == "en-us"
+    name = escape_latex(cv.get("name") or t["default_candidate"])
+    default_tl = t["default_researcher"] if resume_type == "academico" else t["default_professional"]
+    title = escape_latex(cv.get("title") or default_tl)
+
+    contact_parts: List[str] = []
+    if cv.get("location"):
+        lbl_loc = "Location: " if is_en else "Local: "
+        contact_parts.append(lbl_loc + escape_latex(cv["location"]))
+    if cv.get("email"):
+        em = cv["email"].strip()
+        contact_parts.append(rf"Email: \href{{mailto:{escape_url(em)}}}{{{escape_latex(em)}}}")
+    if cv.get("phone"):
+        lbl_ph = "Phone: " if is_en else "Tel: "
+        contact_parts.append(lbl_ph + escape_latex(cv["phone"]))
+    if links.get("linkedin"):
+        contact_parts.append(rf"LinkedIn: \href{{{escape_url(links['linkedin'])}}}{{{escape_url(links['linkedin'])}}}")
+    if links.get("github"):
+        contact_parts.append(rf"GitHub: \href{{{escape_url(links['github'])}}}{{{escape_url(links['github'])}}}")
+    if links.get("portfolio"):
+        lbl_web = "Portfolio: " if is_en else "Portfólio: "
+        contact_parts.append(rf"{lbl_web}\href{{{escape_url(links['portfolio'])}}}{{{escape_url(links['portfolio'])}}}")
+    if links.get("orcid"):
+        contact_parts.append(rf"ORCID: \href{{{escape_url(links['orcid'])}}}{{{escape_url(links['orcid'])}}}")
+    if links.get("lattes"):
+        contact_parts.append(rf"Lattes: \href{{{escape_url(links['lattes'])}}}{{{escape_url(links['lattes'])}}}")
+
+    contact_str = " \\;|\\; ".join(contact_parts)
+
+    header_tex = rf"""\begin{{center}}
+    {{\LARGE\bfseries\color{{sidecolor}} {name}}}\\[3pt]
+    {{\large\bfseries\color{{accent}} {title}}}\\[5pt]
+    {{\footnotesize {contact_str}}}
+\end{{center}}
+\vspace{{2pt}}
+\hrule height 0.75pt
+\vspace{{5pt}}"""
+
+    blocks: List[str] = []
+
+    # 1. Summary
+    if cv.get("summary"):
+        sum_title = "PROFESSIONAL SUMMARY" if is_en else "RESUMO PROFISSIONAL"
+        blocks.append(
+            rf"\section*{{{sum_title}}}"
+            + "\n"
+            + rf"{{\normalsize {escape_latex(cv['summary'])}}}"
+        )
+
+    # 2. Dedicated Core Competencies & Keywords (Crucial for AI screening / ATS matching)
+    skills = cv.get("skills") or []
+    if skills:
+        kw_title = r"CORE COMPETENCIES \& KEYWORDS" if is_en else r"COMPETÊNCIAS PRINCIPAIS \& PALAVRAS-CHAVE"
+        kw_lines = [rf"\section*{{{kw_title}}}", r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]"]
+        for sk in skills:
+            cat = escape_latex(sk.get("category") or t["default_skill_cat"])
+            items = escape_latex(sk.get("items"))
+            if items:
+                kw_lines.append(rf"    \item \textbf{{{cat}:}} {items}")
+        kw_lines.append(r"\end{itemize}")
+        blocks.append("\n".join(kw_lines))
+
+    # 3. Experience
+    exps = cv.get("experience") or []
+    if exps:
+        exp_title = "PROFESSIONAL EXPERIENCE" if is_en else "EXPERIÊNCIA PROFISSIONAL"
+        xp_lines = [rf"\section*{{{exp_title}}}"]
+        for xp in exps:
+            role = escape_latex(xp.get("role"))
+            org = escape_latex(xp.get("organization"))
+            per = escape_latex(xp.get("period"))
+            bullets = [escape_latex(b) for b in (xp.get("bullets") or []) if str(b).strip()]
+            head_txt = f"{role} | {org}" if org else role
+            xp_lines.append(rf"\noindent\textbf{{{head_txt}}} \hfill \textbf{{{per}}}")
+            if bullets:
+                xp_lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
+                for b in bullets:
+                    xp_lines.append(rf"    \item {b}")
+                xp_lines.append(r"\end{itemize}")
+                xp_lines.append(r"\vspace{3pt}")
+            else:
+                xp_lines.append(r"\par\vspace{3pt}")
+        blocks.append("\n".join(xp_lines))
+
+    # 4. Education
+    edus = cv.get("education") or []
+    if edus:
+        edu_title = "EDUCATION" if is_en else "FORMAÇÃO ACADÊMICA"
+        ed_lines = [rf"\section*{{{edu_title}}}"]
+        for ed in edus:
+            deg = escape_latex(ed.get("degree"))
+            inst = escape_latex(ed.get("institution"))
+            per = escape_latex(ed.get("period"))
+            det = escape_latex(ed.get("details"))
+            inst_txt = f" --- {inst}" if inst else ""
+            ed_lines.append(rf"\noindent\textbf{{{deg}}}{inst_txt} \hfill \textbf{{{per}}}")
+            if det:
+                ed_lines.append(rf"\\ {{\small {det}}}\par\vspace{{3pt}}")
+            else:
+                ed_lines.append(r"\par\vspace{3pt}")
+        blocks.append("\n".join(ed_lines))
+
+    # 5. Projects
+    projs = cv.get("projects") or []
+    if projs:
+        proj_title = "TECHNICAL PROJECTS" if is_en else "PROJETOS TÉCNICOS"
+        pj_lines = [rf"\section*{{{proj_title}}}"]
+        for pj in projs:
+            nm = escape_latex(pj.get("name"))
+            tech = escape_latex(pj.get("tech"))
+            url = (pj.get("url") or "").strip()
+            desc = escape_latex(pj.get("description"))
+            link_txt = rf" (\href{{{escape_url(url)}}}{{\small {escape_url(url)}}})" if url.startswith("http") else (f" ({escape_latex(url)})" if url else "")
+            tech_txt = f" [Stack: {tech}]" if tech else ""
+            pj_lines.append(rf"\noindent\textbf{{{nm}}}{tech_txt}{link_txt}")
+            if desc:
+                pj_lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
+                pj_lines.append(rf"    \item {desc}")
+                pj_lines.append(r"\end{itemize}")
+                pj_lines.append(r"\vspace{2pt}")
+            else:
+                pj_lines.append(r"\par\vspace{2pt}")
+        blocks.append("\n".join(pj_lines))
+
+    # 6. Publications
+    pubs = cv.get("publications") or []
+    if pubs:
+        pub_title = "PUBLICATIONS" if is_en else "PUBLICAÇÕES"
+        blocks.append(rf"\section*{{{pub_title}}}" + "\n" + _build_publications_block(pubs, lang).replace(rf"\section*{{{t['sec_publications']}}}", "").strip())
+
+    # 7. Certifications & Awards
+    awards = cv.get("awards") or []
+    if awards:
+        aw_title = r"CERTIFICATIONS \& AWARDS" if is_en else r"CERTIFICAÇÕES \& PRÊMIOS"
+        aw_lines = [rf"\section*{{{aw_title}}}", r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]"]
+        for aw in awards:
+            if str(aw).strip():
+                aw_lines.append(rf"    \item {escape_latex(aw)}")
+        aw_lines.append(r"\end{itemize}")
+        blocks.append("\n".join(aw_lines))
+
+    # 8. Languages
+    langs = cv.get("languages") or []
+    if langs:
+        lg_title = "LANGUAGES" if is_en else "IDIOMAS"
+        lg_str = " $\\cdot$ ".join(escape_latex(x) for x in langs if str(x).strip())
+        blocks.append(rf"\section*{{{lg_title}}}" + "\n" + lg_str)
+
+    body_tex = "\n\n".join(b for b in blocks if b)
+
+    return rf"""% Template AI & ATS Max-Readability (LLM & Neural ATS Evaluators)
+\documentclass[10pt,a4paper]{{article}}
+\usepackage[utf8]{{inputenc}}
+\usepackage[T1]{{fontenc}}
+\usepackage[{t['babel']}]{{babel}}
+\usepackage{{lmodern}}
+\usepackage[margin=0.6in]{{geometry}}
+\usepackage{{xcolor}}
+\usepackage{{graphicx}}
+\usepackage{{enumitem}}
+\usepackage{{titlesec}}
+\usepackage[hidelinks]{{hyperref}}
+
+\input{{glyphtounicode}}
+\pdfgentounicode=1
+
+\raggedbottom
+\setlist{{noitemsep, topsep=1pt, parsep=0pt, partopsep=0pt}}
+\definecolor{{accent}}{{HTML}}{{1E293B}}
+\definecolor{{sidecolor}}{{HTML}}{{0F172A}}
+\definecolor{{graytext}}{{HTML}}{{334155}}
+\pagestyle{{empty}}
+\setlength{{\parindent}}{{0pt}}
+
+\titleformat{{\section}}{{\normalsize\bfseries\scshape\color{{sidecolor}}}}{{}}{{0em}}{{}}[\vspace{{1pt}}\titlerule]
+\titlespacing*{{\section}}{{0pt}}{{8pt}}{{3pt}}
+
+\begin{{document}}
+{header_tex}
+{body_tex}
 \end{{document}}
 """
 

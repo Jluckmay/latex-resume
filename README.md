@@ -55,7 +55,7 @@ Para executar o gerador e compilar os currículos em PDF, o ambiente deve atende
    - **Detecção Automática**: detectam automaticamente na inicialização o **idioma padrão** (`navigator.language` / `Accept-Language` ou idioma do SO) e o **tema visual padrão** (`prefers-color-scheme` / registro do SO), adotando-os sem necessidade de configuração manual.
    - **Alternância Instantânea**: incluem seletor rápido entre **☀️ Modo Claro** e **🌙 Modo Escuro** e alternância instantânea entre **Português (`pt-BR`)** e **Inglês (`en-US`)**.
 2. **Preview Visual em Tempo Real dos Modelos LaTeX e Customização de Cores**:
-   - **Preview Interativo**: exibe uma prévia visual fiel do layout do modelo LaTeX escolhido (`modern_pro`, `academic_classic`, `tech_sidebar`, `minimal_ats`, `overleaf_russell_ti`, `overleaf_awesome_cv`, `overleaf_single_page_keywords`) que reflete instantaneamente as cores e o idioma selecionados antes mesmo de compilar o PDF.
+   - **Preview Interativo**: exibe uma prévia visual fiel do layout do modelo LaTeX escolhido (`modern_pro`, `academic_classic`, `tech_sidebar`, `minimal_ats`, `overleaf_russell_ti`, `overleaf_awesome_cv`, `overleaf_single_page_keywords`, `google_standard`, `ai_ats_max`) que reflete instantaneamente as cores e o idioma selecionados antes mesmo de compilar o PDF.
    - **Paletas e Seletor de Cores (`HEX`)**: escolha entre 6 paletas executivas/acadêmicas predefinidas (*Azul Oceano*, *Azul Marinho Acadêmico*, *Verde Esmeralda Tech*, *Índigo Real*, *Bordô Clássico*, *Grafite Minimalista*) ou defina manualmente a **Cor Principal** e a **Cor Secundária** aplicadas ao código LaTeX (`\definecolor`).
 3. **Coleta Multi-Fonte Automática (incluindo Página de Portfólio)**:
    - **Portfólio Pessoal (`URL`)**: extrai título, descrição, seções (`h1`/`h2`/`h3`), bio e projetos diretamente da página web de portfólio do usuário e adiciona o link clicável **Portfólio** no cabeçalho do PDF.
@@ -64,7 +64,7 @@ Para executar o gerador e compilar os currículos em PDF, o ambiente deve atende
    - **Lattes**: parser nativo para o arquivo oficial `XML`/`ZIP` exportado do CNPq (`CURRICULO-VITAE`), além de suporte a PDF, HTML, URL ou texto complementar.
    - **LinkedIn**: suporte a URL do perfil, upload do PDF oficial exportado pelo LinkedIn (*Salvar como PDF*) e texto complementar.
    - **Foto de Perfil**: normalização automática de imagem (`PNG`/`JPG`/`WebP`) via Pillow para inclusão no LaTeX (`\includegraphics`).
-4. **7 Modelos LaTeX Integrados (incluindo 3 Templates Oficiais do Overleaf) + Suporte a Template `.tex` Customizado**:
+4. **9 Modelos LaTeX Integrados (incluindo Overleaf, Padrão Google e Otimizado para IA & ATS) + Suporte a Template `.tex` Customizado**:
    - `modern_pro`: Moderno Executivo (Profissional & Tech)
    - `academic_classic`: Acadêmico Clássico (Pesquisador / CNPq / Pós-Graduação)
    - `tech_sidebar`: Tech & Engenharia Duas Colunas (Barra Lateral)
@@ -72,6 +72,8 @@ Para executar o gerador e compilar os currículos em PDF, o ambiente deve atende
    - `overleaf_russell_ti`: **Overleaf — Currículo T.I. (`russell.cls`)** ([ver no Overleaf](https://www.overleaf.com/read/rgfqqnnynrmv#d5b171)) — Cabeçalho com foto à esquerda, ícones FontAwesome 5, títulos com destaque nas 3 primeiras letras, tabela de skills e barra de proficiência de idiomas (5 pontos).
    - `overleaf_awesome_cv`: **Overleaf — Jason Richards Awesome-CV** ([ver no Overleaf](https://www.overleaf.com/articles/jason-richards-resume/chbxgnfyyvfc)) — Tipografia Roboto + Source Sans Pro, cabeçalho centralizado, títulos com destaque colorido nas 3 primeiras letras e rodapé executivo de 3 colunas.
    - `overleaf_single_page_keywords`: **Overleaf — Single-Page Resume with Keywords (`my_cv.cls`)** ([ver no Overleaf](https://www.overleaf.com/latex/templates/sample-single-page-resume-with-keywords/wmcxcgmtkxzk)) — Fonte Raleway, cabeçalho em 2 colunas, ícones circulares em TikZ + FontAwesome 5, seção Summary em largura total e corpo em 2 colunas com linha de `Keywords` por cargo.
+   - `google_standard`: **Padrão Google (Big Tech / Software Engineer)** — Baseado nas diretrizes de recrutamento Big Tech (Google SWE / Gayle Laakmann McDowell). Página única densa, margens de 0.5 polegadas, estrutura XYZ de realizações ("Conquistou [X] medido por [Y], realizando [Z]"), divisórias horizontais limpas e formatação clean sem espaços ociosos.
+   - `ai_ats_max`: **Otimizado para IA & ATS (Máxima Legibilidade por LLMs)** — Desenvolvido especificamente para triagem automatizada por LLMs (Gemini, Claude, GPT) e sistemas ATS neurais (Workday, Greenhouse, Lever). Fluxo textual 100% linear em coluna única, metadados semânticos explícitos (tags textuais ASCII: Location, Email, Phone, LinkedIn, GitHub, Portfolio), matriz de competências e palavras-chave (Core Competencies & Keywords) dedicada para match semântico e compatibilidade Unicode nativa (`glyphtounicode`).
    - **Template Customizado (`.tex`)**: envie qualquer arquivo `.tex` próprio e o modelo preencherá a estrutura mantendo o preâmbulo original.
 
 ### 🚀 Publicação no GitHub, GitHub Pages e Backend no Render
@@ -216,7 +218,7 @@ To run the generator and compile resumes into PDF, your environment must meet th
    - **Automatic Detection**: automatically detects your **default language** (`navigator.language` / `Accept-Language` or OS locale) and **default color scheme** (`prefers-color-scheme` / OS registry theme) on startup and adopts them seamlessly.
    - **Instant Switching**: includes a one-click switcher between **☀️ Light Mode** and **🌙 Dark Mode**, plus instant toggling between **English (`en-US`)** and **Portuguese (`pt-BR`)**.
 2. **Real-Time Visual LaTeX Template Preview & Color Customization**:
-   - **Interactive Template Preview**: renders a live visual preview of your chosen LaTeX template (`modern_pro`, `academic_classic`, `tech_sidebar`, `minimal_ats`, `overleaf_russell_ti`, `overleaf_awesome_cv`, `overleaf_single_page_keywords`) that updates immediately as you tweak colors or switch languages prior to compiling the PDF.
+   - **Interactive Template Preview**: renders a live visual preview of your chosen LaTeX template (`modern_pro`, `academic_classic`, `tech_sidebar`, `minimal_ats`, `overleaf_russell_ti`, `overleaf_awesome_cv`, `overleaf_single_page_keywords`, `google_standard`, `ai_ats_max`) that updates immediately as you tweak colors or switch languages prior to compiling the PDF.
    - **Curated Palettes & `HEX` Color Pickers**: choose from 6 executive/academic presets (*Ocean Blue*, *Academic Navy*, *Emerald Tech*, *Royal Indigo*, *Classic Burgundy*, *Minimalist Charcoal*) or pick custom **Primary** and **Secondary** colors injected directly into LaTeX (`\definecolor`).
 3. **Automated Multi-Source Profile Extraction (including Portfolio Websites)**:
    - **Personal Portfolio (`URL`)**: scrapes title, meta description, section headings (`h1`/`h2`/`h3`), bio, and project highlights from your portfolio website and injects a clickable **Portfolio** link in the resume header.
@@ -225,7 +227,7 @@ To run the generator and compile resumes into PDF, your environment must meet th
    - **Lattes**: native parser for official CNPq `XML`/`ZIP` exports (`CURRICULO-VITAE`), plus PDF, HTML, URL, or pasted text support.
    - **LinkedIn**: supports profile URLs, official LinkedIn exported PDFs (*Save to PDF*), and supplementary text.
    - **Profile Photo**: automatic image normalization (`PNG`/`JPG`/`WebP`) via Pillow for seamless LaTeX inclusion (`\includegraphics`).
-4. **7 Built-in LaTeX Templates (including 3 Official Overleaf Templates) + Custom `.tex` Template Support**:
+4. **9 Built-in LaTeX Templates (including Overleaf, Google Standard & AI/ATS-Optimized) + Custom `.tex` Template Support**:
    - `modern_pro`: Executive Modern (Professional & Tech)
    - `academic_classic`: Academic Classic (Researcher / Post-Grad / Faculty)
    - `tech_sidebar`: Tech & Engineering Two-Column (Sidebar)
@@ -233,6 +235,8 @@ To run the generator and compile resumes into PDF, your environment must meet th
    - `overleaf_russell_ti`: **Overleaf — IT Resume (`russell.cls`)** ([view on Overleaf](https://www.overleaf.com/read/rgfqqnnynrmv#d5b171)) — Left header photo, FontAwesome 5 icons, 3-letter colored section titles, skill category tables, and 5-dot language proficiency bars.
    - `overleaf_awesome_cv`: **Overleaf — Jason Richards Awesome-CV** ([view on Overleaf](https://www.overleaf.com/articles/jason-richards-resume/chbxgnfyyvfc)) — Roboto + Source Sans Pro typography, centered header, 3-letter colored section titles, and 3-column executive footer.
    - `overleaf_single_page_keywords`: **Overleaf — Single-Page Resume with Keywords (`my_cv.cls`)** ([view on Overleaf](https://www.overleaf.com/latex/templates/sample-single-page-resume-with-keywords/wmcxcgmtkxzk)) — Raleway font, 2-column header, TikZ circled FontAwesome 5 section icons, full-width Summary, and 2-column body with per-role `Keywords` lines.
+   - `google_standard`: **Google Standard (Big Tech / Software Engineer)** — Built upon Big Tech recruitment guidelines (Google SWE / Gayle Laakmann McDowell). Dense single-page layout, 0.5-inch margins, XYZ accomplishment format ("Accomplished [X] as measured by [Y], by doing [Z]"), clean horizontal rules, and zero wasted white space.
+   - `ai_ats_max`: **AI & ATS Max-Readability (LLM & Neural ATS Evaluators)** — Engineered specifically for automated screening by LLMs (Gemini, Claude, GPT) and neural ATS parsers (Workday, Greenhouse, Lever). Strict 100% linear single-column text stream, explicit semantic ASCII metadata tags (Location, Email, Phone, LinkedIn, GitHub, Portfolio), dedicated Core Competencies & Keywords matrix, and native Unicode mapping (`glyphtounicode`).
    - **Custom Template (`.tex`)**: upload or paste your own `.tex` template and the engine populates the document body while preserving your custom preamble and macros.
 
 ### 🚀 Publishing to GitHub, GitHub Pages & Render Backend
