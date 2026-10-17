@@ -104,6 +104,17 @@
         .pill-badge.ok {
             color: #10b981;
             border-color: rgba(16, 185, 129, 0.3);
+            background-color: rgba(16, 185, 129, 0.08);
+        }
+        .pill-badge.warn {
+            color: #f59e0b;
+            border-color: rgba(245, 158, 11, 0.4);
+            background-color: rgba(245, 158, 11, 0.08);
+        }
+        .pill-badge.err {
+            color: #ef4444;
+            border-color: rgba(239, 68, 68, 0.4);
+            background-color: rgba(239, 68, 68, 0.08);
         }
         .btn-toggle {
             background-color: var(--bg-subtle);
@@ -398,6 +409,73 @@
         .hidden {
             display: none !important;
         }
+        /* Modal Backdrop and Box */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            padding: 1rem;
+        }
+        .modal-box {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            max-width: 560px;
+            width: 100%;
+            padding: 1.5rem;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.35);
+            animation: modalPop 0.18s ease-out;
+        }
+        @keyframes modalPop {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.6rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+        }
+        .modal-close:hover {
+            color: var(--text-main);
+            background-color: var(--bg-subtle);
+        }
+        .modal-body {
+            font-size: 0.88rem;
+            color: var(--text-main);
+        }
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.6rem;
+            margin-top: 1.2rem;
+            padding-top: 0.8rem;
+            border-top: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
     </style>
 </head>
 <body>
@@ -412,7 +490,8 @@
             </div>
         </div>
         <div class="nav-controls">
-            <span class="pill-badge ok" id="ui-latex-badge">✅ LaTeX (pdflatex)</span>
+            <span class="pill-badge" id="ui-latex-badge" onclick="openBackendModal()" style="cursor:pointer;" title="Clique para verificar ou configurar a conexão com o backend">⏳ Conectando backend...</span>
+            <button type="button" class="btn-toggle" id="btn-backend-settings" onclick="openBackendModal()" title="Configurações do Servidor Backend">⚙️ <span id="ui-backend-lbl">Backend</span></button>
             <select id="resume-lang-select" class="btn-toggle" title="Resume Output Language">
                 <option value="pt-br">📝 PDF: Português (pt-BR)</option>
                 <option value="en-us">📝 PDF: English (en-US)</option>
@@ -731,6 +810,34 @@
         </section>
     </main>
 
+    <!-- Backend Connection Settings Modal -->
+    <div id="backend-modal" class="modal-overlay hidden" onclick="if(event.target===this) closeBackendModal()">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div class="modal-title" id="ui-backend-modal-title">⚙️ Conexão com o Backend (Render / Local)</div>
+                <button type="button" class="modal-close" onclick="closeBackendModal()">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.9rem;" id="ui-backend-modal-desc">
+                    O compilador LaTeX (<code>pdflatex</code>) e a síntese de currículo por IA executam no backend Python. Configure a URL do servidor abaixo:
+                </p>
+                <div class="form-group">
+                    <label id="ui-backend-url-lbl" style="font-weight:600;font-size:0.83rem;">URL do Servidor Backend:</label>
+                    <input type="text" id="inp-backend-url" class="form-control" placeholder="http://127.0.0.1:5000 ou https://latex-resume-backend.onrender.com">
+                </div>
+                <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;">
+                    <button type="button" class="btn-secondary" style="font-size:0.78rem;padding:0.35rem 0.65rem;" onclick="setBackendPreset('local')">🏠 Localhost (127.0.0.1:5000)</button>
+                    <button type="button" class="btn-secondary" style="font-size:0.78rem;padding:0.35rem 0.65rem;" onclick="setBackendPreset('render')">☁️ Render Cloud</button>
+                </div>
+                <div id="backend-test-result" style="padding:0.6rem 0.8rem;border-radius:8px;font-size:0.8rem;display:none;margin-bottom:0.8rem;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="btn-test-backend" onclick="testBackendModalConnection()">🔄 Testar Conexão</button>
+                <button type="button" class="btn-primary" id="btn-save-backend" style="width:auto;padding:0.5rem 1rem;" onclick="saveBackendUrl()">💾 Salvar URL</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const PRESETS = {
             ocean_blue: { primary: "#0F4C81", secondary: "#1E293B" },
@@ -892,7 +999,13 @@
                 mPct: "Economia",
                 dlPdf: "⬇️ Baixar Currículo (.PDF)",
                 dlTex: "⬇️ Baixar Código (.TEX)",
-                texSummary: "🔍 Ver Código-Fonte LaTeX Gerado"
+                texSummary: "🔍 Ver Código-Fonte LaTeX Gerado",
+                backendBtn: "⚙️ Backend",
+                backendModalTitle: "⚙️ Conexão com o Backend (Render / Local)",
+                backendModalDesc: "O compilador LaTeX (<code>pdflatex</code>) e a síntese de currículo por IA executam no backend Python. Configure a URL do servidor abaixo:",
+                backendUrlLbl: "URL do Servidor Backend:",
+                backendTestBtn: "🔄 Testar Conexão",
+                backendSaveBtn: "💾 Salvar URL"
             },
             "en-us": {
                 appTitle: "Automatic LaTeX Resume Generator (NVIDIA NIM)",
@@ -962,7 +1075,13 @@
                 mPct: "Savings",
                 dlPdf: "⬇️ Download Resume (.PDF)",
                 dlTex: "⬇️ Download Source (.TEX)",
-                texSummary: "🔍 View Generated LaTeX Source Code"
+                texSummary: "🔍 View Generated LaTeX Source Code",
+                backendBtn: "⚙️ Backend",
+                backendModalTitle: "⚙️ Backend Connection (Render / Local)",
+                backendModalDesc: "The LaTeX compiler (<code>pdflatex</code>) and resume synthesis execute on the Python backend. Configure the server URL below:",
+                backendUrlLbl: "Backend Server URL:",
+                backendTestBtn: "🔄 Test Connection",
+                backendSaveBtn: "💾 Save URL"
             }
         };
 
@@ -1073,6 +1192,19 @@
             document.getElementById("dl-pdf-link").textContent = t.dlPdf;
             document.getElementById("dl-tex-link").textContent = t.dlTex;
             document.getElementById("ui-tex-code-summary").textContent = t.texSummary;
+
+            const beLbl = document.getElementById("ui-backend-lbl");
+            if (beLbl) beLbl.textContent = t.backendBtn.replace("⚙️ ", "");
+            const bmTitle = document.getElementById("ui-backend-modal-title");
+            if (bmTitle) bmTitle.textContent = t.backendModalTitle;
+            const bmDesc = document.getElementById("ui-backend-modal-desc");
+            if (bmDesc) bmDesc.innerHTML = t.backendModalDesc;
+            const buLbl = document.getElementById("ui-backend-url-lbl");
+            if (buLbl) buLbl.textContent = t.backendUrlLbl;
+            const btBtn = document.getElementById("btn-test-backend");
+            if (btBtn) btBtn.textContent = t.backendTestBtn;
+            const bsBtn = document.getElementById("btn-save-backend");
+            if (bsBtn) bsBtn.textContent = t.backendSaveBtn;
 
             const provSelect = document.getElementById("inp-provider");
             if (provSelect) {
@@ -1483,33 +1615,155 @@
         }
 
         function getBackendBaseUrl() {
-            if (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost") {
-                return "";
-            }
             const custom = localStorage.getItem("latex_resume_backend_url");
             if (custom && custom.trim()) return custom.trim().replace(/\/+$/, "");
             const metaTag = document.querySelector('meta[name="backend-origin"]');
             if (metaTag && metaTag.content) return metaTag.content.trim().replace(/\/+$/, "");
+
+            const isLocalHost = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost";
+            if (isLocalHost && window.location.port === "5000") {
+                return "";
+            }
+            if (isLocalHost || window.location.protocol === "file:") {
+                return "http://127.0.0.1:5000";
+            }
             return "https://latex-resume-backend.onrender.com";
         }
 
         async function checkBackendStatus() {
             const badge = document.getElementById("ui-latex-badge");
+            const base = getBackendBaseUrl();
+            if (!badge) return;
             try {
-                const base = getBackendBaseUrl();
+                badge.className = "pill-badge";
+                badge.textContent = state.uiLang === "en-us" ? "⏳ Connecting..." : "⏳ Conectando backend...";
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 6000);
                 const res = await fetch(`${base}/api/status`, {
+                    signal: controller.signal,
                     headers: {
                         "X-Resume-Client": "jluckmay-github-pages-v1",
                         "X-Client-Timestamp": Date.now().toString()
                     }
                 });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data.latex_ok) {
-                        badge.textContent = "✅ " + data.latex_version;
-                    }
+                clearTimeout(timeoutId);
+
+                const cType = res.headers.get("content-type") || "";
+                if (!cType.includes("application/json")) {
+                    throw new Error(`Resposta não-JSON (HTTP ${res.status})`);
                 }
-            } catch (_) {}
+
+                const data = await res.json();
+                if (res.ok && data.latex_ok) {
+                    badge.className = "pill-badge ok";
+                    badge.textContent = "✅ " + (data.latex_version || "pdflatex OK");
+                    badge.title = `Backend conectado em: ${base || window.location.origin}\nCompilador: ${data.latex_version}\nClique para configurar`;
+                    return { ok: true, data };
+                } else {
+                    throw new Error(data.error || `HTTP ${res.status}`);
+                }
+            } catch (err) {
+                badge.className = "pill-badge warn";
+                const displayHost = base ? base.replace(/^https?:\/\//, "") : "127.0.0.1:5000";
+                badge.textContent = `⚠️ Backend Offline (${displayHost})`;
+                badge.title = `Não foi possível conectar a ${base || 'http://127.0.0.1:5000'}: ${err.message}.\nClique para abrir as configurações.`;
+                return { ok: false, error: err.message };
+            }
+        }
+
+        function openBackendModal() {
+            const modal = document.getElementById("backend-modal");
+            const inp = document.getElementById("inp-backend-url");
+            const resBox = document.getElementById("backend-test-result");
+            if (resBox) resBox.style.display = "none";
+            if (inp) {
+                inp.value = localStorage.getItem("latex_resume_backend_url") || getBackendBaseUrl();
+            }
+            if (modal) modal.classList.remove("hidden");
+        }
+
+        function closeBackendModal() {
+            const modal = document.getElementById("backend-modal");
+            if (modal) modal.classList.add("hidden");
+        }
+
+        function setBackendPreset(type) {
+            const inp = document.getElementById("inp-backend-url");
+            if (!inp) return;
+            if (type === "local") {
+                inp.value = "http://127.0.0.1:5000";
+            } else if (type === "render") {
+                inp.value = "https://latex-resume-backend.onrender.com";
+            }
+        }
+
+        async function testBackendModalConnection() {
+            const inp = document.getElementById("inp-backend-url");
+            const resBox = document.getElementById("backend-test-result");
+            const testBtn = document.getElementById("btn-test-backend");
+            if (!inp || !resBox) return;
+
+            const targetUrl = (inp.value || "").trim().replace(/\/+$/, "");
+            resBox.style.display = "block";
+            resBox.style.backgroundColor = "var(--bg-subtle)";
+            resBox.style.border = "1px solid var(--border)";
+            resBox.style.color = "var(--text-main)";
+            resBox.textContent = state.uiLang === "en-us" ? "⏳ Testing connection to " + targetUrl + "..." : "⏳ Testando conexão com " + targetUrl + "...";
+            if (testBtn) testBtn.disabled = true;
+
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 7000);
+                const res = await fetch(`${targetUrl}/api/status`, {
+                    signal: controller.signal,
+                    headers: {
+                        "X-Resume-Client": "jluckmay-github-pages-v1",
+                        "X-Client-Timestamp": Date.now().toString()
+                    }
+                });
+                clearTimeout(timeoutId);
+
+                const cType = res.headers.get("content-type") || "";
+                if (!cType.includes("application/json")) {
+                    throw new Error(`Servidor respondeu com formato não-JSON (HTTP ${res.status} - ${res.statusText})`);
+                }
+
+                const data = await res.json();
+                if (res.ok && data.latex_ok) {
+                    resBox.style.backgroundColor = "rgba(16, 185, 129, 0.1)";
+                    resBox.style.border = "1px solid rgba(16, 185, 129, 0.4)";
+                    resBox.style.color = "#10b981";
+                    resBox.innerHTML = `<b>✅ Conectado com Sucesso!</b><br>Compilador: ${data.latex_version || 'pdflatex'}<br>Provedores suportados: ${Object.keys(data.providers || {}).length}`;
+                } else {
+                    throw new Error(data.error || `HTTP ${res.status}`);
+                }
+            } catch (err) {
+                resBox.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
+                resBox.style.border = "1px solid rgba(239, 68, 68, 0.4)";
+                resBox.style.color = "#ef4444";
+                let guidance = "";
+                if (targetUrl.includes("127.0.0.1") || targetUrl.includes("localhost")) {
+                    guidance = "<br><small>💡 Dica: Inicie o servidor local no terminal com: <code>python server.py</code></small>";
+                } else if (targetUrl.includes("onrender.com")) {
+                    guidance = "<br><small>💡 Dica: Se o serviço no Render for gratuito, aguarde cerca de 30-50 segundos para despertar ou verifique a URL.</small>";
+                }
+                resBox.innerHTML = `<b>❌ Falha na Conexão:</b> ${err.message}${guidance}`;
+            } finally {
+                if (testBtn) testBtn.disabled = false;
+            }
+        }
+
+        function saveBackendUrl() {
+            const inp = document.getElementById("inp-backend-url");
+            if (!inp) return;
+            const val = inp.value.trim().replace(/\/+$/, "");
+            if (val) {
+                localStorage.setItem("latex_resume_backend_url", val);
+            } else {
+                localStorage.removeItem("latex_resume_backend_url");
+            }
+            closeBackendModal();
+            checkBackendStatus();
         }
 
         async function generateResume() {
@@ -1581,9 +1835,25 @@
                     throw new Error("Falha na atestação do backend / Backend attestation failed");
                 }
 
-                const data = await resp.json();
+                const contentType = resp.headers.get("content-type") || "";
+                let data = null;
+                if (contentType.includes("application/json")) {
+                    data = await resp.json();
+                } else {
+                    const rawText = await resp.text();
+                    const targetHost = base || window.location.origin;
+                    const isLocal = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" || window.location.protocol === "file:";
+                    let errorMsg = `O servidor backend em "${targetHost}" retornou uma resposta não-JSON (HTTP ${resp.status} - ${resp.statusText || 'Erro'}).\n\n`;
+                    if (isLocal) {
+                        errorMsg += `💡 Execução Local Detectada:\n1. Certifique-se de ter iniciado o servidor backend no terminal:\n   python server.py\n2. Verifique se o servidor está ativo na porta 5000 (http://127.0.0.1:5000).\n3. Você também pode clicar no botão ⚙️ Backend no topo para ajustar a URL.`;
+                    } else {
+                        errorMsg += `💡 Dica de Nuvem (Render):\n1. No plano gratuito do Render, o serviço hiberna após inatividade e leva de 30 a 50 segundos para despertar. Aguarde um instante e tente novamente.\n2. Verifique no botão ⚙️ Backend se a URL do serviço no Render está correta.`;
+                    }
+                    throw new Error(errorMsg);
+                }
+
                 if (!resp.ok || data.error) {
-                    throw new Error(data.error || "Failed to generate resume");
+                    throw new Error(data.error || `HTTP ${resp.status}: Falha ao gerar currículo`);
                 }
 
                 document.getElementById("result-idle-msg").classList.add("hidden");

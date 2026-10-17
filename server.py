@@ -45,6 +45,17 @@ LOCAL_ORIGINS = {
     "null",  # Navegadores abrindo file:// localmente
 }
 
+
+def _is_local_origin(origin: str) -> bool:
+    """Verifica se a origem é um host local/loopback em qualquer porta (Live Server, Vite, etc.)."""
+    if not origin or origin == "null":
+        return True
+    return (
+        origin.startswith("http://127.0.0.1:")
+        or origin.startswith("http://localhost:")
+        or origin in LOCAL_ORIGINS
+    )
+
 ALLOW_LOCAL_DEV = os.environ.get("ALLOW_LOCAL_DEV", "0") == "1"
 
 CLIENT_HEADER_NAME = "X-Resume-Client"
@@ -88,7 +99,7 @@ def _validate_origin_and_referer() -> tuple[bool, str]:
 
     # Verificação de loopback / desenvolvimento local
     is_loopback = request.remote_addr in ("127.0.0.1", "::1", "localhost")
-    if (ALLOW_LOCAL_DEV or is_loopback) and (origin in LOCAL_ORIGINS or not origin):
+    if (ALLOW_LOCAL_DEV or is_loopback) and _is_local_origin(origin):
         return True, origin or "http://127.0.0.1:5000"
 
     # 1. Validação de solicitações vindas de https://jluckmay.github.io/
@@ -138,6 +149,20 @@ def add_security_and_cors_headers(response: Response) -> Response:
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-Backend-Attestation"] = BACKEND_ATTESTATION
     return response
+
+
+@app.errorhandler(400)
+@app.errorhandler(403)
+@app.errorhandler(404)
+@app.errorhandler(405)
+@app.errorhandler(500)
+def handle_api_errors(e):
+    """Garante que endpoints de API sempre retornem JSON estruturado, nunca páginas HTML."""
+    if request.path.startswith("/api/"):
+        code = getattr(e, "code", 500)
+        desc = getattr(e, "description", str(e))
+        return jsonify({"error": desc, "status": code}), code
+    return e
 
 
 @app.route("/healthz", methods=["GET"])
