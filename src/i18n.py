@@ -257,14 +257,14 @@ UI_TEXT: Dict[str, Dict[str, Any]] = {
             "Otimizado com Plugins de Economia de Tokens (Caveman + TOON + 0-Reasoning)"
         ),
         "lang_selector_label": "🌐 Idioma da Interface e do Currículo / Language",
-        "sidebar_header": "⚙️ Motor NVIDIA NIM & Economia de Tokens",
-        "model_select_label": "Modelo da API NVIDIA",
+        "sidebar_header": "⚙️ Motor de IA & Economia de Tokens",
+        "model_select_label": "Modelo de IA",
         "model_select_help": (
-            "O modelo padrão (Nemotron 3.5 Super 120B) foi selecionado por apresentar a melhor precisão estrutural, "
-            "baixa latência (<1s) e 0 tokens ocultos de raciocínio."
+            "Selecione o modelo do provedor escolhido. Modelos recomendados foram validados para alta precisão sintática "
+            "e economia de tokens."
         ),
-        "custom_key_label": "Credencial Customizada (opcional — cofre criptográfico integrado ativo por padrão)",
-        "custom_key_placeholder": "Usando cofre interno vinculado à tarefa",
+        "custom_key_label": "Chave de API do Provedor (Opcional)",
+        "custom_key_placeholder": "Chave padrão do servidor ativa",
         "cache_checkbox": "Ativar Cache Local SHA-256 (0 tokens em reuso)",
         "plugins_header": "🔌 Plugins de Economia Ativos",
         "plugins_md": (
@@ -360,14 +360,14 @@ UI_TEXT: Dict[str, Dict[str, Any]] = {
             "Optimized with Token-Saving Plugins (Caveman + TOON + 0-Reasoning)"
         ),
         "lang_selector_label": "🌐 Interface & Resume Language / Idioma",
-        "sidebar_header": "⚙️ NVIDIA NIM Engine & Token Economy",
-        "model_select_label": "NVIDIA API Model",
+        "sidebar_header": "⚙️ AI Engine & Token Economy",
+        "model_select_label": "AI Model",
         "model_select_help": (
-            "The default model (Nemotron 3.5 Super 120B) was selected for its top structural accuracy, "
-            "low latency (<1s), and 0 hidden reasoning tokens."
+            "Select the model for your chosen provider. Recommended models are validated for high syntactic accuracy "
+            "and token efficiency."
         ),
-        "custom_key_label": "Custom Credential (optional — built-in task-bound cryptographic vault active by default)",
-        "custom_key_placeholder": "Using built-in task-bound enclave vault",
+        "custom_key_label": "Provider API Key (Optional)",
+        "custom_key_placeholder": "Server default key active",
         "cache_checkbox": "Enable Local SHA-256 Cache (0 tokens on reuse)",
         "plugins_header": "🔌 Active Token-Saving Plugins",
         "plugins_md": (

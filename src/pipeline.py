@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 from .compiler import compile_latex_to_pdf, prepare_photo_for_latex, sanitize_custom_latex
-from .config import DEFAULT_MODEL, OUTPUT_DIR
+from .config import DEFAULT_MODEL, DEFAULT_PROVIDER, OUTPUT_DIR
 from .extractors import (
     extract_github,
     extract_lattes,
@@ -15,7 +15,7 @@ from .extractors import (
     extract_orcid,
     extract_portfolio,
 )
-from .nvidia_client import NvidiaResumeGenerator
+from .llm_client import LLMResumeGenerator
 from .token_plugins import TokenMetrics
 from .ui_theme import apply_custom_colors_and_portfolio_to_latex
 
@@ -58,6 +58,7 @@ def build_resume_pipeline(
     user_phone: str = "",
     user_location: str = "",
     extra_notes: str = "",
+    provider: str = DEFAULT_PROVIDER,
     api_key: str | None = None,
     model: str = DEFAULT_MODEL,
     use_cache: bool = True,
@@ -141,8 +142,8 @@ def build_resume_pipeline(
         target_stem=f"{output_stem}_photo",
     )
 
-    # 3. Geração do LaTeX via NVIDIA NIM + Plugins de Economia de Tokens
-    generator = NvidiaResumeGenerator(api_key=api_key, model=model, use_cache=use_cache)
+    # 3. Geração do LaTeX via LLM (NVIDIA, Google, Claude, OpenAI, DeepSeek) + Plugins de Economia de Tokens
+    generator = LLMResumeGenerator(provider=provider, api_key=api_key, model=model, use_cache=use_cache)
     latex_code, structured_cv, metrics = generator.generate_latex_resume(
         raw_profile_data=raw_profile_data,
         resume_type=resume_type,

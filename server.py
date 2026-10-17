@@ -18,7 +18,13 @@ from pathlib import Path
 from flask import Flask, Response, jsonify, request, send_file
 
 from src.compiler import check_latex_compiler
-from src.config import DEFAULT_MODEL, PROJECT_ROOT, RECOMMENDED_MODELS
+from src.config import (
+    DEFAULT_MODEL,
+    DEFAULT_PROVIDER,
+    PROJECT_ROOT,
+    PROVIDERS_CONFIG,
+    RECOMMENDED_MODELS,
+)
 from src.pipeline import build_resume_pipeline
 
 app = Flask(__name__, static_folder=str(PROJECT_ROOT))
@@ -165,6 +171,7 @@ def api_status() -> Response | tuple[Response, int]:
             "status": "ok",
             "latex_ok": latex_ok,
             "latex_version": latex_ver,
+            "providers": PROVIDERS_CONFIG,
             "models": RECOMMENDED_MODELS,
             "service": "latex-resume-backend",
         }
@@ -190,12 +197,15 @@ def api_generate() -> Response | tuple[Response, int]:
         form = request.form
         files = request.files
 
+        provider = form.get("provider", DEFAULT_PROVIDER).strip().lower()
         resume_type = form.get("resume_type", "profissional")
         template_id = form.get("template_id", "modern_pro")
         lang = form.get("lang", "pt-br")
         primary_color = form.get("primary_color", "#0F4C81")
         secondary_color = form.get("secondary_color", "#1E293B")
-        model = form.get("model") or DEFAULT_MODEL
+
+        prov_info = PROVIDERS_CONFIG.get(provider, PROVIDERS_CONFIG["default"])
+        model = form.get("model") or prov_info.get("default_model") or DEFAULT_MODEL
 
         custom_tex: str | None = None
         if "custom_tex_file" in files and files["custom_tex_file"].filename:
@@ -240,6 +250,7 @@ def api_generate() -> Response | tuple[Response, int]:
                 user_phone=form.get("phone", ""),
                 user_location=form.get("location", ""),
                 extra_notes=form.get("extra", ""),
+                provider=provider,
                 api_key=form.get("api_key", "").strip() or None,
                 model=model,
                 use_cache=True,

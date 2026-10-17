@@ -228,23 +228,33 @@ A aplicação web pode ser utilizada diretamente pela nuvem através do GitHub P
    - Insira a URL do seu serviço no Render: `https://latex-resume-backend.onrender.com`
 3. A interface verifica automaticamente a saúde do serviço (`/healthz`) e a disponibilidade do compilador LaTeX (`/api/status`), exibindo o selo verde com a versão do TeX Live.
 
-#### 3. Segurança da Chave de API no Navegador
-- A chave NVIDIA NIM (`nvapi-...`) pode ser informada diretamente no campo da interface.
-- **Armazenamento 100% Volátil**: a chave **nunca** é gravada no `localStorage`, `sessionStorage` ou `cookies` do navegador, e não é registrada em logs.
-- Ao clicar em gerar, ela viaja por túnel seguro HTTPS para o backend, é utilizada exclusivamente na memória RAM para a chamada à API e imediatamente descartada.
+#### 3. Chaves de API Próprias Opcionais & Criptografia Efêmera (Zero-Storage)
+O projeto permite que os usuários utilizem a chave padrão do servidor ou utilizem **suas próprias chaves de API de forma opcional**, com suporte multi-provedor:
+- **⚡ NVIDIA NIM (Padrão do Servidor)**: utiliza a credencial do servidor seguro, sem necessidade de chave do usuário.
+- **🟢 NVIDIA NIM (Chave própria)**: `nvapi-...`
+- **🔵 Google Gemini (Chave própria)**: `AIzaSy...` (Gemini 2.0 Flash, 1.5 Pro, 1.5 Flash)
+- **🟣 Anthropic Claude (Chave própria)**: `sk-ant-...` (Claude 3.5 Sonnet, 3.5 Haiku)
+- **🟢 OpenAI (Chave própria)**: `sk-...` (GPT-4o, GPT-4o Mini, o3-mini)
+- **🔷 DeepSeek (Chave própria)**: `sk-...` (DeepSeek V3, DeepSeek R1)
+
+##### Protocolo de Proteção e Ofuscação Criptográfica:
+1. **Criptografia no Navegador (`SECKEY_V1`):** Ao inserir uma chave própria na interface web, ela é criptografada e ofuscada em tempo real via **Web Crypto API (AES-256-GCM)** com vetor de inicialização aleatório e chave efêmera derivada do timestamp (`SECKEY_V1:...`). A chave em texto plano **nunca** trafega exposta e **nunca** é gravada em `localStorage`, `sessionStorage`, cookies ou logs.
+2. **Isolamento Estrito em Memória RAM (`src/_vault.py`):** No backend e em execuções locais, o envelope criptográfico é aberto exclusivamente em memória volátil RAM em buffers `bytearray`.
+3. **Zeroização Imediata (Zero-Storage):** Após o disparo da requisição via TLS 1.3 puro com pinning de certificado, o buffer de memória é imediatamente sobrescrito com bytes nulos (`0x00`) no bloco `finally`, e as variáveis de ambiente (`NVIDIA_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`) são expurgadas com `os.environ.pop` para impedir que processos-filhos (como o `pdflatex`) tenham acesso a qualquer credencial.
 
 #### 4. Passo a Passo para Geração do Currículo
 1. **Dados Pessoais e Links**: Preencha nome, cargo, e-mail, telefone, localização e informe os links dos seus perfis (GitHub, LinkedIn, ORCID, Portfólio Web, Lattes).
-2. **Escolha do Modelo LaTeX**: Selecione um dos 9 templates disponíveis:
+2. **Escolha do Provedor de IA e Modelo**: Selecione o provedor desejado (NVIDIA Padrão, NVIDIA Própria, Google Gemini, Anthropic Claude, OpenAI ou DeepSeek) e o modelo otimizado correspondente. Se desejar, informe sua chave própria com total segurança criptográfica.
+3. **Escolha do Modelo LaTeX**: Selecione um dos 9 templates disponíveis:
    - **`google_standard`**: Padrão Google SWE (bullet points XYZ de impacto, alta densidade).
    - **`ai_ats_max`**: Otimizado para triagem por IA (Claude/Gemini/GPT) e robôs ATS neurais.
    - **`overleaf_russell_ti`**: Modelo Overleaf de TI com ícones e barra de habilidades.
    - **`overleaf_awesome_cv`**: Modelo Overleaf Jason Richards Awesome-CV.
    - **`overleaf_single_page_keywords`**: Modelo Overleaf com linha de keywords por cargo.
    - **`modern_pro`**, **`academic_classic`**, **`tech_sidebar`**, **`minimal_ats`** ou seu próprio arquivo `.tex`.
-3. **Customização de Cores**: Escolha uma paleta executiva ou insira seus códigos HEX para a Cor Principal e Secundária.
-4. **Gerar**: Clique no botão **"Gerar Currículo (PDF + LaTeX)"**.
-5. **Visualização e Download**: O PDF compilado é exibido diretamente no visualizador embutido da página, com opção para copiar o código LaTeX fonte ou baixar o arquivo `.pdf` gerado.
+4. **Customização de Cores**: Escolha uma paleta executiva ou insira seus códigos HEX para a Cor Principal e Secundária.
+5. **Gerar**: Clique no botão **"Gerar Currículo (PDF + LaTeX)"**.
+6. **Visualização e Download**: O PDF compilado é exibido diretamente no visualizador embutido da página, com opção para copiar o código LaTeX fonte ou baixar o arquivo `.pdf` gerado.
 
 #### 5. Restrição Estrita de Comunicação
 Por medidas de segurança, o backend no Render aceita conexões e compilações **exclusivamente** das origens:
@@ -479,23 +489,33 @@ The web application can be used directly in the cloud through GitHub Pages paire
    - Enter your Render backend service URL: `https://latex-resume-backend.onrender.com`
 3. The web app automatically performs health probes (`/healthz` and `/api/status`), displaying a green badge indicating the live status and TeX Live compiler version.
 
-#### 3. API Key Security & In-Memory Privacy
-- Your NVIDIA NIM API key (`nvapi-...`) can be entered directly into the dedicated UI field.
-- **Strictly Ephemeral**: the key is **never** written to `localStorage`, `sessionStorage`, or browser cookies, and is omitted from all client logs.
-- When you click generate, the key travels over encrypted HTTPS directly to the compilation backend, is loaded solely into volatile RAM for the model invocation, and is immediately purged.
+#### 3. Optional Custom API Keys & Ephemeral In-Memory Encryption (Zero-Storage Policy)
+Users can choose between the secure server-provided default or **provide their own optional API keys**, with multi-provider architecture:
+- **⚡ NVIDIA NIM (Server Default)**: Uses the secure server-configured key, no user credential required.
+- **🟢 NVIDIA NIM (Own key)**: `nvapi-...`
+- **🔵 Google Gemini (Own key)**: `AIzaSy...` (Gemini 2.0 Flash, 1.5 Pro, 1.5 Flash)
+- **🟣 Anthropic Claude (Own key)**: `sk-ant-...` (Claude 3.5 Sonnet, 3.5 Haiku)
+- **🟢 OpenAI (Own key)**: `sk-...` (GPT-4o, GPT-4o Mini, o3-mini)
+- **🔷 DeepSeek (Own key)**: `sk-...` (DeepSeek V3, DeepSeek R1)
+
+##### Cryptographic Protection & Zero-Storage Protocol:
+1. **In-Browser Encryption (`SECKEY_V1`):** When entering a custom key in the web interface, it is encrypted and obfuscated in real time via **Web Crypto API (AES-256-GCM)** using an ephemeral dynamic key derived from timestamp and random IV (`SECKEY_V1:...`). Plaintext keys **never** travel exposed and are **never** stored in `localStorage`, `sessionStorage`, cookies, or browser logs.
+2. **Strict Volatile RAM Enclave (`src/_vault.py`):** On the backend and in local environments, the cryptographic envelope is unpacked strictly in volatile RAM into zeroable `bytearray` buffers.
+3. **Immediate Memory Zeroing (Zero-Storage):** Following the pinned TLS 1.3 HTTPS dispatch, the memory buffer is immediately overwritten with null bytes (`0x00`) in `finally:` blocks. Environment variables (`NVIDIA_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`) are scrubbed with `os.environ.pop` to prevent child processes (such as `pdflatex`) from accessing any credentials.
 
 #### 4. Step-by-Step Resume Generation Workflow
 1. **Personal Information & Profile Links**: Input your name, target role, contact info, and provide profile URLs (GitHub, LinkedIn, ORCID, Portfolio Website, Lattes).
-2. **Choose a LaTeX Template**: Select from the 9 available built-in templates:
+2. **Choose AI Provider & Model**: Select your preferred provider (Server Default NVIDIA, Custom NVIDIA, Google Gemini, Anthropic Claude, OpenAI, or DeepSeek) and corresponding model. Optionally enter your own API key with complete cryptographic security.
+3. **Choose a LaTeX Template**: Select from the 9 available built-in templates:
    - **`google_standard`**: Google Software Engineer recruitment standard (high-density XYZ accomplishment bullet points).
    - **`ai_ats_max`**: Maximum readability for AI screeners (Claude/Gemini/GPT) and neural ATS filters.
    - **`overleaf_russell_ti`**: Overleaf IT resume with circular icons and skill rating bars.
    - **`overleaf_awesome_cv`**: Overleaf Jason Richards Awesome-CV template.
    - **`overleaf_single_page_keywords`**: Overleaf single-page resume with per-position keywords.
    - **`modern_pro`**, **`academic_classic`**, **`tech_sidebar`**, **`minimal_ats`** or your own uploaded `.tex` file.
-3. **Color Customization**: Choose a curated executive palette or input custom HEX colors for primary and secondary accents.
-4. **Generate**: Click **"Generate Resume (PDF + LaTeX)"**.
-5. **Preview & Download**: The generated PDF renders in the embedded interactive viewer, alongside tabs to inspect or copy the raw `.tex` source code and download the `.pdf` file with a single click.
+4. **Color Customization**: Choose a curated executive palette or input custom HEX colors for primary and secondary accents.
+5. **Generate**: Click **"Generate Resume (PDF + LaTeX)"**.
+6. **Preview & Download**: The generated PDF renders in the embedded interactive viewer, alongside tabs to inspect or copy the raw `.tex` source code and download the `.pdf` file with a single click.
 
 #### 5. Strict Communication Lockdown
 For end-to-end security, the Render backend strictly permits incoming connections and compilation requests **only** from:

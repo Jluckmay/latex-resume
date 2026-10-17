@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 from src.compiler import check_latex_compiler
-from src.config import DEFAULT_MODEL
+from src.config import DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDERS_CONFIG
 from src.i18n import MODELS_I18N, TEMPLATES_I18N, normalize_lang
 from src.pipeline import build_resume_pipeline
 from src.templates import BUILTIN_TEMPLATES
@@ -17,8 +17,8 @@ from src.templates import BUILTIN_TEMPLATES
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Gerador Automático de Currículos LaTeX (NVIDIA NIM) / "
-            "Automatic LaTeX Resume Generator (NVIDIA NIM)."
+            "Gerador Automático de Currículos LaTeX (NVIDIA NIM / Gemini / Claude / OpenAI / DeepSeek) / "
+            "Automatic LaTeX Resume Generator."
         )
     )
     parser.add_argument(
@@ -61,17 +61,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--location", default="", help="Cidade/UF/País / City, State, Country.")
     parser.add_argument("--extra", default="", help="Informações complementares / Additional notes.")
     parser.add_argument(
+        "--provider",
+        choices=list(PROVIDERS_CONFIG.keys()),
+        default=DEFAULT_PROVIDER,
+        help="Provedor de IA / AI Provider: default (NVIDIA NIM padrão), nvidia, google (Gemini), claude, openai, deepseek.",
+    )
+    parser.add_argument(
         "--model",
-        default=DEFAULT_MODEL,
-        help=f"Modelo da API NVIDIA NIM / NVIDIA NIM model (default: {DEFAULT_MODEL}).",
+        default="",
+        help="Modelo de IA (opcional — usa o padrão do provedor escolhido se omitido) / AI model name.",
     )
     parser.add_argument(
         "--api-key",
         default="",
-        help="Chave de API NVIDIA NIM (opcional se NVIDIA_API_KEY estiver definida no ambiente) / NVIDIA NIM API Key (optional if NVIDIA_API_KEY is set).",
+        help="Chave de API do provedor (opcional — criptografada em memória, nunca armazenada em disco).",
     )
     parser.add_argument("--no-cache", action="store_true", help="Desativa o cache local / Disable local token cache.")
     parser.add_argument("--output", default="curriculo_gerado", help="Nome-base de saída / Output filename stem.")
+    parser.add_argument("--list-providers", action="store_true", help="Lista provedores suportados / List supported AI providers.")
     parser.add_argument("--list-models", action="store_true", help="Lista modelos recomendados / List recommended models.")
     parser.add_argument("--list-templates", action="store_true", help="Lista templates integrados / List built-in templates.")
     parser.add_argument("--check-deps", action="store_true", help="Verifica compilador LaTeX (pdflatex) / Check LaTeX compiler requirement.")
@@ -93,11 +100,23 @@ def main() -> int:
 
     norm_type = "academico" if args.type in ("academico", "academic") else "profissional"
 
-    if args.list_models:
-        header = "Recommended NVIDIA NIM API Models:" if is_en else "Modelos recomendados na API NVIDIA NIM:"
+    if args.list_providers:
+        header = "Supported AI Providers & Models:" if is_en else "Provedores de IA & Modelos Suportados:"
         print(header)
-        for mid, mdata in MODELS_I18N[lang].items():
-            print(f"  - {mid} ({mdata['name']}): {mdata['description']}")
+        for pid, pdata in PROVIDERS_CONFIG.items():
+            p_name = pdata["name_en"] if is_en else pdata["name"]
+            req_txt = ("Requires API Key" if is_en else "Requer chave de API própria") if pdata["requires_key"] else ("Server Default" if is_en else "Padrão do Servidor")
+            print(f"\n  [{pid}] {p_name} ({req_txt}):")
+            for m in pdata.get("models", []):
+                print(f"    - {m['id']} ({m['name']})")
+        return 0
+
+    if args.list_models:
+        header = f"Recommended Models for Provider '{args.provider}':" if is_en else f"Modelos recomendados para o provedor '{args.provider}':"
+        print(header)
+        prov_cfg = PROVIDERS_CONFIG.get(args.provider, PROVIDERS_CONFIG["default"])
+        for m in prov_cfg.get("models", []):
+            print(f"  - {m['id']} ({m['name']}): {m['description']}")
         return 0
 
     if args.list_templates:
@@ -135,6 +154,10 @@ def main() -> int:
         if lip.exists():
             li_bytes = lip.read_bytes()
 
+    chosen_prov = args.provider.strip().lower()
+    prov_data = PROVIDERS_CONFIG.get(chosen_prov, PROVIDERS_CONFIG["default"])
+    chosen_model = args.model.strip() or prov_data.get("default_model") or DEFAULT_MODEL
+
     result = build_resume_pipeline(
         resume_type=norm_type,
         linkedin_url=args.linkedin,
@@ -156,8 +179,9 @@ def main() -> int:
         user_phone=args.phone,
         user_location=args.location,
         extra_notes=args.extra,
+        provider=chosen_prov,
         api_key=args.api_key.strip() or None,
-        model=args.model,
+        model=chosen_model,
         use_cache=not args.no_cache,
         output_stem=args.output,
         lang=lang,

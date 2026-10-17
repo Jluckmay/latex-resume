@@ -7,7 +7,7 @@ import base64
 import streamlit as st
 
 from src.compiler import check_latex_compiler
-from src.config import RECOMMENDED_MODELS
+from src.config import DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDERS_CONFIG, RECOMMENDED_MODELS
 from src.i18n import MODELS_I18N, TEMPLATES_I18N, UI_TEXT, normalize_lang
 from src.pipeline import build_resume_pipeline
 from src.templates import BUILTIN_TEMPLATES
@@ -75,10 +75,23 @@ with st.sidebar:
     st.divider()
     st.header(txt["sidebar_header"])
 
-    models_loc = MODELS_I18N[ui_lang]
+    prov_labels = {}
+    for pid, pinfo in PROVIDERS_CONFIG.items():
+        label = pinfo["name_en"] if ui_lang == "en-us" else pinfo["name"]
+        prov_labels[label] = pid
+
+    prov_title = "🧠 " + ("Provedor de IA" if ui_lang == "pt-br" else "AI Provider")
+    selected_prov_label = st.selectbox(
+        prov_title,
+        options=list(prov_labels.keys()),
+        index=0,
+    )
+    selected_provider = prov_labels[selected_prov_label]
+    prov_data = PROVIDERS_CONFIG[selected_provider]
+
     model_options = {
-        models_loc.get(m["id"], {}).get("name", m["name"]): m["id"]
-        for m in RECOMMENDED_MODELS
+        m["name"]: m["id"]
+        for m in prov_data.get("models", [])
     }
     selected_model_label = st.selectbox(
         txt["model_select_label"],
@@ -88,11 +101,20 @@ with st.sidebar:
     )
     selected_model = model_options[selected_model_label]
 
+    key_placeholder = prov_data.get("key_placeholder_en" if ui_lang == "en-us" else "key_placeholder", "nvapi-...")
+    key_help = (
+        "Sua chave é mantida estritamente em memória volátil durante a requisição, "
+        "sendo imediatamente destruída com bytes nulos (0x00). Nunca é salva em disco ou persistida."
+        if ui_lang == "pt-br"
+        else "Your key is kept strictly in volatile RAM during the request, "
+        "and immediately wiped with null bytes (0x00). Never written to disk or persisted."
+    )
     custom_api_key = st.text_input(
         txt["custom_key_label"],
         value="",
         type="password",
-        placeholder=txt["custom_key_placeholder"],
+        placeholder=key_placeholder,
+        help=key_help,
     )
     use_cache = st.checkbox(txt["cache_checkbox"], value=True)
 
@@ -267,6 +289,7 @@ with col_right:
                     user_phone=user_phone,
                     user_location=user_location,
                     extra_notes=extra_profile_text,
+                    provider=selected_provider,
                     api_key=custom_api_key if custom_api_key.strip() else None,
                     model=selected_model,
                     use_cache=use_cache,

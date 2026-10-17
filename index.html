@@ -599,12 +599,12 @@
                 </details>
             </div>
 
-            <!-- Step 4: Dados Pessoais & Motor NVIDIA NIM -->
+            <!-- Step 4: Dados Pessoais & Motor de IA Multi-Provedor -->
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">
                         <span class="step-num">4</span>
-                        <span id="ui-step4-title">Cabeçalho Pessoal & Modelo da API NVIDIA</span>
+                        <span id="ui-step4-title">Cabeçalho Pessoal, Provedor de IA & Chave Opcional</span>
                     </div>
                 </div>
                 <div class="grid-2">
@@ -629,14 +629,35 @@
                         <input type="text" id="inp-phone" class="form-control" placeholder="+55 (11) 99999-9999">
                     </div>
                     <div class="form-group">
-                        <label id="ui-model-lbl">Modelo NVIDIA NIM</label>
-                        <select id="inp-model" class="form-control">
-                            <option value="nvidia/nemotron-3.5-super-vl-120b-a12b">NVIDIA Nemotron 3.5 Super 120B (Recomendado • 0 CoT)</option>
-                            <option value="stepfun-ai/step-5-preview">StepFun Step-5 Preview (Alta Velocidade)</option>
-                            <option value="google/gemma-4-31b-it">Google Gemma 4 31B Instruct (Econômico)</option>
-                            <option value="z-ai/glm-5.3">Z-AI GLM 5.3 (Raciocínio Avançado)</option>
+                        <label id="ui-provider-lbl">Provedor de IA</label>
+                        <select id="inp-provider" class="form-control" onchange="onProviderChange()">
+                            <option value="default">⚡ NVIDIA NIM (Padrão do Servidor — Sem chave)</option>
+                            <option value="nvidia">🟢 NVIDIA NIM (Chave própria)</option>
+                            <option value="google">🔵 Google Gemini (Chave própria)</option>
+                            <option value="claude">🟣 Anthropic Claude (Chave própria)</option>
+                            <option value="openai">🟢 OpenAI (Chave própria)</option>
+                            <option value="deepseek">🔷 DeepSeek (Chave própria)</option>
                         </select>
                     </div>
+                </div>
+
+                <div class="grid-2">
+                    <div class="form-group">
+                        <label id="ui-model-lbl">Modelo de IA</label>
+                        <select id="inp-model" class="form-control"></select>
+                    </div>
+                    <div class="form-group">
+                        <label id="ui-api-key-lbl">Chave de API do Provedor (Opcional)</label>
+                        <div style="position:relative;display:flex;align-items:center;">
+                            <input type="password" id="inp-api-key" class="form-control" style="padding-right:2.4rem;" placeholder="Padrão seguro do servidor ativo">
+                            <button type="button" id="btn-toggle-key" onclick="toggleKeyVisibility()" style="position:absolute;right:8px;background:none;border:none;cursor:pointer;font-size:0.95rem;color:var(--text-muted);" title="Exibir/Ocultar chave">👁️</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background-color:var(--bg-subtle);border:1px solid var(--border);border-radius:8px;padding:0.6rem 0.85rem;margin-bottom:1rem;font-size:0.75rem;color:var(--text-muted);display:flex;align-items:center;gap:0.5rem;">
+                    <span style="font-size:1.1rem;">🔒</span>
+                    <span id="ui-key-sec-note"><b>Segurança Zero-Storage:</b> Chaves próprias são criptografadas no navegador (AES-256-GCM efêmero), isoladas na memória RAM volátil durante a requisição e destruídas imediatamente com bytes nulos (0x00). Nunca são salvas em disco ou cookies.</span>
                 </div>
 
                 <div class="plugin-chips" style="margin-bottom:1rem;">
@@ -720,6 +741,88 @@
             charcoal_minimal: { primary: "#18181B", secondary: "#3F3F46" }
         };
 
+        const PROVIDERS_DATA = {
+            default: {
+                id: "default",
+                name: "⚡ NVIDIA NIM (Padrão do Servidor — Sem chave)",
+                name_en: "⚡ NVIDIA NIM (Server Default — No key needed)",
+                requiresKey: false,
+                placeholder: "Chave padrão do servidor ativa",
+                placeholder_en: "Server default key active",
+                models: [
+                    { id: "nvidia/nemotron-3.5-super-vl-120b-a12b", name: "NVIDIA Nemotron 3.5 Super 120B (Recomendado • 0 CoT)" },
+                    { id: "stepfun-ai/step-5-preview", name: "StepFun Step-5 Preview (Alta Velocidade)" },
+                    { id: "google/gemma-4-31b-it", name: "Google Gemma 4 31B Instruct (Econômico)" },
+                    { id: "z-ai/glm-5.3", name: "Z-AI GLM 5.3 (Raciocínio Avançado)" }
+                ]
+            },
+            nvidia: {
+                id: "nvidia",
+                name: "🟢 NVIDIA NIM (Chave própria)",
+                name_en: "🟢 NVIDIA NIM (Own API key)",
+                requiresKey: true,
+                placeholder: "nvapi-...",
+                placeholder_en: "nvapi-...",
+                models: [
+                    { id: "nvidia/nemotron-3.5-super-vl-120b-a12b", name: "NVIDIA Nemotron 3.5 Super 120B — Recomendado" },
+                    { id: "meta/llama-3.3-70b-instruct", name: "Meta Llama 3.3 70B Instruct" },
+                    { id: "stepfun-ai/step-5-preview", name: "StepFun Step-5 Preview" },
+                    { id: "google/gemma-4-31b-it", name: "Google Gemma 4 31B Instruct" },
+                    { id: "z-ai/glm-5.3", name: "Z-AI GLM 5.3" }
+                ]
+            },
+            google: {
+                id: "google",
+                name: "🔵 Google Gemini (Chave própria)",
+                name_en: "🔵 Google Gemini (Own API key)",
+                requiresKey: true,
+                placeholder: "AIzaSy...",
+                placeholder_en: "AIzaSy...",
+                models: [
+                    { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash — Recomendado" },
+                    { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash — Econômico" },
+                    { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro — Alta Capacidade" }
+                ]
+            },
+            claude: {
+                id: "claude",
+                name: "🟣 Anthropic Claude (Chave própria)",
+                name_en: "🟣 Anthropic Claude (Own API key)",
+                requiresKey: true,
+                placeholder: "sk-ant-api03-...",
+                placeholder_en: "sk-ant-api03-...",
+                models: [
+                    { id: "claude-3-5-sonnet-20241022", name: "Claude 3.5 Sonnet — Recomendado" },
+                    { id: "claude-3-5-haiku-20241022", name: "Claude 3.5 Haiku — Rápido" }
+                ]
+            },
+            openai: {
+                id: "openai",
+                name: "🟢 OpenAI (Chave própria)",
+                name_en: "🟢 OpenAI (Own API key)",
+                requiresKey: true,
+                placeholder: "sk-proj-...",
+                placeholder_en: "sk-proj-...",
+                models: [
+                    { id: "gpt-4o-mini", name: "GPT-4o Mini — Recomendado" },
+                    { id: "gpt-4o", name: "GPT-4o — Avançado" },
+                    { id: "o3-mini", name: "o3-mini — Raciocínio" }
+                ]
+            },
+            deepseek: {
+                id: "deepseek",
+                name: "🔷 DeepSeek (Chave própria)",
+                name_en: "🔷 DeepSeek (Own API key)",
+                requiresKey: true,
+                placeholder: "sk-...",
+                placeholder_en: "sk-...",
+                models: [
+                    { id: "deepseek-chat", name: "DeepSeek V3 (deepseek-chat) — Recomendado" },
+                    { id: "deepseek-reasoner", name: "DeepSeek R1 (deepseek-reasoner)" }
+                ]
+            }
+        };
+
         const I18N = {
             "pt-br": {
                 appTitle: "Gerador Automático de Currículos LaTeX (NVIDIA NIM)",
@@ -768,18 +871,21 @@
                 lattesFileLbl: "Arquivo Lattes (XML, ZIP ou PDF)",
                 liPdfLbl: "PDF Salvo do LinkedIn",
                 extraTxtLbl: "Informações Complementares / Descrição da Vaga ou Edital",
-                step4: "Cabeçalho Pessoal & Modelo da API NVIDIA",
+                step4: "Cabeçalho Pessoal, Provedor de IA & Chave Opcional",
                 nameLbl: "Nome Completo (opcional)",
                 roleLbl: "Cargo / Título Principal (opcional)",
                 emailLbl: "E-mail",
                 locLbl: "Cidade / UF / País",
                 phoneLbl: "Telefone",
-                modelLbl: "Modelo NVIDIA NIM",
+                providerLbl: "Provedor de IA",
+                modelLbl: "Modelo de IA",
+                apiKeyLbl: "Chave de API do Provedor (Opcional)",
+                apiKeySecNote: "<b>Segurança Zero-Storage:</b> Chaves próprias são criptografadas no navegador (AES-256-GCM efêmero), isoladas na memória RAM volátil durante a requisição e destruídas imediatamente com bytes nulos (0x00). Nunca são salvas em disco ou cookies.",
                 genBtn: "🚀 Gerar Currículo LaTeX + PDF",
                 genLoading: "⏳ Extraindo perfis, otimizando tokens e compilando PDF...",
                 previewTitle: "👁️ Preview em Tempo Real do Modelo LaTeX & Cores",
                 resultTitle: "📑 Resultado, PDF Compilado & Economia de Tokens",
-                idleMsg: "Preencha os perfis ao lado e clique em <b>Gerar Currículo LaTeX + PDF</b> para sintetizar os dados na API NVIDIA e compilar o documento via <code>pdflatex</code>.",
+                idleMsg: "Preencha os perfis ao lado e clique em <b>Gerar Currículo LaTeX + PDF</b> para sintetizar os dados na API selecionada e compilar o documento via <code>pdflatex</code>.",
                 mTotal: "Tokens API",
                 mReas: "Reasoning",
                 mSaved: "Economizados",
@@ -835,18 +941,21 @@
                 lattesFileLbl: "Lattes File (XML, ZIP, or PDF)",
                 liPdfLbl: "Saved LinkedIn PDF",
                 extraTxtLbl: "Additional Notes / Target Job or Grant Description",
-                step4: "Personal Header & NVIDIA API Model",
+                step4: "Personal Header, AI Provider & Optional Key",
                 nameLbl: "Full Name (optional)",
                 roleLbl: "Primary Role / Headline (optional)",
                 emailLbl: "E-mail",
                 locLbl: "City / State / Country",
                 phoneLbl: "Phone",
-                modelLbl: "NVIDIA NIM Model",
+                providerLbl: "AI Provider",
+                modelLbl: "AI Model",
+                apiKeyLbl: "Provider API Key (Optional)",
+                apiKeySecNote: "<b>Zero-Storage Security:</b> Custom keys are encrypted in-browser (ephemeral AES-256-GCM), isolated strictly in volatile RAM during the request, and immediately wiped with null bytes (0x00). Never saved to disk or cookies.",
                 genBtn: "🚀 Generate LaTeX + PDF Resume",
                 genLoading: "⏳ Extracting profiles, optimizing tokens & compiling PDF...",
                 previewTitle: "👁️ Real-Time LaTeX Template & Color Preview",
                 resultTitle: "📑 Result, Compiled PDF & Token Economy",
-                idleMsg: "Fill in your profiles on the left and click <b>Generate LaTeX + PDF Resume</b> to synthesize data via NVIDIA NIM and compile with <code>pdflatex</code>.",
+                idleMsg: "Fill in your profiles on the left and click <b>Generate LaTeX + PDF Resume</b> to synthesize data via selected AI and compile with <code>pdflatex</code>.",
                 mTotal: "API Tokens",
                 mReas: "Reasoning",
                 mSaved: "Tokens Saved",
@@ -949,7 +1058,10 @@
             document.getElementById("ui-email-lbl").textContent = t.emailLbl;
             document.getElementById("ui-loc-lbl").textContent = t.locLbl;
             document.getElementById("ui-phone-lbl").textContent = t.phoneLbl;
+            document.getElementById("ui-provider-lbl").textContent = t.providerLbl;
             document.getElementById("ui-model-lbl").textContent = t.modelLbl;
+            document.getElementById("ui-api-key-lbl").textContent = t.apiKeyLbl;
+            document.getElementById("ui-key-sec-note").innerHTML = t.apiKeySecNote;
             document.getElementById("ui-gen-btn-txt").textContent = t.genBtn;
             document.getElementById("ui-preview-title").textContent = t.previewTitle;
             document.getElementById("ui-result-title").textContent = t.resultTitle;
@@ -961,6 +1073,110 @@
             document.getElementById("dl-pdf-link").textContent = t.dlPdf;
             document.getElementById("dl-tex-link").textContent = t.dlTex;
             document.getElementById("ui-tex-code-summary").textContent = t.texSummary;
+
+            const provSelect = document.getElementById("inp-provider");
+            if (provSelect) {
+                const currentProv = provSelect.value;
+                const isEn = state.uiLang === "en-us";
+                provSelect.innerHTML = "";
+                Object.keys(PROVIDERS_DATA).forEach(k => {
+                    const p = PROVIDERS_DATA[k];
+                    const opt = document.createElement("option");
+                    opt.value = p.id;
+                    opt.textContent = isEn ? p.name_en : p.name;
+                    if (p.id === currentProv) opt.selected = true;
+                    provSelect.appendChild(opt);
+                });
+            }
+
+            onProviderChange();
+        }
+
+        function onProviderChange() {
+            const provSelect = document.getElementById("inp-provider");
+            if (!provSelect) return;
+            const provKey = provSelect.value;
+            const provInfo = PROVIDERS_DATA[provKey] || PROVIDERS_DATA.default;
+            const modelSelect = document.getElementById("inp-model");
+            if (modelSelect) {
+                const currentVal = modelSelect.value;
+                modelSelect.innerHTML = "";
+                provInfo.models.forEach((m, idx) => {
+                    const opt = document.createElement("option");
+                    opt.value = m.id;
+                    opt.textContent = m.name;
+                    if (m.id === currentVal || idx === 0) opt.selected = true;
+                    modelSelect.appendChild(opt);
+                });
+            }
+            const keyInput = document.getElementById("inp-api-key");
+            if (keyInput) {
+                const isEn = state.uiLang === "en-us";
+                keyInput.placeholder = isEn ? provInfo.placeholder_en : provInfo.placeholder;
+            }
+        }
+
+        function toggleKeyVisibility() {
+            const inp = document.getElementById("inp-api-key");
+            const btn = document.getElementById("btn-toggle-key");
+            if (!inp || !btn) return;
+            if (inp.type === "password") {
+                inp.type = "text";
+                btn.textContent = "🙈";
+            } else {
+                inp.type = "password";
+                btn.textContent = "👁️";
+            }
+        }
+
+        async function encryptApiKeyForTransit(rawKey, provider) {
+            if (!rawKey || !rawKey.trim()) return "";
+            const keyStr = rawKey.trim();
+            if (keyStr.startsWith("SECKEY_V1:")) return keyStr;
+
+            try {
+                const ts = Date.now();
+                const enc = new TextEncoder();
+                const iv = window.crypto.getRandomValues(new Uint8Array(12));
+
+                const baseKeyStr = "LATEX_RESUME_EPHEMERAL_VAULT_KEY_2026_" + ts;
+                const hashBuf = await window.crypto.subtle.digest("SHA-256", enc.encode(baseKeyStr));
+                const aesKey = await window.crypto.subtle.importKey(
+                    "raw",
+                    hashBuf,
+                    { name: "AES-GCM" },
+                    false,
+                    ["encrypt"]
+                );
+
+                const ciphertextBuf = await window.crypto.subtle.encrypt(
+                    { name: "AES-GCM", iv: iv },
+                    aesKey,
+                    enc.encode(keyStr)
+                );
+
+                function bufToB64(buf) {
+                    const bytes = new Uint8Array(buf);
+                    let binary = "";
+                    for (let i = 0; i < bytes.byteLength; i++) {
+                        binary += String.fromCharCode(bytes[i]);
+                    }
+                    return window.btoa(binary);
+                }
+
+                const envelope = {
+                    v: 1,
+                    ts: ts,
+                    iv: bufToB64(iv),
+                    ct: bufToB64(ciphertextBuf),
+                    p: provider
+                };
+
+                return "SECKEY_V1:" + window.btoa(JSON.stringify(envelope));
+            } catch (err) {
+                console.warn("WebCrypto unavailable or error, passing key directly:", err);
+                return keyStr;
+            }
         }
 
         function setResumeType(type) {
@@ -1322,7 +1538,15 @@
                 formData.append("location", document.getElementById("inp-location").value);
                 formData.append("phone", document.getElementById("inp-phone").value);
                 formData.append("extra", document.getElementById("inp-extra").value);
+                const providerVal = document.getElementById("inp-provider").value;
+                formData.append("provider", providerVal);
                 formData.append("model", document.getElementById("inp-model").value);
+
+                const rawApiKey = (document.getElementById("inp-api-key").value || "").trim();
+                if (rawApiKey) {
+                    const encryptedKey = await encryptApiKeyForTransit(rawApiKey, providerVal);
+                    formData.append("api_key", encryptedKey);
+                }
 
                 if (state.templateSource === "custom") {
                     const texFile = document.getElementById("custom-tex-file").files[0];
