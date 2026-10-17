@@ -82,7 +82,7 @@ O projeto foi arquitetado para separação segura entre Frontend Estático (GitH
 
 ```mermaid
 flowchart LR
-    A["🌐 GitHub Pages<br>(https://jluckmay.github.io/)"] -- "1. POST /api/generate<br>(Origin: https://jluckmay.github.io)" --> B["🛡️ Backend no Render<br>(Docker + pdflatex + Gunicorn)"]
+    A["🌐 Frontend Web Oficial<br>(https://jluckmay.github.io/ ou<br>https://github.com/Jluckmay/latex-resume)"] -- "1. POST /api/generate<br>(Origin: https://jluckmay.github.io ou https://github.com)" --> B["🛡️ Backend no Render<br>(Docker + pdflatex + Gunicorn)"]
     B -- "2. Síntese com Economia de Tokens<br>(TLS 1.3 Pinned + Task-Bound Vault)" --> C["⚡ NVIDIA NIM API<br>(Nemotron 120B / MoE)"]
     C -- "3. JSON Estruturado / TOON" --> B
     B -- "4. Compilação LaTeX Segura<br>(-no-shell-escape + openin_any=p)" --> B
@@ -100,14 +100,14 @@ flowchart LR
    - `NVIDIA_API_KEY`: sua chave de API da NVIDIA (`nvapi-...`).
 4. O backend expõe o endpoint de monitoramento de saúde `/healthz`.
 
-#### 3. Bloqueio Estrito de Conexão Mútua (Exclusivo para `https://jluckmay.github.io/`)
-- O backend (`server.py`) rejeita **qualquer conexão** cuja origem não seja `https://jluckmay.github.io` ou cujo `Referer` não inicie por `https://jluckmay.github.io/` (retornando `403 Forbidden`).
-- **Chamada direta a partir da sua página principal (`https://jluckmay.github.io/`)**:
-  Qualquer página ou script hospedado em `https://jluckmay.github.io/` pode solicitar a criação de currículos diretamente via `fetch`:
+#### 3. Bloqueio Estrito de Conexão Mútua (Exclusivo para `https://github.com/Jluckmay/latex-resume` e `https://jluckmay.github.io/`)
+- O backend (`server.py`) rejeita **qualquer conexão** cuja origem ou `Referer` não provenha de `https://github.com/Jluckmay/latex-resume` ou `https://jluckmay.github.io/` (retornando `403 Forbidden`).
+- **Chamada direta a partir das páginas autorizadas**:
+  Qualquer página ou script hospedado em `https://jluckmay.github.io/` ou no repositório `https://github.com/Jluckmay/latex-resume` pode solicitar a criação de currículos diretamente via `fetch`:
   ```javascript
   const formData = new FormData();
   formData.append("resume_type", "profissional"); // ou "academico"
-  formData.append("template_id", "modern_pro");
+  formData.append("template_id", "google_standard"); // ou "ai_ats_max", "modern_pro", etc.
   formData.append("github", "octocat");
   formData.append("portfolio", "https://jluckmay.github.io/");
 
@@ -131,7 +131,7 @@ flowchart LR
 | **Execução Arbitrária de Código LaTeX (RCE)** | Primitivas `\write18` ou `\directlua` em templates customizados. | **Sanitização Prévia + Isolamento TeX**: bloqueio por regex de comandos do sistema (`\write18`, `\csname`, `\catcode`, `\input{/`). Execução do `pdflatex` com `-no-shell-escape`, ambiente de subprocesso higienizado e parâmetros Web2C `openin_any=p` e `openout_any=p` (impede leitura/escrita de arquivos fora do diretório de compilação). |
 | **SSRF (Server-Side Request Forgery)** | Usuário informar URLs de metadados AWS/GCP (`169.254.169.254`) ou rede interna (`127.0.0.1`, `10.0.0.0/8`). | **Validador de IP Público (`_safe_http_get`)**: resolução DNS com verificação `ip.is_global == True`. Bloqueio de loopback, ranges privados e link-local, além de limite de download de 1.5 MB e validação de redirecionamentos. |
 | **ZIP Bomb / XXE Bomb (Billion Laughs)** | Upload de ZIP malicioso ou XML com entidades recursivas do Lattes. | Limite estrito de descompressão (15 MB), bloqueio de declarações `<!DOCTYPE` e `<!ENTITY` antes de invocar o parser XML, e limite de 25 MP para fotos com Pillow (`Image.MAX_IMAGE_PIXELS`). |
-| **Acesso Não Autorizado ao Backend** | Terceiros usarem o backend no Render para consumir créditos da API. | **Bloqueio Estrito de Origem e Referer**: CORS restrito a `https://jluckmay.github.io`, validação de cabeçalhos mútuos (`X-Resume-Client`, `X-Backend-Attestation`) e Rate Limiting em memória por IP (máx. 15 gerações / 10 min). |
+| **Acesso Não Autorizado ao Backend** | Terceiros usarem o backend no Render para consumir créditos da API. | **Bloqueio Estrito de Origem e Referer**: CORS restrito exclusivamente a `https://github.com/Jluckmay/latex-resume` e `https://jluckmay.github.io`, validação de cabeçalhos mútuos (`X-Resume-Client`, `X-Backend-Attestation`) e Rate Limiting em memória por IP (máx. 15 gerações / 10 min). |
 
 ### Seleção do Melhor Modelo da API NVIDIA
 
@@ -149,21 +149,109 @@ flowchart LR
 | **`LaTeXPreambleSplitPlugin`** | Em templates `.tex` customizados, separa o preâmbulo estático (`\documentclass`...`\begin{document}`) do corpo, evitando que o LLM consuma tokens lendo e reescrevendo pacotes e macros. |
 | **`SHA256DiskCachePlugin`** | Cache local por hash SHA-256 em `.cache/nvidia_token_cache.json` (custo de **0 tokens** em reexecuções idênticas). |
 
-### Como Executar (`pt-BR`)
+### 💻 Guia Completo de Execução Local (`pt-BR`)
 
+Você pode executar o gerador e compilar seus currículos inteiramente na sua máquina local, com máxima velocidade, privacidade e sem necessidade de deploy prévio:
+
+#### 1. Preparação do Ambiente Local
 ```powershell
-# 1. Interface Web HTML5 Nativa (index.html + servidor Flask em http://127.0.0.1:5000)
-python server.py
+# 1. Clonar o repositório
+git clone https://github.com/Jluckmay/latex-resume.git
+cd latex-resume
 
-# 2. Interface Web Streamlit (app.py)
-streamlit run app.py
+# 2. Criar e ativar ambiente virtual Python (recomendado)
+python -m venv venv
+# Windows:
+.\venv\Scripts\Activate.ps1
+# Linux / macOS:
+source venv/bin/activate
 
-# 3. CLI — Currículo Profissional com Template Overleaf Russell T.I., Portfólio e Cores Customizadas
-python cli.py --lang pt-br --type profissional --template overleaf_russell_ti --github octocat --orcid 0000-0002-1825-0097 --linkedin "https://linkedin.com/in/exemplo" --portfolio "https://meuportfolio.dev" --primary-color "#C0392B" --secondary-color "#1F2937" --photo examples/sample_photo.png --output cv_pt
+# 3. Instalar dependências Python
+pip install -r requirements.txt
 
-# 4. CLI — Currículo Acadêmico em Inglês (en-US)
-python cli.py --lang en-us --type academic --template academic_classic --orcid 0000-0002-1825-0097 --lattes-file examples/sample_lattes.xml --photo examples/sample_photo.png --output cv_en
+# 4. Validar compilador LaTeX instalado
+python cli.py --lang pt-br --check-deps
 ```
+
+#### 2. Configuração da Chave da API NVIDIA NIM
+Defina sua chave de API no terminal antes da execução (ou informe-a diretamente na interface gráfica, sem que seja gravada em disco):
+```powershell
+# Windows (PowerShell):
+$env:NVIDIA_API_KEY = "nvapi-sua-chave-aqui"
+
+# Linux / macOS (Bash / Zsh):
+export NVIDIA_API_KEY="nvapi-sua-chave-aqui"
+```
+
+#### 3. Modos de Execução Disponíveis
+
+##### Modo A: Servidor Web HTML5 Nativo (`server.py`) — Recomendado
+Inicia o servidor de compilação local com a interface web estática integrada:
+```powershell
+python server.py
+```
+- Acesse no navegador: `http://127.0.0.1:5000`
+- O servidor roda em modo de desenvolvimento local com compilação direta via `pdflatex` da sua máquina, sem latência de rede.
+
+##### Modo B: Interface Interativa Streamlit (`app.py`)
+Inicia a interface visual rica do Streamlit com alternância de temas claro/escuro e preview instantâneo:
+```powershell
+streamlit run app.py
+```
+- Acesse no navegador: `http://localhost:8501`
+- Possui prévia interativa dos 9 modelos LaTeX, seletor de paletas executivas e upload de arquivos.
+
+##### Modo C: Linha de Comando / CLI (`cli.py`)
+Geração rápida e automatizada via terminal:
+```powershell
+# Exemplo 1: Currículo Profissional com Modelo Padrão Google e Portfólio
+python cli.py --lang pt-br --type profissional --template google_standard --github octocat --linkedin "https://linkedin.com/in/exemplo" --portfolio "https://jluckmay.github.io/" --output cv_google
+
+# Exemplo 2: Currículo Otimizado para IA & ATS com Cores Customizadas
+python cli.py --lang pt-br --type profissional --template ai_ats_max --github octocat --primary-color "#0F4C81" --secondary-color "#1E293B" --output cv_ats
+
+# Exemplo 3: Currículo Acadêmico com Lattes XML e ORCID
+python cli.py --lang pt-br --type academic --template academic_classic --orcid 0000-0002-1825-0097 --lattes-file examples/sample_lattes.xml --output cv_academico
+```
+
+### 🌐 Guia de Uso da Aplicação Web Online (`https://github.com/Jluckmay/latex-resume`)
+
+A aplicação web pode ser utilizada diretamente pela nuvem através do GitHub Pages e do backend no Render:
+
+#### 1. Acesso à Aplicação Web
+- **Repositório Oficial:** [`https://github.com/Jluckmay/latex-resume`](https://github.com/Jluckmay/latex-resume)
+- **Página Web Oficial (GitHub Pages):** [`https://jluckmay.github.io/latex-resume/`](https://jluckmay.github.io/latex-resume/) (ou integrada via [`https://jluckmay.github.io/`](https://jluckmay.github.io/))
+
+#### 2. Conectando a Interface Web ao Backend no Render
+1. Abra a página web oficial no navegador.
+2. No painel de configurações (ícone de engrenagem ou rodapé), verifique o campo **URL do Backend (Render)**:
+   - Insira a URL do seu serviço no Render: `https://latex-resume-backend.onrender.com`
+3. A interface verifica automaticamente a saúde do serviço (`/healthz`) e a disponibilidade do compilador LaTeX (`/api/status`), exibindo o selo verde com a versão do TeX Live.
+
+#### 3. Segurança da Chave de API no Navegador
+- A chave NVIDIA NIM (`nvapi-...`) pode ser informada diretamente no campo da interface.
+- **Armazenamento 100% Volátil**: a chave **nunca** é gravada no `localStorage`, `sessionStorage` ou `cookies` do navegador, e não é registrada em logs.
+- Ao clicar em gerar, ela viaja por túnel seguro HTTPS para o backend, é utilizada exclusivamente na memória RAM para a chamada à API e imediatamente descartada.
+
+#### 4. Passo a Passo para Geração do Currículo
+1. **Dados Pessoais e Links**: Preencha nome, cargo, e-mail, telefone, localização e informe os links dos seus perfis (GitHub, LinkedIn, ORCID, Portfólio Web, Lattes).
+2. **Escolha do Modelo LaTeX**: Selecione um dos 9 templates disponíveis:
+   - **`google_standard`**: Padrão Google SWE (bullet points XYZ de impacto, alta densidade).
+   - **`ai_ats_max`**: Otimizado para triagem por IA (Claude/Gemini/GPT) e robôs ATS neurais.
+   - **`overleaf_russell_ti`**: Modelo Overleaf de TI com ícones e barra de habilidades.
+   - **`overleaf_awesome_cv`**: Modelo Overleaf Jason Richards Awesome-CV.
+   - **`overleaf_single_page_keywords`**: Modelo Overleaf com linha de keywords por cargo.
+   - **`modern_pro`**, **`academic_classic`**, **`tech_sidebar`**, **`minimal_ats`** ou seu próprio arquivo `.tex`.
+3. **Customização de Cores**: Escolha uma paleta executiva ou insira seus códigos HEX para a Cor Principal e Secundária.
+4. **Gerar**: Clique no botão **"Gerar Currículo (PDF + LaTeX)"**.
+5. **Visualização e Download**: O PDF compilado é exibido diretamente no visualizador embutido da página, com opção para copiar o código LaTeX fonte ou baixar o arquivo `.pdf` gerado.
+
+#### 5. Restrição Estrita de Comunicação
+Por medidas de segurança, o backend no Render aceita conexões e compilações **exclusivamente** das origens:
+- `https://github.com/Jluckmay/latex-resume`
+- `https://jluckmay.github.io/`
+
+Qualquer solicitação proveniente de outros sites, domínios ou scrapers é automaticamente bloqueada com status `403 Forbidden`.
 
 ---
 
@@ -245,7 +333,7 @@ The project is architected for strict separation between the Static Frontend (Gi
 
 ```mermaid
 flowchart LR
-    A["🌐 GitHub Pages<br>(https://jluckmay.github.io/)"] -- "1. POST /api/generate<br>(Origin: https://jluckmay.github.io)" --> B["🛡️ Render Backend<br>(Docker + pdflatex + Gunicorn)"]
+    A["🌐 Official Web Frontend<br>(https://jluckmay.github.io/ or<br>https://github.com/Jluckmay/latex-resume)"] -- "1. POST /api/generate<br>(Origin: https://jluckmay.github.io or https://github.com)" --> B["🛡️ Render Backend<br>(Docker + pdflatex + Gunicorn)"]
     B -- "2. Token-Saving LLM Synthesis<br>(TLS 1.3 Pinned + Task-Bound Vault)" --> C["⚡ NVIDIA NIM API<br>(Nemotron 120B / MoE)"]
     C -- "3. Structured JSON / TOON" --> B
     B -- "4. Sandboxed LaTeX Compilation<br>(-no-shell-escape + openin_any=p)" --> B
@@ -263,14 +351,14 @@ flowchart LR
    - `NVIDIA_API_KEY`: your NVIDIA API key (`nvapi-...`).
 4. The service exposes the `/healthz` endpoint for zero-downtime health checking.
 
-#### 3. Strict Mutual Communication Lockdown (Exclusive to `https://jluckmay.github.io/`)
-- The backend (`server.py`) rejects **any connection** whose `Origin` is not `https://jluckmay.github.io` or whose `Referer` does not begin with `https://jluckmay.github.io/` (returning `403 Forbidden`).
-- **Direct Integration from your Main Portfolio Page (`https://jluckmay.github.io/`)**:
-  Any page or script hosted on `https://jluckmay.github.io/` can request resume compilation directly via standard `fetch`:
+#### 3. Strict Mutual Communication Lockdown (Exclusive to `https://github.com/Jluckmay/latex-resume` and `https://jluckmay.github.io/`)
+- The backend (`server.py`) rejects **any connection** whose `Origin` or `Referer` does not originate from `https://github.com/Jluckmay/latex-resume` or `https://jluckmay.github.io/` (returning `403 Forbidden`).
+- **Direct Integration from Authorized Pages**:
+  Any page, embed, or script hosted on `https://jluckmay.github.io/` or within the `https://github.com/Jluckmay/latex-resume` repository can request resume compilation directly via standard `fetch`:
   ```javascript
   const formData = new FormData();
   formData.append("resume_type", "professional"); // or "academic"
-  formData.append("template_id", "modern_pro");
+  formData.append("template_id", "google_standard"); // or "ai_ats_max", "modern_pro", etc.
   formData.append("github", "octocat");
   formData.append("portfolio", "https://jluckmay.github.io/");
 
@@ -294,7 +382,7 @@ flowchart LR
 | **LaTeX Arbitrary Code Execution (RCE)** | `\write18` or `\directlua` primitives inside custom templates. | **Upstream Sanitization + TeX Sandbox**: regex blocking of system commands (`\write18`, `\csname`, `\catcode`, `\input{/`). `pdflatex` runs with `-no-shell-escape`, a sanitized environment, and Web2C parameters `openin_any=p` and `openout_any=p` (preventing file reads outside the ephemeral build directory). |
 | **SSRF (Server-Side Request Forgery)** | Malicious URLs targeting cloud metadata (`169.254.169.254`) or internal networks (`127.0.0.1`, `10.0.0.0/8`). | **Public IP Validator (`_safe_http_get`)**: DNS resolution asserting `ip.is_global == True`. Rejection of loopback, private, and link-local ranges, with a 1.5 MB response download cap and safe redirect evaluation. |
 | **ZIP Bomb / XXE Bomb (Billion Laughs)** | Malicious ZIP or recursive entity XML uploads via Lattes. | Strict uncompressed size ceiling (15 MB), regex rejection of `<!DOCTYPE` and `<!ENTITY` declarations prior to XML parsing, and 25 MP image cap in Pillow (`Image.MAX_IMAGE_PIXELS`). |
-| **Unauthorized Backend Abuse** | Third parties abusing the Render endpoint to drain API tokens. | **Strict Origin & Referer Gate**: CORS restricted to `https://jluckmay.github.io`, mutual attestation verification (`X-Resume-Client`, `X-Backend-Attestation`), and in-memory sliding-window IP rate limiting (max 15 generations / 10 min). |
+| **Unauthorized Backend Abuse** | Third parties abusing the Render endpoint to drain API tokens. | **Strict Origin & Referer Gate**: CORS restricted exclusively to `https://github.com/Jluckmay/latex-resume` and `https://jluckmay.github.io`, mutual attestation verification (`X-Resume-Client`, `X-Backend-Attestation`), and in-memory sliding-window IP rate limiting (max 15 generations / 10 min). |
 
 ### Best NVIDIA NIM Model Selection
 
@@ -312,19 +400,107 @@ flowchart LR
 | **`LaTeXPreambleSplitPlugin`** | Splits static preambles (`\documentclass`...`\begin{document}`) from custom `.tex` templates so the LLM never spends tokens reading or regenerating package declarations. |
 | **`SHA256DiskCachePlugin`** | Local SHA-256 disk cache at `.cache/nvidia_token_cache.json` (**0 API tokens** on repeated runs). |
 
-### How to Run (`en-US`)
+### 💻 Full Local Execution Guide (`en-US`)
 
+You can run the entire resume generator and compile PDFs locally on your workstation with maximum speed, full privacy, and without cloud deployment:
+
+#### 1. Local Environment Setup
 ```powershell
-# 1. Native HTML5 Web UI (index.html + Flask server at http://127.0.0.1:5000)
-python server.py
+# 1. Clone the repository
+git clone https://github.com/Jluckmay/latex-resume.git
+cd latex-resume
 
-# 2. Streamlit Web UI (app.py)
-streamlit run app.py
+# 2. Create and activate a Python virtual environment (recommended)
+python -m venv venv
+# Windows:
+.\venv\Scripts\Activate.ps1
+# Linux / macOS:
+source venv/bin/activate
 
-# 3. CLI — Professional Resume with Portfolio URL & Custom Colors
-python cli.py --lang en-us --type professional --template modern_pro --github octocat --orcid 0000-0002-1825-0097 --linkedin "https://linkedin.com/in/example" --portfolio "https://github.blog" --primary-color "#047857" --secondary-color "#064E3B" --photo examples/sample_photo.png --output resume_en
+# 3. Install Python dependencies
+pip install -r requirements.txt
 
-# 4. CLI — Academic CV in English (en-US)
-python cli.py --lang en-us --type academic --template academic_classic --orcid 0000-0002-1825-0097 --lattes-file examples/sample_lattes.xml --photo examples/sample_photo.png --output academic_cv_en
+# 4. Verify local LaTeX compiler installation
+python cli.py --lang en-us --check-deps
 ```
+
+#### 2. Configure NVIDIA NIM API Key
+Set your API key in your terminal before launching (or input it directly in the graphical UI without saving to disk):
+```powershell
+# Windows (PowerShell):
+$env:NVIDIA_API_KEY = "nvapi-your-key-here"
+
+# Linux / macOS (Bash / Zsh):
+export NVIDIA_API_KEY="nvapi-your-key-here"
+```
+
+#### 3. Available Execution Modes
+
+##### Mode A: Native Standalone HTML5 Web Server (`server.py`) — Recommended
+Launches the local compilation server with the bundled HTML5 web app:
+```powershell
+python server.py
+```
+- Open in your browser: `http://127.0.0.1:5000`
+- Runs in local development mode with direct compilation via your local `pdflatex`, eliminating network latency.
+
+##### Mode B: Interactive Streamlit Web UI (`app.py`)
+Launches the rich Streamlit dashboard with light/dark theme toggling and live template previews:
+```powershell
+streamlit run app.py
+```
+- Open in your browser: `http://localhost:8501`
+- Includes live visual previews for all 9 LaTeX templates, curated palettes, and full multi-source file upload.
+
+##### Mode C: Command-Line Interface / CLI (`cli.py`)
+Fast, scriptable resume generation directly from the terminal:
+```powershell
+# Example 1: Professional Resume with Google Standard Template & Portfolio
+python cli.py --lang en-us --type professional --template google_standard --github octocat --linkedin "https://linkedin.com/in/example" --portfolio "https://jluckmay.github.io/" --output resume_google
+
+# Example 2: AI & ATS-Optimized Resume with Custom Corporate Colors
+python cli.py --lang en-us --type professional --template ai_ats_max --github octocat --primary-color "#0F4C81" --secondary-color "#1E293B" --output resume_ats
+
+# Example 3: Academic CV with Lattes XML & ORCID
+python cli.py --lang en-us --type academic --template academic_classic --orcid 0000-0002-1825-0097 --lattes-file examples/sample_lattes.xml --output resume_academic
+```
+
+### 🌐 Web Interface & Repository Usage Guide (`https://github.com/Jluckmay/latex-resume`)
+
+The web application can be used directly in the cloud through GitHub Pages paired with your Render backend:
+
+#### 1. Official Access Points
+- **Official GitHub Repository:** [`https://github.com/Jluckmay/latex-resume`](https://github.com/Jluckmay/latex-resume)
+- **Official Web Page (GitHub Pages):** [`https://jluckmay.github.io/latex-resume/`](https://jluckmay.github.io/latex-resume/) (or integrated via [`https://jluckmay.github.io/`](https://jluckmay.github.io/))
+
+#### 2. Connecting the Web Interface to your Render Backend
+1. Open the official web app in any modern browser.
+2. In the settings panel (gear icon or footer), check the **Backend URL (Render)** field:
+   - Enter your Render backend service URL: `https://latex-resume-backend.onrender.com`
+3. The web app automatically performs health probes (`/healthz` and `/api/status`), displaying a green badge indicating the live status and TeX Live compiler version.
+
+#### 3. API Key Security & In-Memory Privacy
+- Your NVIDIA NIM API key (`nvapi-...`) can be entered directly into the dedicated UI field.
+- **Strictly Ephemeral**: the key is **never** written to `localStorage`, `sessionStorage`, or browser cookies, and is omitted from all client logs.
+- When you click generate, the key travels over encrypted HTTPS directly to the compilation backend, is loaded solely into volatile RAM for the model invocation, and is immediately purged.
+
+#### 4. Step-by-Step Resume Generation Workflow
+1. **Personal Information & Profile Links**: Input your name, target role, contact info, and provide profile URLs (GitHub, LinkedIn, ORCID, Portfolio Website, Lattes).
+2. **Choose a LaTeX Template**: Select from the 9 available built-in templates:
+   - **`google_standard`**: Google Software Engineer recruitment standard (high-density XYZ accomplishment bullet points).
+   - **`ai_ats_max`**: Maximum readability for AI screeners (Claude/Gemini/GPT) and neural ATS filters.
+   - **`overleaf_russell_ti`**: Overleaf IT resume with circular icons and skill rating bars.
+   - **`overleaf_awesome_cv`**: Overleaf Jason Richards Awesome-CV template.
+   - **`overleaf_single_page_keywords`**: Overleaf single-page resume with per-position keywords.
+   - **`modern_pro`**, **`academic_classic`**, **`tech_sidebar`**, **`minimal_ats`** or your own uploaded `.tex` file.
+3. **Color Customization**: Choose a curated executive palette or input custom HEX colors for primary and secondary accents.
+4. **Generate**: Click **"Generate Resume (PDF + LaTeX)"**.
+5. **Preview & Download**: The generated PDF renders in the embedded interactive viewer, alongside tabs to inspect or copy the raw `.tex` source code and download the `.pdf` file with a single click.
+
+#### 5. Strict Communication Lockdown
+For end-to-end security, the Render backend strictly permits incoming connections and compilation requests **only** from:
+- `https://github.com/Jluckmay/latex-resume`
+- `https://jluckmay.github.io/`
+
+Any unauthorized request from other origins, third-party sites, or scrapers is immediately rejected with HTTP `403 Forbidden`.
 
