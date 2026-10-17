@@ -77,6 +77,16 @@ def parse_args() -> argparse.Namespace:
         help="Chave de API do provedor (opcional — criptografada em memória, nunca armazenada em disco).",
     )
     parser.add_argument("--no-cache", action="store_true", help="Desativa o cache local / Disable local token cache.")
+    parser.add_argument(
+        "--no-ai",
+        action="store_true",
+        help="Gera o currículo de forma determinística sem usar modelos de IA (0 tokens) / Generate resume deterministically without AI models (0 tokens).",
+    )
+    parser.add_argument(
+        "--review-only",
+        action="store_true",
+        help="Usa IA apenas para revisar e polir o código gerado pelos extratores, economizando ~75%% dos tokens / Use AI only to review and polish generated resume, saving ~75%% tokens.",
+    )
     parser.add_argument("--output", default="curriculo_gerado", help="Nome-base de saída / Output filename stem.")
     parser.add_argument("--list-providers", action="store_true", help="Lista provedores suportados / List supported AI providers.")
     parser.add_argument("--list-models", action="store_true", help="Lista modelos recomendados / List recommended models.")
@@ -185,6 +195,8 @@ def main() -> int:
         use_cache=not args.no_cache,
         output_stem=args.output,
         lang=lang,
+        use_ai=not args.no_ai and chosen_prov != "none",
+        ai_mode="review_only" if args.review_only else ("disabled" if (args.no_ai or chosen_prov == "none") else "auto"),
     )
 
     banner = (

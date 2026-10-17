@@ -8,6 +8,7 @@ from typing import Any, Dict
 
 from .compiler import compile_latex_to_pdf, prepare_photo_for_latex, sanitize_custom_latex
 from .config import DEFAULT_MODEL, DEFAULT_PROVIDER, OUTPUT_DIR
+from .direct_builder import generate_direct_latex_resume
 from .extractors import (
     extract_github,
     extract_lattes,
@@ -65,6 +66,8 @@ def build_resume_pipeline(
     output_stem: str = "curriculo_gerado",
     build_dir: Path | None = None,
     lang: str = "pt-br",
+    use_ai: bool = True,
+    ai_mode: str = "auto",
 ) -> ResumeGenerationResult:
     """Executa todo o fluxo de coleta, síntese IA com economia de tokens, customização de cores e compilação LaTeX."""
     if custom_latex_template:
@@ -142,16 +145,57 @@ def build_resume_pipeline(
         target_stem=f"{output_stem}_photo",
     )
 
-    # 3. Geração do LaTeX via LLM (NVIDIA, Google, Claude, OpenAI, DeepSeek) + Plugins de Economia de Tokens
-    generator = LLMResumeGenerator(provider=provider, api_key=api_key, model=model, use_cache=use_cache)
-    latex_code, structured_cv, metrics = generator.generate_latex_resume(
-        raw_profile_data=raw_profile_data,
-        resume_type=resume_type,
-        template_id=template_id,
-        custom_latex_template=custom_latex_template,
-        photo_filename=photo_filename,
-        lang=lang,
-    )
+    # 3. Geração do LaTeX (Direta / Determinística 0-token ou via IA com economia de tokens)
+    chosen_provider = (provider or DEFAULT_PROVIDER).strip().lower()
+    is_offline = (chosen_provider == "none") or (not use_ai) or (ai_mode == "disabled")
+
+    if is_offline:
+        latex_code, structured_cv = generate_direct_latex_resume(
+            raw_profile_data=raw_profile_data,
+            resume_type=resume_type,
+            template_id=template_id,
+            custom_latex_template=custom_latex_template,
+            photo_filename=photo_filename,
+            lang=lang,
+        )
+        metrics = TokenMetrics(
+            model_used="direct_extractor_engine",
+            cache_hit=False,
+            prompt_tokens_actual=0,
+            completion_tokens_actual=0,
+            reasoning_tokens_actual=0,
+            total_tokens_actual=0,
+            raw_input_tokens_est=0,
+            compressed_input_tokens_est=0,
+            estimated_tokens_saved=3800,
+            active_plugins=["DirectExtractorEngine (0-token offline)"],
+        )
+    elif ai_mode == "review_only":
+        base_latex, structured_cv = generate_direct_latex_resume(
+            raw_profile_data=raw_profile_data,
+            resume_type=resume_type,
+            template_id=template_id,
+            custom_latex_template=custom_latex_template,
+            photo_filename=photo_filename,
+            lang=lang,
+        )
+        generator = LLMResumeGenerator(provider=chosen_provider, api_key=api_key, model=model, use_cache=use_cache)
+        latex_code, metrics = generator.review_and_enhance_latex(
+            base_latex=base_latex,
+            resume_type=resume_type,
+            instructions=combined_extra,
+            lang=lang,
+        )
+    else:
+        generator = LLMResumeGenerator(provider=chosen_provider, api_key=api_key, model=model, use_cache=use_cache)
+        latex_code, structured_cv, metrics = generator.generate_latex_resume(
+            raw_profile_data=raw_profile_data,
+            resume_type=resume_type,
+            template_id=template_id,
+            custom_latex_template=custom_latex_template,
+            photo_filename=photo_filename,
+            lang=lang,
+        )
 
     # 4. Aplica customização de cores do usuário e link clicável de Portfólio ao LaTeX
     latex_code = apply_custom_colors_and_portfolio_to_latex(

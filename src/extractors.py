@@ -352,10 +352,16 @@ def _parse_lattes_xml(xml_bytes: bytes, out: Dict[str, Any]) -> None:
     """Faz o parse estruturado do XML oficial da Plataforma Lattes (`CURRICULO-VITAE`) com bloqueio de DTD/Entities."""
     if len(xml_bytes) > _MAX_UNCOMPRESSED_XML_BYTES:
         raise ValueError("XML excede o tamanho máximo permitido.")
-    try:
-        text = xml_bytes.decode("iso-8859-1")
-    except Exception:
-        text = xml_bytes.decode("utf-8", errors="ignore")
+    # Detecta codificação a partir da declaração XML ou tenta UTF-8 e ISO-8859-1
+    encoding_match = re.search(rb'encoding=["\']([a-zA-Z0-9_\-]+)["\']', xml_bytes[:200])
+    declared_enc = encoding_match.group(1).decode("ascii", errors="ignore").lower() if encoding_match else ""
+    if declared_enc in ("iso-8859-1", "latin-1", "latin1"):
+        text = xml_bytes.decode("iso-8859-1", errors="replace")
+    else:
+        try:
+            text = xml_bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            text = xml_bytes.decode("iso-8859-1", errors="replace")
 
     if re.search(r"<!\s*(ENTITY|DOCTYPE)\b", text[:4096], flags=re.IGNORECASE):
         raise ValueError("Declarações DTD/ENTITY bloqueadas por segurança (anti-XXE).")

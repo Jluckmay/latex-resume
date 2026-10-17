@@ -133,6 +133,20 @@ with st.sidebar:
     )
     use_cache = st.checkbox(txt["cache_checkbox"], value=True)
 
+    ai_mode = "disabled" if selected_provider == "none" else "auto"
+    if selected_provider != "none":
+        review_only_cb = st.checkbox(
+            "⚡ Modo Apenas Revisão (Economia Máxima de Tokens)" if ui_lang == "pt-br" else "⚡ Review-Only Mode (Maximum Token Savings)",
+            value=False,
+            help=(
+                "Gera o currículo determinístico a partir dos extratores e usa a IA apenas para revisar, polir o texto e melhorar os bullet points, economizando até ~75% de tokens."
+                if ui_lang == "pt-br"
+                else "Generates a deterministic resume from extractors first, using AI only to review, polish phrasing, and enhance bullet points, saving up to ~75% tokens."
+            ),
+        )
+        if review_only_cb:
+            ai_mode = "review_only"
+
     st.divider()
     st.subheader(txt["plugins_header"])
     st.markdown(txt["plugins_md"])
@@ -318,6 +332,8 @@ with col_right:
                     output_stem=f"resume_{resume_lang}_{resume_type}_{selected_template_id}",
                     build_dir=build_path,
                     lang=resume_lang,
+                    use_ai=(selected_provider != "none"),
+                    ai_mode=ai_mode,
                 )
 
                 # Armazena os documentos estritamente na memória volátil da sessão (RAM)

@@ -311,6 +311,9 @@ def api_generate() -> Response | tuple[Response, int]:
 
             prov_info = PROVIDERS_CONFIG.get(provider, PROVIDERS_CONFIG["default"])
             model = payload_data.get("model") or prov_info.get("default_model") or DEFAULT_MODEL
+            ai_mode = payload_data.get("ai_mode", "auto").strip().lower()
+            use_ai_param = payload_data.get("use_ai")
+            use_ai = (str(use_ai_param).lower() not in ("0", "false", "no")) if use_ai_param is not None else (provider != "none")
 
             # Arquivos decodificados do payload cifrado em memória RAM
             custom_tex: str | None = None
@@ -372,6 +375,9 @@ def api_generate() -> Response | tuple[Response, int]:
 
             prov_info = PROVIDERS_CONFIG.get(provider, PROVIDERS_CONFIG["default"])
             model = form.get("model") or prov_info.get("default_model") or DEFAULT_MODEL
+            ai_mode = form.get("ai_mode", "auto").strip().lower()
+            use_ai_param = form.get("use_ai")
+            use_ai = (str(use_ai_param).lower() not in ("0", "false", "no")) if use_ai_param is not None else (provider != "none")
 
             custom_tex = None
             if "custom_tex_file" in files and files["custom_tex_file"].filename:
@@ -437,6 +443,8 @@ def api_generate() -> Response | tuple[Response, int]:
                 output_stem=f"web_{lang}_{resume_type}_{template_id}",
                 build_dir=build_path,
                 lang=lang,
+                use_ai=use_ai,
+                ai_mode=ai_mode,
             )
 
             pdf_b64 = ""

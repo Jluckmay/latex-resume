@@ -830,6 +830,7 @@
                         <label id="ui-provider-lbl">Provedor de IA</label>
                         <select id="inp-provider" class="form-control" onchange="onProviderChange()">
                             <option value="default">⚡ NVIDIA NIM (Padrão do Servidor — Sem chave)</option>
+                            <option value="none">🚀 Sem IA / Offline (0 Tokens — Extração Direta)</option>
                             <option value="nvidia">🟢 NVIDIA NIM (Chave própria)</option>
                             <option value="google">🔵 Google Gemini (Chave própria)</option>
                             <option value="claude">🟣 Anthropic Claude (Chave própria)</option>
@@ -850,7 +851,13 @@
                             <input type="password" id="inp-api-key" class="form-control" style="padding-right:2.4rem;" placeholder="Padrão seguro do servidor ativo">
                             <button type="button" id="btn-toggle-key" onclick="toggleKeyVisibility()" style="position:absolute;right:8px;background:none;border:none;cursor:pointer;font-size:0.95rem;color:var(--text-muted);" title="Exibir/Ocultar chave">👁️</button>
                         </div>
-                    </div>
+                </div>
+
+                <div class="form-group" id="group-ai-mode" style="margin-top:-0.3rem;margin-bottom:0.85rem;">
+                    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;font-size:0.84rem;color:var(--text-main);">
+                        <input type="checkbox" id="chk-review-only" style="cursor:pointer;width:16px;height:16px;">
+                        <span id="ui-review-only-lbl">⚡ <b>Modo Apenas Revisão:</b> Gerar direto via extratores e usar IA só para revisar/polir o texto (Economiza ~75% de tokens)</span>
+                    </label>
                 </div>
 
                 <div style="background-color:var(--bg-subtle);border:1px solid var(--border);border-radius:8px;padding:0.6rem 0.85rem;margin-bottom:1rem;font-size:0.75rem;color:var(--text-muted);display:flex;align-items:center;gap:0.5rem;">
@@ -982,6 +989,17 @@
                     { id: "z-ai/glm-5.3", name: "Z-AI GLM 5.3 (Raciocínio Avançado)" }
                 ]
             },
+            none: {
+                id: "none",
+                name: "🚀 Sem IA / Offline (0 Tokens — Extração Direta)",
+                name_en: "🚀 No AI / Offline (0 Tokens — Direct Extraction)",
+                requiresKey: false,
+                placeholder: "Modo offline ativo (zero tokens)",
+                placeholder_en: "Offline mode active (zero tokens)",
+                models: [
+                    { id: "none", name: "Motor Determinístico de Extração (0 Tokens)" }
+                ]
+            },
             nvidia: {
                 id: "nvidia",
                 name: "🟢 NVIDIA NIM (Chave própria)",
@@ -1106,6 +1124,7 @@
                 providerLbl: "Provedor de IA",
                 modelLbl: "Modelo de IA",
                 apiKeyLbl: "Chave de API do Provedor (Opcional)",
+                reviewOnlyLbl: "⚡ <b>Modo Apenas Revisão:</b> Gerar direto via extratores e usar IA só para revisar/polir o texto (Economiza ~75% de tokens)",
                 apiKeySecNote: "<b>Segurança Zero-Storage:</b> Chaves próprias são criptografadas no navegador (AES-256-GCM efêmero), isoladas na memória RAM volátil durante a requisição e destruídas imediatamente com bytes nulos (0x00). Nunca são salvas em disco ou cookies.",
                 genBtn: "🚀 Gerar Currículo LaTeX + PDF",
                 genLoading: "⏳ Extraindo perfis, otimizando tokens e compilando PDF...",
@@ -1182,6 +1201,7 @@
                 providerLbl: "AI Provider",
                 modelLbl: "AI Model",
                 apiKeyLbl: "Provider API Key (Optional)",
+                reviewOnlyLbl: "⚡ <b>Review-Only Mode:</b> Direct extractor generation, using AI strictly to polish text (Saves ~75% tokens)",
                 apiKeySecNote: "<b>Zero-Storage Security:</b> Custom keys are encrypted in-browser (ephemeral AES-256-GCM), isolated strictly in volatile RAM during the request, and immediately wiped with null bytes (0x00). Never saved to disk or cookies.",
                 genBtn: "🚀 Generate LaTeX + PDF Resume",
                 genLoading: "⏳ Extracting profiles, optimizing tokens & compiling PDF...",
@@ -1299,6 +1319,8 @@
             document.getElementById("ui-provider-lbl").textContent = t.providerLbl;
             document.getElementById("ui-model-lbl").textContent = t.modelLbl;
             document.getElementById("ui-api-key-lbl").textContent = t.apiKeyLbl;
+            const revLbl = document.getElementById("ui-review-only-lbl");
+            if (revLbl) revLbl.innerHTML = t.reviewOnlyLbl;
             document.getElementById("ui-key-sec-note").innerHTML = t.apiKeySecNote;
             document.getElementById("ui-gen-btn-txt").textContent = t.genBtn;
             document.getElementById("ui-preview-title").textContent = t.previewTitle;
@@ -1349,6 +1371,19 @@
             const provKey = provSelect.value;
             const provInfo = PROVIDERS_DATA[provKey] || PROVIDERS_DATA.default;
             const modelSelect = document.getElementById("inp-model");
+            const keyInput = document.getElementById("inp-api-key");
+            const aiModeGroup = document.getElementById("group-ai-mode");
+
+            if (provKey === "none") {
+                if (aiModeGroup) aiModeGroup.style.display = "none";
+                if (keyInput) keyInput.disabled = true;
+                if (modelSelect) modelSelect.disabled = true;
+            } else {
+                if (aiModeGroup) aiModeGroup.style.display = "block";
+                if (keyInput) keyInput.disabled = false;
+                if (modelSelect) modelSelect.disabled = false;
+            }
+
             if (modelSelect) {
                 const currentVal = modelSelect.value;
                 modelSelect.innerHTML = "";
@@ -1360,7 +1395,6 @@
                     modelSelect.appendChild(opt);
                 });
             }
-            const keyInput = document.getElementById("inp-api-key");
             if (keyInput) {
                 const isEn = state.uiLang === "en-us";
                 keyInput.placeholder = isEn ? provInfo.placeholder_en : provInfo.placeholder;
@@ -2072,6 +2106,8 @@
                     provider: providerVal,
                     model: document.getElementById("inp-model").value,
                     api_key: encryptedKey,
+                    use_ai: providerVal !== "none",
+                    ai_mode: (document.getElementById("chk-review-only") && document.getElementById("chk-review-only").checked && providerVal !== "none") ? "review_only" : (providerVal === "none" ? "disabled" : "auto"),
                     custom_tex_code: customTexCode,
                     custom_tex_file: customTexData,
                     photo: photoData,

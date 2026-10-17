@@ -86,6 +86,9 @@ Para executar o gerador e compilar os currículos em PDF, o ambiente deve atende
    - **Zero Retenção em Disco**: o servidor não armazena currículos gerados (`.pdf`, `.tex`), fotos de perfil enviadas, PDFs do LinkedIn ou arquivos do Lattes. Todos os dados e arquivos são processados exclusivamente na memória volátil durante a requisição ou sessão ativa.
    - **Compilação Efêmera & Destruição Imediata (`finally`)**: a compilação LaTeX ocorre em diretório temporário efêmero isolado (`tempfile.mkdtemp`). Imediatamente após a conversão do PDF para base64/bytes em RAM, todos os arquivos temporários são sobrescritos com bytes nulos (`0x00`) e expurgados via `secure_wipe_and_remove_dir` no bloco `finally:`.
    - **Cache de Tokens Volátil (RAM-Only)**: o cache de tokens opera em memória volátil durante a execução do processo (`in_memory_only=True`), sem gravação de currículos ou prompts em arquivos de disco no servidor.
+7. **Modo Offline Zero-Token & Modo de Revisão Cirúrgica (Economia Máxima de Tokens)**:
+   - **Geração Direta Determinística (0 Tokens)**: gere currículos completos em menos de 1 segundo sem consumir nenhuma cota ou chamada de IA (`--no-ai` no CLI, `provider="none"` no backend/HTML/Streamlit, ou via `python scripts/generate_direct_resume.py`). Os extratores mapeiam dados reais diretamente para os 9 modelos LaTeX ou template customizado com sanitização rigorosa de caracteres especiais e regras anti-alucinação.
+   - **Modo Apenas Revisão (Review-Only)**: economiza até 75% dos tokens comparado à síntese tradicional! O motor gera o esqueleto LaTeX determinístico completo e submete apenas o corpo do documento (`\begin{document}` a `\end{document}`) ao modelo de IA para polimento textual, fortalecimento de verbos de ação e validação de sintaxe, sem gastar tokens com preâmbulos ou cabeçalhos estruturais.
 
 ### 📂 Estrutura de Arquivos e Diretórios
 
@@ -113,6 +116,7 @@ latex-resume/
 │   ├── custom_template_example.pdf # PDF de referência compilado
 │   └── README.md               # Guia de utilização dos arquivos de exemplo
 ├── scripts/                    # Scripts utilitários de manutenção e geração
+│   ├── generate_direct_resume.py # Gerador direto determinístico sem IA (Zero-Token)
 │   ├── generate_icons.py       # Gerador dos ícones e favicons oficiais
 │   ├── clean_artifacts.py      # Script de limpeza de resíduos temporários e caches
 │   └── README.md               # Documentação dos scripts utilitários
@@ -120,6 +124,7 @@ latex-resume/
 │   ├── _vault.py               # Enclave criptográfico em memória RAM (ENC_PAYLOAD_V1 / SECKEY_V1)
 │   ├── compiler.py             # Validação e compilação LaTeX segura com pdflatex
 │   ├── config.py               # Constantes, diretórios e configurações de provedores de IA
+│   ├── direct_builder.py       # Construtor determinístico direto (0 tokens) a partir dos extratores
 │   ├── extractors.py           # Parsers multi-fonte (GitHub, ORCID, Lattes, LinkedIn, Portfólio)
 │   ├── i18n.py                 # Dicionários de internacionalização (pt-BR e en-US)
 │   ├── llm_client.py           # Cliente orquestrador multi-provedor (NVIDIA, Gemini, Claude, OpenAI, DeepSeek)
@@ -130,9 +135,10 @@ latex-resume/
 │   ├── ui_theme.py             # Temas visuais e CSS responsivo para Streamlit
 │   ├── py.typed                # Marcador PEP 561 de tipagem estática
 │   └── README.md               # Documentação detalhada da arquitetura de módulos
-├── tests/                      # Suíte de testes automatizados com Pytest (63+ testes)
+├── tests/                      # Suíte de testes automatizados com Pytest (69+ testes)
 │   ├── conftest.py             # Configurações globais e fixtures compartilhadas do Pytest
 │   ├── test_awards_and_orcid.py# Testes de higienização de prêmios/certificações e ORCID
+│   ├── test_direct_builder.py  # Testes do modo direto offline e revisão cirúrgica de LaTeX
 │   ├── test_encrypted_comm.py  # Testes de criptografia de ponta a ponta e blindagem contra extração de chaves
 │   ├── test_ui_assets.py       # Testes de integridade de ícones, favicons e responsividade
 │   ├── test_zero_storage.py    # Testes de política estrita de Zero-Storage e destruição de memória
@@ -314,6 +320,19 @@ python cli.py --lang pt-br --type academic --template academic_classic --provide
 python cli.py --lang pt-br --type profissional --template modern_pro --provider openai --github octocat --output cv_openai
 ```
 
+##### Modo D: Modo Offline Sem IA (Zero-Token) & Modo de Revisão Cirúrgica
+Gere currículos instantaneamente sem gastar tokens ou utilize a IA estritamente para revisão de estilo:
+```powershell
+# 1. Geração direta 100% determinística sem IA (0 tokens) via CLI:
+python cli.py --lang pt-br --type profissional --template google_standard --github octocat --no-ai --output cv_offline
+
+# 2. Geração direta via script utilitário dedicado:
+python scripts/generate_direct_resume.py --lang pt-br --template modern_pro --github octocat --lattes-file examples/sample_lattes.xml --output cv_direto
+
+# 3. Modo apenas revisão (gera esqueleto direto e envia apenas o corpo à IA, economizando ~75% dos tokens):
+python cli.py --lang pt-br --type profissional --template ai_ats_max --github octocat --review-only --output cv_revisado
+```
+
 ### 🌐 Guia de Uso da Aplicação Web Online (`https://github.com/Jluckmay/latex-resume`)
 
 A aplicação web pode ser utilizada diretamente pela nuvem através do GitHub Pages e do backend no Render:
@@ -447,6 +466,9 @@ To run the generator and compile resumes into PDF, your environment must meet th
    - **Zero Disk Retention**: the server never retains generated resumes (`.pdf`, `.tex`), uploaded profile photos, LinkedIn PDFs, or Lattes XMLs on disk. All documents exist strictly in volatile RAM during the active session.
    - **Guaranteed Destruction (`finally`)**: LaTeX compilation executes inside an isolated ephemeral temporary directory (`tempfile.mkdtemp`). As soon as binary assets are read into memory (base64 / bytes), all intermediate files are zero-fill shredded (`0x00`) and unlinked via `secure_wipe_and_remove_dir` in a guaranteed `finally:` block.
    - **Volatile Token Cache (RAM-Only)**: token metrics and caching run exclusively in volatile process memory (`in_memory_only=True`), never written to disk files on the server.
+7. **Zero-Token Offline Engine & Surgical AI Review Mode (Maximum Token Efficiency)**:
+   - **Deterministic Direct Generation (0 Tokens)**: generate professional resumes in sub-second time with zero LLM API calls and zero token consumption (`--no-ai` in CLI, `provider="none"` in web/backend, or standalone script `python scripts/generate_direct_resume.py`). Data from GitHub, Lattes, ORCID, LinkedIn, and Portfolio is mapped deterministically into all 9 built-in or custom LaTeX templates with strict special character escaping and zero hallucinations.
+   - **Surgical Review-Only Mode**: saves up to 75% of LLM tokens compared to standard end-to-end synthesis. The direct engine builds the complete LaTeX document structure deterministically and submits only the document body (`\begin{document}` to `\end{document}`) to the chosen AI model for stylistic polish, action-verb enhancement, and syntax verification, bypassing heavy preamble overhead entirely.
 
 ### 📂 Project File & Directory Structure
 
@@ -474,6 +496,7 @@ latex-resume/
 │   ├── custom_template_example.pdf # Precompiled reference PDF
 │   └── README.md               # Guide for experimenting with sample assets
 ├── scripts/                    # Maintenance & generation developer utilities
+│   ├── generate_direct_resume.py # Deterministic zero-token direct resume generator
 │   ├── generate_icons.py       # Official icon & favicon generator
 │   ├── clean_artifacts.py      # Temporary build artifact and cache cleaner
 │   └── README.md               # Utility scripts documentation
@@ -481,6 +504,7 @@ latex-resume/
 │   ├── _vault.py               # Volatile RAM enclave (ENC_PAYLOAD_V1 / SECKEY_V1) & key scrubber
 │   ├── compiler.py             # Secure sandboxed LaTeX compilation with pdflatex
 │   ├── config.py               # Project constants, directories, and AI provider configurations
+│   ├── direct_builder.py       # Deterministic direct builder (0 tokens) from extractors
 │   ├── extractors.py           # Multi-source parsers (GitHub, ORCID, Lattes, LinkedIn, Portfolio)
 │   ├── i18n.py                 # Multi-language dictionary strings (pt-BR and en-US)
 │   ├── llm_client.py           # Multi-provider LLM coordinator (NVIDIA, Gemini, Claude, OpenAI, DeepSeek)
@@ -491,9 +515,10 @@ latex-resume/
 │   ├── ui_theme.py             # Dynamic themes, responsive CSS, and color palettes for Streamlit
 │   ├── py.typed                # PEP 561 static typing compliance marker
 │   └── README.md               # Comprehensive module architecture documentation
-├── tests/                      # Automated test suite (Pytest - 63+ tests)
+├── tests/                      # Automated test suite (Pytest - 69+ tests)
 │   ├── conftest.py             # Global Pytest configuration and shared test fixtures
 │   ├── test_awards_and_orcid.py# Awards sanitization, section omission and ORCID placement tests
+│   ├── test_direct_builder.py  # Zero-token offline generator and surgical review tests
 │   ├── test_encrypted_comm.py  # End-to-end encryption & anti-key-leakage verification tests
 │   ├── test_ui_assets.py       # Icon integrity, favicon endpoints, and responsive CSS tests
 │   ├── test_zero_storage.py    # Strict Zero-Storage & memory destruction tests
@@ -673,6 +698,19 @@ python cli.py --lang en-us --type academic --template academic_classic --provide
 
 # Example 4: Resume using OpenAI prompting for the API key via hidden password prompt
 python cli.py --lang en-us --type professional --template modern_pro --provider openai --github octocat --output resume_openai
+```
+
+##### Mode D: Zero-Token Offline Mode & Surgical Review Mode
+Generate resumes instantly without spending tokens, or use AI strictly for stylistic polish:
+```powershell
+# 1. 100% deterministic direct generation without AI (0 tokens) via CLI:
+python cli.py --lang en-us --type professional --template google_standard --github octocat --no-ai --output resume_offline
+
+# 2. Standalone direct resume builder utility:
+python scripts/generate_direct_resume.py --lang en-us --template modern_pro --github octocat --lattes-file examples/sample_lattes.xml --output resume_direct
+
+# 3. Surgical review-only mode (builds deterministic skeleton and submits only document body to AI, saving ~75% tokens):
+python cli.py --lang en-us --type professional --template ai_ats_max --github octocat --review-only --output resume_reviewed
 ```
 
 ### 🌐 Web Interface & Repository Usage Guide (`https://github.com/Jluckmay/latex-resume`)

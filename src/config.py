@@ -200,6 +200,25 @@ PROVIDERS_CONFIG: Dict[str, Dict[str, Any]] = {
             },
         ],
     },
+    "none": {
+        "id": "none",
+        "name": "Sem IA / Offline (0 Tokens — Extração Direta)",
+        "name_en": "No AI / Offline (0 Tokens — Direct Extraction)",
+        "requires_key": False,
+        "key_hint": "Geração 100% determinística sem chamadas a modelos",
+        "key_hint_en": "100% deterministic generation without model calls",
+        "key_placeholder": "Modo offline ativo (zero tokens)",
+        "key_placeholder_en": "Offline mode active (zero tokens)",
+        "base_url": "",
+        "default_model": "none",
+        "models": [
+            {
+                "id": "none",
+                "name": "Motor Determinístico de Extração / Direct Extractor Engine",
+                "description": "Gera o currículo LaTeX diretamente dos dados coletados sem gastar nenhum token.",
+            }
+        ],
+    },
 }
 
 RECOMMENDED_MODELS: List[Dict[str, str]] = PROVIDERS_CONFIG["default"]["models"]
