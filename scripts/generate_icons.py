@@ -9,8 +9,7 @@ Gera:
 - apple-touch-icon.png (180x180)
 - favicon.ico (multi-frame: 16x16, 32x32, 48x48, 64x64, 128x128, 256x256)
 
-Salva tanto na raiz quanto em assets/ para compatibilidade total com GitHub Pages,
-Flask (server.py) e Streamlit (app.py).
+Salva todos os formatos organizados em assets/icons/ e higieniza a raiz do projeto.
 """
 
 from __future__ import annotations
@@ -21,7 +20,8 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS_DIR = ROOT / "assets"
-ASSETS_DIR.mkdir(parents=True, exist_ok=True)
+ICONS_DIR = ASSETS_DIR / "icons"
+ICONS_DIR.mkdir(parents=True, exist_ok=True)
 
 SVG_CONTENT = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
   <defs>
@@ -316,10 +316,9 @@ def render_raster_icon(size: int = 1024) -> Image.Image:
 def main() -> None:
     print("Gerando arquivos de ícone oficiais do projeto LaTeX Resume Generator...")
 
-    # 1. Salva favicon.svg na raiz e em assets/
-    (ROOT / "favicon.svg").write_text(SVG_CONTENT, encoding="utf-8")
-    (ASSETS_DIR / "favicon.svg").write_text(SVG_CONTENT, encoding="utf-8")
-    print("[OK] favicon.svg gerado na raiz e em assets/")
+    # 1. Salva favicon.svg em assets/icons/
+    (ICONS_DIR / "favicon.svg").write_text(SVG_CONTENT, encoding="utf-8")
+    print(f"[OK] favicon.svg salvo em {ICONS_DIR / 'favicon.svg'}")
 
     # 2. Renderiza imagem base de alta fidelidade
     base_img = render_raster_icon(size=1024)
@@ -338,29 +337,33 @@ def main() -> None:
     for fname, sz in sizes.items():
         res_img = base_img.resize((sz, sz), Image.Resampling.LANCZOS)
         generated_images[sz] = res_img
-        res_img.save(ROOT / fname, "PNG", optimize=True)
-        res_img.save(ASSETS_DIR / fname, "PNG", optimize=True)
-        print(f"[OK] {fname} ({sz}x{sz}) gerado")
+        res_img.save(ICONS_DIR / fname, "PNG", optimize=True)
+        print(f"[OK] {fname} ({sz}x{sz}) salvo em assets/icons/")
 
     # 4. Gera favicon.ico multi-frame (16, 24, 32, 48, 64, 128, 256)
     ico_sizes = [16, 24, 32, 48, 64, 128, 256]
     ico_frames = [base_img.resize((s, s), Image.Resampling.LANCZOS) for s in ico_sizes]
 
-    # Salva ICO contendo todos os tamanhos na raiz e em assets/
+    # Salva ICO contendo todos os tamanhos em assets/icons/
     ico_frames[0].save(
-        ROOT / "favicon.ico",
+        ICONS_DIR / "favicon.ico",
         format="ICO",
         sizes=[(s, s) for s in ico_sizes],
         append_images=ico_frames[1:],
     )
-    ico_frames[0].save(
-        ASSETS_DIR / "favicon.ico",
-        format="ICO",
-        sizes=[(s, s) for s in ico_sizes],
-        append_images=ico_frames[1:],
-    )
-    print("[OK] favicon.ico multi-resolucao gerado na raiz e em assets/")
-    print("Todos os icones foram gerados com sucesso!")
+    print(f"[OK] favicon.ico multi-resolucao salvo em {ICONS_DIR / 'favicon.ico'}")
+
+    # 5. Remove resíduos soltos legados da raiz e de assets/ diretamente
+    all_icon_names = list(sizes.keys()) + ["favicon.svg", "favicon.ico"]
+    for fname in all_icon_names:
+        root_loose = ROOT / fname
+        if root_loose.exists():
+            root_loose.unlink()
+        assets_loose = ASSETS_DIR / fname
+        if assets_loose.exists():
+            assets_loose.unlink()
+
+    print("Todos os ícones foram organizados com sucesso em assets/icons/!")
 
 
 if __name__ == "__main__":

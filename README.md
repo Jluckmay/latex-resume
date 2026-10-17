@@ -101,13 +101,14 @@ latex-resume/
 │       ├── ci.yml              # CI automatizado com matriz de testes (Python 3.10, 3.11, 3.12)
 │       └── deploy-pages.yml    # Build e deploy contínuo no GitHub Pages (index.html + assets)
 ├── assets/                     # Identidade visual, logotipos SVG/PNG e favicons do projeto
-│   ├── favicon.svg             # Vetor SVG de alta definição (512x512)
-│   ├── favicon.png             # Ícone PNG 512x512
-│   ├── favicon-192.png         # Variante PWA / Android (192x192)
-│   ├── favicon-32.png          # Ícone para guias desktop (32x32)
-│   ├── favicon-16.png          # Ícone compacto (16x16)
-│   ├── apple-touch-icon.png    # Ícone para iOS Safari / Apple Home Screen (180x180)
-│   ├── favicon.ico             # Ícone multi-resolução
+│   ├── icons/                  # Ícones organizados em múltiplos formatos e resoluções
+│   │   ├── favicon.svg         # Vetor SVG de alta definição (512x512)
+│   │   ├── favicon.png         # Ícone principal PNG (512x512)
+│   │   ├── favicon-192.png     # Variante PWA / Android (192x192)
+│   │   ├── favicon-32.png      # Ícone para guias desktop (32x32)
+│   │   ├── favicon-16.png      # Ícone compacto (16x16)
+│   │   ├── apple-touch-icon.png # Ícone para iOS Safari / Apple Home Screen (180x180)
+│   │   └── favicon.ico         # Ícone multi-resolução para navegadores
 │   └── README.md               # Especificações técnicas de branding e tokens de cor
 ├── examples/                   # Dados de exemplo e templates de referência
 │   ├── sample_lattes.xml       # Arquivo XML de teste padrão CNPq
@@ -481,13 +482,14 @@ latex-resume/
 │       ├── ci.yml              # Automated CI matrix test suite (Python 3.10, 3.11, 3.12)
 │       └── deploy-pages.yml    # Continuous build & deployment to GitHub Pages (index.html + assets)
 ├── assets/                     # Official visual identity, SVG/PNG logos, and browser favicons
-│   ├── favicon.svg             # High-definition SVG vector logo (512x512)
-│   ├── favicon.png             # 512x512 PNG icon
-│   ├── favicon-192.png         # PWA / Android 192x192 variant
-│   ├── favicon-32.png          # Desktop browser tab icon (32x32)
-│   ├── favicon-16.png          # Compact tab icon (16x16)
-│   ├── apple-touch-icon.png    # iOS Safari / Apple Home Screen icon (180x180)
-│   ├── favicon.ico             # Multi-resolution ICO
+│   ├── icons/                  # Organized icon and favicon variants
+│   │   ├── favicon.svg         # High-definition SVG vector logo (512x512)
+│   │   ├── favicon.png         # 512x512 PNG icon
+│   │   ├── favicon-192.png     # PWA / Android 192x192 variant
+│   │   ├── favicon-32.png      # Desktop browser tab icon (32x32)
+│   │   ├── favicon-16.png      # Compact tab icon (16x16)
+│   │   ├── apple-touch-icon.png # iOS Safari / Apple Home Screen icon (180x180)
+│   │   └── favicon.ico         # Multi-resolution ICO
 │   └── README.md               # Technical branding specifications & color tokens
 ├── examples/                   # Sample profile data and reference templates
 │   ├── sample_lattes.xml       # Official CNPq-compliant test XML

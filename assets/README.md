@@ -4,13 +4,15 @@ Este diretório armazena todos os arquivos oficiais da identidade visual do proj
 
 ```
 assets/
-├── favicon.svg          # Logotipo vetorial SVG de alta definição (viewBox 0 0 512 512)
-├── favicon.png          # Ícone em alta resolução PNG (512x512)
-├── favicon-192.png      # Variante PWA / Android (192x192)
-├── favicon-32.png       # Favicon padrão para desktop (32x32)
-├── favicon-16.png       # Favicon compacto para abas densas (16x16)
-├── apple-touch-icon.png # Ícone para iOS Safari / Apple Home Screen (180x180)
-└── favicon.ico          # Ícone multi-resolução para navegadores legado e modernos
+├── icons/                 # Ícones, favicons e logotipo oficial
+│   ├── favicon.svg        # Logotipo vetorial SVG de alta definição (viewBox 0 0 512 512)
+│   ├── favicon.png        # Ícone em alta resolução PNG (512x512)
+│   ├── favicon-192.png    # Variante PWA / Android (192x192)
+│   ├── favicon-32.png     # Favicon padrão para desktop (32x32)
+│   ├── favicon-16.png     # Favicon compacto para abas densas (16x16)
+│   ├── apple-touch-icon.png # Ícone para iOS Safari / Apple Home Screen (180x180)
+│   └── favicon.ico        # Ícone multi-resolução para navegadores legados e modernos
+└── README.md              # Especificações de design e guia de assets
 ```
 
 ## 📐 Especificações Técnicas de Design
@@ -33,4 +35,4 @@ Para regerar ou atualizar todos os formatos a partir do código vetorial, execut
 ```powershell
 python scripts/generate_icons.py
 ```
-*(Os arquivos são sincronizados automaticamente tanto na raiz quanto em `assets/` para compatibilidade total com GitHub Pages, Flask e Streamlit).*
+*(Os arquivos são gerados e organizados exclusivamente em `assets/icons/`, mantendo a raiz do projeto e diretórios de código completamente limpos).*

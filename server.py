@@ -191,10 +191,17 @@ def serve_index() -> Response:
     return send_file(PROJECT_ROOT / "index.html")
 
 
+ICONS_DIR = PROJECT_ROOT / "assets" / "icons"
+
+
 @app.route("/favicon.ico")
 def serve_favicon_ico() -> Response:
     """Serve o favicon.ico oficial do projeto para a guia do navegador."""
-    ico_path = PROJECT_ROOT / "favicon.ico"
+    ico_path = ICONS_DIR / "favicon.ico"
+    if not ico_path.exists():
+        ico_path = PROJECT_ROOT / "assets" / "favicon.ico"
+    if not ico_path.exists():
+        ico_path = PROJECT_ROOT / "favicon.ico"
     if ico_path.exists():
         return send_file(ico_path, mimetype="image/x-icon", max_age=86400)
     return "", 404
@@ -203,7 +210,11 @@ def serve_favicon_ico() -> Response:
 @app.route("/favicon.svg")
 def serve_favicon_svg() -> Response:
     """Serve o ícone vetorial SVG de alta definição."""
-    svg_path = PROJECT_ROOT / "favicon.svg"
+    svg_path = ICONS_DIR / "favicon.svg"
+    if not svg_path.exists():
+        svg_path = PROJECT_ROOT / "assets" / "favicon.svg"
+    if not svg_path.exists():
+        svg_path = PROJECT_ROOT / "favicon.svg"
     if svg_path.exists():
         return send_file(svg_path, mimetype="image/svg+xml", max_age=86400)
     return "", 404
@@ -216,7 +227,11 @@ def serve_favicon_svg() -> Response:
 def serve_favicon_png_variants() -> Response:
     """Serve as variantes de ícone PNG para dispositivos móveis e navegadores."""
     filename = Path(request.path).name
-    img_path = PROJECT_ROOT / filename
+    img_path = ICONS_DIR / filename
+    if not img_path.exists():
+        img_path = PROJECT_ROOT / "assets" / filename
+    if not img_path.exists():
+        img_path = PROJECT_ROOT / filename
     if img_path.exists():
         return send_file(img_path, mimetype="image/png", max_age=86400)
     return "", 404
@@ -224,10 +239,15 @@ def serve_favicon_png_variants() -> Response:
 
 @app.route("/assets/<path:filename>")
 def serve_assets(filename: str) -> Response:
-    """Serve arquivos da pasta de assets."""
-    target = (PROJECT_ROOT / "assets" / filename).resolve()
-    if target.exists() and str(target).startswith(str((PROJECT_ROOT / "assets").resolve())):
+    """Serve arquivos da pasta de assets com suporte a subdiretórios (ex: icons/)."""
+    assets_base = (PROJECT_ROOT / "assets").resolve()
+    target = (assets_base / filename).resolve()
+    if target.exists() and str(target).startswith(str(assets_base)):
         return send_file(target, max_age=86400)
+    # Fallback transparente para arquivos requisitados diretamente sob /assets/
+    icon_fallback = (assets_base / "icons" / filename).resolve()
+    if icon_fallback.exists() and str(icon_fallback).startswith(str(assets_base)):
+        return send_file(icon_fallback, max_age=86400)
     return "", 404
 
 

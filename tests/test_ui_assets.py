@@ -12,7 +12,7 @@ from src.ui_theme import get_theme_css
 
 
 def test_icon_assets_exist():
-    """Valida se todos os formatos essenciais de ícones foram gerados com sucesso."""
+    """Valida se todos os formatos essenciais de ícones foram organizados em assets/icons/ e a raiz está limpa."""
     expected_files = [
         "favicon.svg",
         "favicon.png",
@@ -22,35 +22,41 @@ def test_icon_assets_exist():
         "favicon-32.png",
         "favicon-16.png",
     ]
+    icons_dir = PROJECT_ROOT / "assets" / "icons"
+    assert icons_dir.exists(), "Diretório assets/icons/ não encontrado"
+
     for fname in expected_files:
+        icon_path = icons_dir / fname
         root_path = PROJECT_ROOT / fname
-        assets_path = PROJECT_ROOT / "assets" / fname
-        assert root_path.exists(), f"Arquivo {fname} não encontrado na raiz"
-        assert assets_path.exists(), f"Arquivo {fname} não encontrado em assets/"
-        assert root_path.stat().st_size > 0, f"Arquivo {fname} está vazio"
+        assert icon_path.exists(), f"Arquivo {fname} não encontrado em assets/icons/"
+        assert icon_path.stat().st_size > 0, f"Arquivo {fname} está vazio"
+        # Invariante de organização: nenhum ícone deve ficar solto na raiz
+        assert not root_path.exists(), f"Arquivo {fname} não deve estar solto na raiz do repositório"
 
 
 def test_icon_image_dimensions():
-    """Valida as dimensões e formatos das imagens PNG e ICO geradas."""
-    img_512 = Image.open(PROJECT_ROOT / "favicon.png")
+    """Valida as dimensões e formatos das imagens PNG e ICO geradas em assets/icons/."""
+    icons_dir = PROJECT_ROOT / "assets" / "icons"
+
+    img_512 = Image.open(icons_dir / "favicon.png")
     assert img_512.size == (512, 512)
     assert img_512.format == "PNG"
 
-    img_180 = Image.open(PROJECT_ROOT / "apple-touch-icon.png")
+    img_180 = Image.open(icons_dir / "apple-touch-icon.png")
     assert img_180.size == (180, 180)
     assert img_180.format == "PNG"
 
-    img_32 = Image.open(PROJECT_ROOT / "favicon-32.png")
+    img_32 = Image.open(icons_dir / "favicon-32.png")
     assert img_32.size == (32, 32)
     assert img_32.format == "PNG"
 
-    ico = Image.open(PROJECT_ROOT / "favicon.ico")
+    ico = Image.open(icons_dir / "favicon.ico")
     assert ico.format == "ICO"
 
 
 def test_svg_content_validity():
-    """Valida se o SVG contém os elementos da identidade visual do projeto."""
-    svg_text = (PROJECT_ROOT / "favicon.svg").read_text(encoding="utf-8")
+    """Valida se o SVG em assets/icons/ contém os elementos da identidade visual do projeto."""
+    svg_text = (PROJECT_ROOT / "assets" / "icons" / "favicon.svg").read_text(encoding="utf-8")
     assert "<svg" in svg_text
     assert 'viewBox="0 0 512 512"' in svg_text
     assert "LaTeX" in svg_text or ("L" in svg_text and "T" in svg_text and "E" in svg_text and "X" in svg_text)
@@ -58,7 +64,7 @@ def test_svg_content_validity():
 
 
 def test_server_favicon_endpoints():
-    """Valida se o servidor Flask responde com sucesso aos endpoints de favicon."""
+    """Valida se o servidor Flask responde com sucesso aos endpoints de favicon servidos de assets/icons/."""
     client = app.test_client()
 
     r_ico = client.get("/favicon.ico")
@@ -82,14 +88,14 @@ def test_index_html_favicon_and_responsiveness():
     """Valida a presença de tags favicon e regras de responsividade no index.html."""
     html_text = (PROJECT_ROOT / "index.html").read_text(encoding="utf-8")
 
-    # Links de favicon na guia do navegador
-    assert 'rel="icon" type="image/svg+xml" href="favicon.svg"' in html_text
-    assert 'rel="shortcut icon" href="favicon.ico"' in html_text
+    # Links de favicon na guia do navegador apontando para assets/icons/
+    assert 'rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg"' in html_text
+    assert 'rel="shortcut icon" href="assets/icons/favicon.ico"' in html_text
     assert 'rel="apple-touch-icon"' in html_text
 
-    # Logotipo na barra de navegação
+    # Logotipo na barra de navegação apontando para assets/icons/
     assert 'class="brand-logo"' in html_text
-    assert 'src="favicon.svg"' in html_text
+    assert 'src="assets/icons/favicon.svg"' in html_text
 
     # Regras responsivas de viewport e media queries
     assert "@media (max-width: 820px)" in html_text

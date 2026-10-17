@@ -396,3 +396,4 @@ def _fill_custom_template_deterministically(
     res = re.sub(r"(?i)Preencher resumo do candidato\.?|\[RESUMO\]|\{\{SUMMARY\}\}", summary, res)
 
     return res
+

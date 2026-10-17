@@ -27,7 +27,11 @@ from src.ui_theme import (
     render_template_preview_html,
 )
 
-FAVICON_PATH = PROJECT_ROOT / "favicon.png"
+FAVICON_PATH = PROJECT_ROOT / "assets" / "icons" / "favicon.png"
+if not FAVICON_PATH.exists():
+    FAVICON_PATH = PROJECT_ROOT / "assets" / "favicon.png"
+if not FAVICON_PATH.exists():
+    FAVICON_PATH = PROJECT_ROOT / "favicon.png"
 
 st.set_page_config(
     page_title="LaTeX Resume Generator — NVIDIA AI",
