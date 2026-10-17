@@ -78,7 +78,7 @@ class CavemanPromptPlugin:
         is_en = str(lang).lower().startswith("en")
         target_lang = "American English (EN-US)" if is_en else "Brazilian Portuguese (PT-BR)"
         focus = (
-            "ACADEMIC (prioritize education, peer-reviewed publications with DOI, research projects, teaching, awards, languages, ORCID/Lattes)"
+            "ACADEMIC (prioritize education, peer-reviewed publications with DOI, research projects, teaching, verified awards/honors, languages. Note: ORCID and Lattes IDs belong in contact headers, NEVER in awards)"
             if resume_type == "academico"
             else "PROFESSIONAL (prioritize executive summary, quantified impact, work experience, GitHub projects, tech stack, certifications)"
         )
@@ -87,13 +87,14 @@ class CavemanPromptPlugin:
                 "MODE:CAVEMAN_JSON_ONLY. Zero prose, zero markdown fences, zero explanations. "
                 f"Role: Senior CV synthesizer ({focus}). "
                 f"Write all resume text values in polished, high-impact {target_lang}, concise action verbs, "
-                "strictly factual from input data. Emit ONLY raw minified JSON matching requested short keys."
+                "strictly factual from input data. Emit ONLY raw minified JSON matching requested short keys. "
+                "NEVER put ORCID, links or profile IDs into 'aw'; if no real awards/honors/certifications exist, 'aw' MUST be []."
             )
         return (
             "MODE:CAVEMAN_LATEX_ONLY. Zero prose, zero markdown fences, zero explanations. "
             f"Role: Expert LaTeX CV generator ({focus}). "
             f"Write resume content in {target_lang}. Escape LaTeX specials (%, &, $, #, _) in user text. "
-            "Emit ONLY valid compilable LaTeX code."
+            "Emit ONLY valid compilable LaTeX code. Do NOT create an awards/certifications section if none exist. NEVER include ORCID in awards."
         )
 
     @staticmethod
@@ -283,12 +284,17 @@ class ShortKeySchemaPlugin:
         '"pj":[{"n":"Nome Projeto/Repo","t":"Stack/Agência","u":"URL/Período","d":"Descrição curta"}],'
         '"pb":[{"t":"Título artigo","v":"Periódico/Conferência","y":"Ano","a":"Autores","u":"DOI/URL"}],'
         '"sk":[{"c":"Categoria","v":"Item1, Item2, Item3"}],'
-        '"lg":["Idioma (Nível)"],"aw":["Prêmio/Certificação (Ano)"]}'
+        '"lg":["Idioma (Nível)"],"aw":["Prêmio/Certificação (Ano)"]}\n'
+        'REGRAS CRÍTICAS:\n'
+        '- Se não houver prêmios, títulos ou certificações reais, retorne "aw": [] (vazio).\n'
+        '- NUNCA insira ORCID, Lattes, links ou IDs de perfil em "aw". ORCID pertence aos links de contato.'
     )
 
     @staticmethod
     def expand(short_data: Dict[str, Any]) -> Dict[str, Any]:
         """Expande o JSON curto retornado pelo modelo para o formato estruturado completo."""
+        from .templates import sanitize_awards
+
         return {
             "name": short_data.get("nm") or short_data.get("name") or "",
             "title": short_data.get("tl") or short_data.get("title") or "",
@@ -346,7 +352,7 @@ class ShortKeySchemaPlugin:
                 if isinstance(s, dict)
             ],
             "languages": [str(x) for x in (short_data.get("lg") or short_data.get("languages") or [])],
-            "awards": [str(x) for x in (short_data.get("aw") or short_data.get("awards") or [])],
+            "awards": sanitize_awards(short_data.get("aw") or short_data.get("awards") or []),
         }
 
 

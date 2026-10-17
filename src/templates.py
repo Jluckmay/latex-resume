@@ -163,6 +163,47 @@ def _build_contact_links(links: Dict[str, str], email: str, phone: str, location
     return items
 
 
+
+ORCID_PATTERN = re.compile(
+    r"\borcid\b|\b000[0-9]-[0-9]{4}-[0-9]{4}-[0-9]{3}[0-9Xx]\b|\b\d{4}-\d{4}-\d{4}-\d{3}[\dX]\b",
+    re.IGNORECASE,
+)
+PROFILE_LINK_PATTERN = re.compile(
+    r"\b(?:lattes|orcid|github|linkedin)\.com\b|\blattes\.cnpq\.br\b|^\s*(?:id\s+)?lattes[:\s]|^\s*orcid[:\s]",
+    re.IGNORECASE,
+)
+PLACEHOLDER_PATTERN = re.compile(
+    r"^(?:none|n/a|na|nil|null|nenhum|nenhuma|sem prêmios|sem certificações|no awards|empty|-)$",
+    re.IGNORECASE,
+)
+
+
+def sanitize_awards(awards: Any) -> List[str]:
+    """Higieniza a lista de prêmios/títulos/certificações:
+    - Remove entradas nulas, vazias ou puramente de espaços
+    - Remove rigorosamente identificadores e links de ORCID, Lattes, GitHub e LinkedIn
+    - Remove placeholders como N/A, None, Nenhum, Sem Prêmios
+    Retorna apenas títulos, prêmios ou certificações legítimos.
+    """
+    if not awards or not isinstance(awards, (list, tuple)):
+        return []
+    clean: List[str] = []
+    for raw in awards:
+        if raw is None:
+            continue
+        val = str(raw).strip()
+        if not val:
+            continue
+        if ORCID_PATTERN.search(val):
+            continue
+        if PROFILE_LINK_PATTERN.search(val):
+            continue
+        if PLACEHOLDER_PATTERN.match(val):
+            continue
+        clean.append(val)
+    return clean
+
+
 def render_builtin_template(
     template_id: str,
     cv: Dict[str, Any],
@@ -173,6 +214,10 @@ def render_builtin_template(
 ) -> str:
     """Renderiza o currículo completo em LaTeX usando o template e idioma escolhidos."""
     norm_lang = normalize_lang(lang)
+    cv_clean = dict(cv)
+    if "awards" in cv_clean:
+        cv_clean["awards"] = sanitize_awards(cv_clean.get("awards"))
+    cv = cv_clean
     if template_id == "academic_classic":
         return _render_academic_classic(cv, links, photo_filename, norm_lang)
     if template_id == "tech_sidebar":
@@ -379,16 +424,17 @@ def _build_skills_block(skills: List[Dict[str, Any]], lang: str = "pt-br") -> st
 def _build_languages_and_awards_block(languages: List[str], awards: List[str], lang: str = "pt-br") -> str:
     t = LATEX_I18N[normalize_lang(lang)]
     parts: List[str] = []
-    if languages:
-        langs_esc = " $\\cdot$ ".join(escape_latex(x) for x in languages if str(x).strip())
+    clean_langs = [str(x).strip() for x in (languages or []) if str(x).strip()]
+    if clean_langs:
+        langs_esc = " $\\cdot$ ".join(escape_latex(x) for x in clean_langs)
         if langs_esc:
             parts.append(rf"\section*{{{t['sec_languages']}}}" + "\n" + langs_esc)
-    if awards:
+    clean_awards = sanitize_awards(awards)
+    if clean_awards:
         lines = [rf"\section*{{{t['sec_awards']}}}"]
         lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
-        for aw in awards:
-            if str(aw).strip():
-                lines.append(rf"    \item {escape_latex(aw)}")
+        for aw in clean_awards:
+            lines.append(rf"    \item {escape_latex(aw)}")
         lines.append(r"\end{itemize}")
         parts.append("\n".join(lines))
     return "\n\n".join(parts)
@@ -800,11 +846,11 @@ def _build_acv_sections(
             langs_esc = " $\\cdot$ ".join(escape_latex(x) for x in langs)
             lang_block = _acv_sec_title_with_body(t["sec_languages"], rf"{{\small {langs_esc}}}\par\vspace{{3pt}}")
 
-    awards = [str(x).strip() for x in (cv.get("awards") or []) if str(x).strip()]
+    clean_awards = sanitize_awards(cv.get("awards"))
     award_block = ""
-    if awards:
+    if clean_awards:
         aw_lines = [r"\begin{itemize}[leftmargin=1.3em,nosep,topsep=2pt]"]
-        for aw in awards:
+        for aw in clean_awards:
             aw_lines.append(rf"    \item {{\small {escape_latex(aw)}}}")
         aw_lines.append(r"\end{itemize}")
         award_block = _acv_sec_title_with_body(t["sec_awards"], "\n".join(aw_lines))
@@ -1170,10 +1216,10 @@ def _render_overleaf_single_page_keywords(
         )
 
     aw_sec = ""
-    awards = [str(x).strip() for x in (cv.get("awards") or []) if str(x).strip()]
-    if awards:
+    clean_awards = sanitize_awards(cv.get("awards"))
+    if clean_awards:
         aw_lbl = "AWARDS" if is_en else r"PRÊMIOS \& CERTIFICAÇÕES"
-        a_rows = [rf"    \item {escape_latex(a)}" for a in awards]
+        a_rows = [rf"    \item {escape_latex(a)}" for a in clean_awards]
         aw_sec = (
             rf"\cvsec{{\faIcon{{star}}}}{{{aw_lbl}}}"
             + "\n\\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=2pt]\n"
@@ -1620,13 +1666,12 @@ def _render_ai_ats_max(
         blocks.append(rf"\section*{{{pub_title}}}" + "\n" + _build_publications_block(pubs, lang).replace(rf"\section*{{{t['sec_publications']}}}", "").strip())
 
     # 7. Certifications & Awards
-    awards = cv.get("awards") or []
-    if awards:
+    clean_awards = sanitize_awards(cv.get("awards"))
+    if clean_awards:
         aw_title = r"CERTIFICATIONS \& AWARDS" if is_en else r"CERTIFICAÇÕES \& PRÊMIOS"
         aw_lines = [rf"\section*{{{aw_title}}}", r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]"]
-        for aw in awards:
-            if str(aw).strip():
-                aw_lines.append(rf"    \item {escape_latex(aw)}")
+        for aw in clean_awards:
+            aw_lines.append(rf"    \item {escape_latex(aw)}")
         aw_lines.append(r"\end{itemize}")
         blocks.append("\n".join(aw_lines))
 

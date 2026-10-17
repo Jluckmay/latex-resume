@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Tuple
 
 from ._vault import dispatch_secure_llm_chat
 from .config import DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDERS_CONFIG
-from .templates import render_builtin_template
+from .templates import render_builtin_template, sanitize_awards
 from .token_plugins import (
     CavemanPromptPlugin,
     LaTeXPreambleSplitPlugin,
@@ -330,7 +330,9 @@ class LLMResumeGenerator:
             if isinstance(s.get("items"), list):
                 s["items"] = ", ".join(str(i) for i in s["items"] if str(i).strip())
         cv["languages"] = [str(l).strip() for l in (cv.get("languages") or []) if str(l).strip()]
-        cv["awards"] = [str(a).strip() for a in (cv.get("awards") or []) if str(a).strip()]
+        cv["awards"] = sanitize_awards(cv.get("awards") or [])
+        if not cv["awards"] and lattes.get("awards"):
+            cv["awards"] = sanitize_awards(lattes["awards"][:5])
 
         if not cv.get("education") and lattes.get("educations"):
             cv["education"] = [
