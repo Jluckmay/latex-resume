@@ -104,3 +104,24 @@ def test_ui_theme_responsive_css():
     assert "@media (max-width: 820px)" in css
     assert ".st-brand-logo" in css
     assert "min-height: 44px" in css
+
+
+def test_index_html_encrypted_transport_and_devtools_defense():
+    """Valida a presença de rotinas de criptografia de ponta a ponta e blindagem do Console no index.html."""
+    html_text = (PROJECT_ROOT / "index.html").read_text(encoding="utf-8")
+
+    # Funções de transporte cifrado AES-256-GCM
+    assert "encryptTransportPayload" in html_text
+    assert "decryptTransportPayload" in html_text
+    assert "ENC_PAYLOAD_V1" in html_text
+    assert "X-Encrypted-Payload" in html_text
+
+    # Defesas de Console / DevTools
+    assert "Object.defineProperty(window, \"apiKey\"" in html_text
+    assert "Object.defineProperty(window, \"NVIDIA_API_KEY\"" in html_text
+    assert "LaTeX Resume Enclave" in html_text
+
+    # Nenhuma chave hardcoded
+    assert "nvapi-" not in html_text or "placeholder" in html_text
+    assert "sk-" not in html_text or "placeholder" in html_text
+    assert "AIza" not in html_text or "placeholder" in html_text

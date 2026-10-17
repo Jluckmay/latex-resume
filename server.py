@@ -26,6 +26,11 @@ from src.config import (
     RECOMMENDED_MODELS,
 )
 from src.pipeline import build_resume_pipeline
+from src._vault import (
+    decrypt_payload_envelope,
+    encrypt_payload_envelope,
+    scrub_sensitive_api_keys,
+)
 
 app = Flask(__name__, static_folder=str(PROJECT_ROOT))
 app.config["MAX_CONTENT_LENGTH"] = 12 * 1024 * 1024  # Limite máximo de 12 MB por requisição
@@ -141,8 +146,10 @@ def add_security_and_cors_headers(response: Response) -> Response:
         response.headers["Access-Control-Allow-Origin"] = origin
         response.headers["Vary"] = "Origin"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Resume-Client, X-Client-Timestamp"
-        response.headers["Access-Control-Expose-Headers"] = "X-Backend-Attestation"
+        response.headers["Access-Control-Allow-Headers"] = (
+            "Content-Type, X-Resume-Client, X-Client-Timestamp, X-Encrypted-Payload"
+        )
+        response.headers["Access-Control-Expose-Headers"] = "X-Backend-Attestation, X-Encrypted-Payload"
         response.headers["Access-Control-Max-Age"] = "86400"
 
     response.headers["X-Content-Type-Options"] = "nosniff"
@@ -157,11 +164,14 @@ def add_security_and_cors_headers(response: Response) -> Response:
 @app.errorhandler(405)
 @app.errorhandler(500)
 def handle_api_errors(e):
-    """Garante que endpoints de API sempre retornem JSON estruturado, nunca páginas HTML."""
+    """Garante que endpoints de API sempre retornem JSON estruturado e higienizado, sem vazar segredos."""
     if request.path.startswith("/api/"):
         code = getattr(e, "code", 500)
-        desc = getattr(e, "description", str(e))
-        return jsonify({"error": desc, "status": code}), code
+        raw_desc = getattr(e, "description", str(e))
+        clean_desc = scrub_sensitive_api_keys(raw_desc)
+        if code == 500:
+            clean_desc = "Erro interno no servidor de compilação segura."
+        return jsonify({"error": clean_desc, "status": code}), code
     return e
 
 
@@ -221,7 +231,7 @@ def serve_assets(filename: str) -> Response:
     return "", 404
 
 
-@app.route("/api/status", methods=["GET", "OPTIONS"])
+@app.route("/api/status", methods=["GET", "POST", "OPTIONS"])
 def api_status() -> Response | tuple[Response, int]:
     if request.method == "OPTIONS":
         return jsonify({"status": "ok"})
@@ -231,16 +241,36 @@ def api_status() -> Response | tuple[Response, int]:
         return jsonify({"error": err_msg}), 403
 
     latex_ok, latex_ver = check_latex_compiler()
-    return jsonify(
-        {
-            "status": "ok",
-            "latex_ok": latex_ok,
-            "latex_version": latex_ver,
-            "providers": PROVIDERS_CONFIG,
-            "models": RECOMMENDED_MODELS,
-            "service": "latex-resume-backend",
-        }
+
+    # Sanitização estrita: garante que nenhuma informação de ambiente ou chave conste em providers
+    safe_providers: dict[str, Any] = {}
+    for prov_id, prov_val in PROVIDERS_CONFIG.items():
+        prov_dict = dict(prov_val)
+        prov_dict.pop("env_vars", None)
+        safe_providers[prov_id] = prov_dict
+
+    status_data = {
+        "status": "ok",
+        "latex_ok": latex_ok,
+        "latex_version": latex_ver,
+        "providers": safe_providers,
+        "models": RECOMMENDED_MODELS,
+        "service": "latex-resume-backend",
+        "encryption": "ENC_PAYLOAD_V1",
+    }
+
+    # Verifica se o cliente solicitou transporte criptografado no status
+    wants_encrypted = (
+        request.headers.get("X-Encrypted-Payload") == "1"
+        or (request.is_json and (request.get_json(silent=True) or {}).get("enc_version") == "ENC_PAYLOAD_V1")
     )
+    if wants_encrypted:
+        enc_envelope = encrypt_payload_envelope(status_data, direction="resp")
+        resp = jsonify(enc_envelope)
+        resp.headers["X-Encrypted-Payload"] = "1"
+        return resp
+
+    return jsonify(status_data)
 
 
 @app.route("/api/generate", methods=["POST", "OPTIONS"])
@@ -258,38 +288,122 @@ def api_generate() -> Response | tuple[Response, int]:
     if _is_rate_limited(client_ip):
         return jsonify({"error": "Limite de requisições excedido. Aguarde alguns minutos antes de tentar novamente."}), 429
 
+    is_encrypted_transport = False
     try:
-        form = request.form
-        files = request.files
+        # Detecta se a requisição possui payload criptografado (ENC_PAYLOAD_V1)
+        if request.is_json:
+            req_json = request.get_json(silent=True) or {}
+            if req_json.get("enc_version") == "ENC_PAYLOAD_V1":
+                is_encrypted_transport = True
+                payload_data = decrypt_payload_envelope(req_json, direction="req")
+            else:
+                payload_data = req_json
+        else:
+            payload_data = {}
 
-        provider = form.get("provider", DEFAULT_PROVIDER).strip().lower()
-        resume_type = form.get("resume_type", "profissional")
-        template_id = form.get("template_id", "modern_pro")
-        lang = form.get("lang", "pt-br")
-        primary_color = form.get("primary_color", "#0F4C81")
-        secondary_color = form.get("secondary_color", "#1E293B")
+        if is_encrypted_transport:
+            provider = (payload_data.get("provider") or DEFAULT_PROVIDER).strip().lower()
+            resume_type = payload_data.get("resume_type", "profissional")
+            template_id = payload_data.get("template_id", "modern_pro")
+            lang = payload_data.get("lang", "pt-br")
+            primary_color = payload_data.get("primary_color", "#0F4C81")
+            secondary_color = payload_data.get("secondary_color", "#1E293B")
 
-        prov_info = PROVIDERS_CONFIG.get(provider, PROVIDERS_CONFIG["default"])
-        model = form.get("model") or prov_info.get("default_model") or DEFAULT_MODEL
+            prov_info = PROVIDERS_CONFIG.get(provider, PROVIDERS_CONFIG["default"])
+            model = payload_data.get("model") or prov_info.get("default_model") or DEFAULT_MODEL
 
-        custom_tex: str | None = None
-        if "custom_tex_file" in files and files["custom_tex_file"].filename:
-            custom_tex = files["custom_tex_file"].read().decode("utf-8", errors="ignore")
-        elif form.get("custom_tex_code", "").strip():
-            custom_tex = form.get("custom_tex_code", "").strip()
+            # Arquivos decodificados do payload cifrado em memória RAM
+            custom_tex: str | None = None
+            if payload_data.get("custom_tex_file") and isinstance(payload_data["custom_tex_file"], dict):
+                file_info = payload_data["custom_tex_file"]
+                if file_info.get("data"):
+                    custom_tex = base64.b64decode(file_info["data"]).decode("utf-8", errors="ignore")
+            elif payload_data.get("custom_tex_code", "").strip():
+                custom_tex = payload_data.get("custom_tex_code", "").strip()
 
-        photo_bytes = files["photo"].read() if ("photo" in files and files["photo"].filename) else None
-        lattes_bytes = (
-            files["lattes_file"].read()
-            if ("lattes_file" in files and files["lattes_file"].filename)
-            else None
-        )
-        lattes_fname = files["lattes_file"].filename if ("lattes_file" in files and files["lattes_file"].filename) else ""
-        li_pdf_bytes = (
-            files["linkedin_pdf"].read()
-            if ("linkedin_pdf" in files and files["linkedin_pdf"].filename)
-            else None
-        )
+            photo_bytes: bytes | None = None
+            if payload_data.get("photo"):
+                p_item = payload_data["photo"]
+                raw_b64 = p_item.get("data") if isinstance(p_item, dict) else str(p_item)
+                if raw_b64:
+                    photo_bytes = base64.b64decode(raw_b64)
+
+            lattes_bytes: bytes | None = None
+            lattes_fname = ""
+            if payload_data.get("lattes_file"):
+                l_item = payload_data["lattes_file"]
+                if isinstance(l_item, dict):
+                    lattes_fname = l_item.get("filename", "")
+                    if l_item.get("data"):
+                        lattes_bytes = base64.b64decode(l_item["data"])
+                elif isinstance(l_item, str) and l_item:
+                    lattes_bytes = base64.b64decode(l_item)
+
+            li_pdf_bytes: bytes | None = None
+            if payload_data.get("linkedin_pdf"):
+                lp_item = payload_data["linkedin_pdf"]
+                lp_b64 = lp_item.get("data") if isinstance(lp_item, dict) else str(lp_item)
+                if lp_b64:
+                    li_pdf_bytes = base64.b64decode(lp_b64)
+
+            req_linkedin = payload_data.get("linkedin", "")
+            req_github = payload_data.get("github", "")
+            req_orcid = payload_data.get("orcid", "")
+            req_lattes = payload_data.get("lattes", "")
+            req_portfolio = payload_data.get("portfolio", "")
+            req_name = payload_data.get("name", "")
+            req_role = payload_data.get("role", "")
+            req_email = payload_data.get("email", "")
+            req_phone = payload_data.get("phone", "")
+            req_location = payload_data.get("location", "")
+            req_extra = payload_data.get("extra", "")
+            req_api_key = payload_data.get("api_key", "").strip() or None
+        else:
+            # Fallback para multipart/form-data legada (compatibilidade com CLI e testes)
+            form = request.form
+            files = request.files
+
+            provider = form.get("provider", DEFAULT_PROVIDER).strip().lower()
+            resume_type = form.get("resume_type", "profissional")
+            template_id = form.get("template_id", "modern_pro")
+            lang = form.get("lang", "pt-br")
+            primary_color = form.get("primary_color", "#0F4C81")
+            secondary_color = form.get("secondary_color", "#1E293B")
+
+            prov_info = PROVIDERS_CONFIG.get(provider, PROVIDERS_CONFIG["default"])
+            model = form.get("model") or prov_info.get("default_model") or DEFAULT_MODEL
+
+            custom_tex = None
+            if "custom_tex_file" in files and files["custom_tex_file"].filename:
+                custom_tex = files["custom_tex_file"].read().decode("utf-8", errors="ignore")
+            elif form.get("custom_tex_code", "").strip():
+                custom_tex = form.get("custom_tex_code", "").strip()
+
+            photo_bytes = files["photo"].read() if ("photo" in files and files["photo"].filename) else None
+            lattes_bytes = (
+                files["lattes_file"].read()
+                if ("lattes_file" in files and files["lattes_file"].filename)
+                else None
+            )
+            lattes_fname = files["lattes_file"].filename if ("lattes_file" in files and files["lattes_file"].filename) else ""
+            li_pdf_bytes = (
+                files["linkedin_pdf"].read()
+                if ("linkedin_pdf" in files and files["linkedin_pdf"].filename)
+                else None
+            )
+
+            req_linkedin = form.get("linkedin", "")
+            req_github = form.get("github", "")
+            req_orcid = form.get("orcid", "")
+            req_lattes = form.get("lattes", "")
+            req_portfolio = form.get("portfolio", "")
+            req_name = form.get("name", "")
+            req_role = form.get("role", "")
+            req_email = form.get("email", "")
+            req_phone = form.get("phone", "")
+            req_location = form.get("location", "")
+            req_extra = form.get("extra", "")
+            req_api_key = form.get("api_key", "").strip() or None
 
         # Compilação em diretório efêmero isolado por requisição com política estrita de Zero-Storage
         tmp_build_dir = tempfile.mkdtemp(prefix="cv_session_ephemeral_")
@@ -297,27 +411,27 @@ def api_generate() -> Response | tuple[Response, int]:
         try:
             result = build_resume_pipeline(
                 resume_type=resume_type,
-                linkedin_url=form.get("linkedin", ""),
+                linkedin_url=req_linkedin,
                 linkedin_pdf_bytes=li_pdf_bytes,
-                github_input=form.get("github", ""),
-                orcid_input=form.get("orcid", ""),
-                lattes_url=form.get("lattes", ""),
+                github_input=req_github,
+                orcid_input=req_orcid,
+                lattes_url=req_lattes,
                 lattes_file_bytes=lattes_bytes,
                 lattes_filename=lattes_fname,
-                portfolio_url=form.get("portfolio", ""),
+                portfolio_url=req_portfolio,
                 photo_bytes=photo_bytes,
                 template_id=template_id,
                 custom_latex_template=custom_tex,
                 primary_color=primary_color,
                 secondary_color=secondary_color,
-                user_name=form.get("name", ""),
-                user_role=form.get("role", ""),
-                user_email=form.get("email", ""),
-                user_phone=form.get("phone", ""),
-                user_location=form.get("location", ""),
-                extra_notes=form.get("extra", ""),
+                user_name=req_name,
+                user_role=req_role,
+                user_email=req_email,
+                user_phone=req_phone,
+                user_location=req_location,
+                extra_notes=req_extra,
                 provider=provider,
-                api_key=form.get("api_key", "").strip() or None,
+                api_key=req_api_key,
                 model=model,
                 use_cache=False,  # Zero-storage: documentos nunca gravados em disco de cache
                 output_stem=f"web_{lang}_{resume_type}_{template_id}",
@@ -330,21 +444,39 @@ def api_generate() -> Response | tuple[Response, int]:
                 pdf_bytes = result.pdf_path.read_bytes()
                 pdf_b64 = base64.b64encode(pdf_bytes).decode("ascii")
 
-            return jsonify(
-                {
-                    "success": result.success,
-                    "compiler_message": result.compiler_message,
-                    "latex_code": result.latex_code,
-                    "pdf_base64": pdf_b64,
-                    "token_metrics": result.token_metrics,
-                    "structured_cv": result.structured_cv,
-                }
-            )
+            resp_data = {
+                "success": result.success,
+                "compiler_message": result.compiler_message,
+                "latex_code": result.latex_code,
+                "pdf_base64": pdf_b64,
+                "token_metrics": result.token_metrics,
+                "structured_cv": result.structured_cv,
+            }
+
+            # Higienização de segurança zero-leak: redige qualquer padrão de chave ou segredo ativo em RAM
+            active_secrets = [
+                os.environ.get(k, "") for k in ("NVIDIA_API_KEY", "NVIDIA_VAULT_KEY") if os.environ.get(k)
+            ]
+            if req_api_key:
+                active_secrets.append(req_api_key)
+            cleaned_data = scrub_sensitive_api_keys(resp_data, extra_secrets=active_secrets)
+
+            if is_encrypted_transport:
+                enc_response = encrypt_payload_envelope(cleaned_data, direction="resp")
+                resp = jsonify(enc_response)
+                resp.headers["X-Encrypted-Payload"] = "1"
+                return resp
+
+            return jsonify(cleaned_data)
         finally:
             # Destruição segura e imediata: sobrescreve com zeros e remove todos os arquivos efêmeros
             secure_wipe_and_remove_dir(build_path)
     except Exception as exc:
-        return jsonify({"error": f"Falha no processamento: {type(exc).__name__}"}), 500
+        err_msg = scrub_sensitive_api_keys(f"Falha no processamento: {type(exc).__name__}")
+        if is_encrypted_transport:
+            enc_err = encrypt_payload_envelope({"error": err_msg, "success": False}, direction="resp")
+            return jsonify(enc_err), 500
+        return jsonify({"error": err_msg}), 500
 
 
 if __name__ == "__main__":

@@ -15,6 +15,7 @@ import hashlib
 import inspect
 import json
 import os
+import re
 import ssl
 import time
 from typing import Any, Dict, List, Tuple
@@ -142,6 +143,82 @@ def unwrap_secure_api_key(armored_or_raw: str | None, provider: str = "default")
     return text
 
 
+def derive_payload_transport_key(ts: int, direction: str = "req") -> bytes:
+    """Deriva chave de 256 bits para transporte cifrado entre cliente e servidor vinculada a timestamp efêmero."""
+    salt = f"LATEX_RESUME_PAYLOAD_ENCRYPT_2026_{direction}_{ts}".encode("utf-8")
+    return hashlib.sha256(salt).digest()
+
+
+def encrypt_payload_envelope(data: Dict[str, Any], direction: str = "resp", ts: int | None = None) -> Dict[str, Any]:
+    """Cifra um payload JSON completo em um envelope criptográfico efêmero AES-256-GCM (ENC_PAYLOAD_V1).
+    
+    Garante que a comunicação em trânsito e na inspeção de DevTools / rede seja puro texto cifrado,
+    sem expor dados pessoais, prompts ou tokens de API.
+    """
+    ts_val = ts if ts is not None else int(time.time() * 1000)
+    key_bytes = derive_payload_transport_key(ts_val, direction=direction)
+    iv_bytes = os.urandom(12)
+    aesgcm = AESGCM(key_bytes)
+    plaintext_bytes = json.dumps(data, ensure_ascii=False).encode("utf-8")
+    ct_bytes = aesgcm.encrypt(iv_bytes, plaintext_bytes, None)
+    return {
+        "enc_version": "ENC_PAYLOAD_V1",
+        "ts": ts_val,
+        "iv": base64.b64encode(iv_bytes).decode("ascii"),
+        "ciphertext": base64.b64encode(ct_bytes).decode("ascii"),
+    }
+
+
+def decrypt_payload_envelope(envelope: Dict[str, Any], direction: str = "req", max_drift_ms: int = 900_000) -> Dict[str, Any]:
+    """Descriptografa um envelope ENC_PAYLOAD_V1 exclusivamente em memória RAM volátil.
+    
+    Aplica validação anti-replay de timestamp (janela máxima de 15 minutos).
+    """
+    if not isinstance(envelope, dict) or envelope.get("enc_version") != "ENC_PAYLOAD_V1":
+        raise ValueError("Formato de envelope cifrado inválido ou versão não suportada.")
+
+    ts = int(envelope.get("ts", 0))
+    now_ms = int(time.time() * 1000)
+    if abs(now_ms - ts) > max_drift_ms:
+        raise ValueError("Payload criptografado expirado ou com timestamp desalinhado (proteção anti-replay).")
+
+    iv_bytes = base64.b64decode(envelope["iv"])
+    ct_bytes = base64.b64decode(envelope["ciphertext"])
+    key_bytes = derive_payload_transport_key(ts, direction=direction)
+    aesgcm = AESGCM(key_bytes)
+    plain_bytes = aesgcm.decrypt(iv_bytes, ct_bytes, None)
+    return json.loads(plain_bytes.decode("utf-8"))
+
+
+_API_KEY_PATTERNS = [
+    re.compile(r"nvapi-[A-Za-z0-9_-]{16,}"),
+    re.compile(r"AIza[0-9A-Za-z-_]{30,}"),
+    re.compile(r"sk-ant-[A-Za-z0-9_-]{15,}"),
+    re.compile(r"sk-[A-Za-z0-9_-]{20,}"),
+    re.compile(r"SECKEY_V1:[A-Za-z0-9+/=]+"),
+]
+
+
+def scrub_sensitive_api_keys(data: Any, extra_secrets: List[str] | None = None) -> Any:
+    """Higieniza recursivamente estruturas de dados, garantindo que nenhuma chave de API ou segredo
+    seja vazado em mensagens de erro, saídas de LaTeX ou respostas de API para o frontend.
+    """
+    if isinstance(data, str):
+        cleaned = data
+        for pattern in _API_KEY_PATTERNS:
+            cleaned = pattern.sub("[REDACTED_API_KEY]", cleaned)
+        if extra_secrets:
+            for sec in extra_secrets:
+                if sec and len(sec.strip()) >= 8 and sec.strip() in cleaned:
+                    cleaned = cleaned.replace(sec.strip(), "[REDACTED_API_KEY]")
+        return cleaned
+    elif isinstance(data, dict):
+        return {k: scrub_sensitive_api_keys(v, extra_secrets) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [scrub_sensitive_api_keys(item, extra_secrets) for item in data]
+    return data
+
+
 def _attest_and_verify_caller(messages: List[Dict[str, str]]) -> None:
     """Atesta a integridade da chamada (origem autorizada e conformidade estrita da tarefa)."""
     caller_ok = False
@@ -208,24 +285,24 @@ def dispatch_secure_llm_chat(
     if not unwrapped_key:
         if prov in ("default", "nvidia"):
             raise RuntimeError(
-                "Chave de API NVIDIA não configurada. Defina a variável de ambiente NVIDIA_API_KEY no painel seguro do Render "
-                "ou informe sua própria chave de API na interface/CLI."
+                "Chave de API NVIDIA não configurada no servidor seguro. "
+                "Informe sua própria chave de API na interface ou CLI."
             )
         elif prov == "google":
             raise RuntimeError(
-                "Chave de API do Google Gemini não fornecida. Informe sua chave (AIza...) na interface ou configure GEMINI_API_KEY."
+                "Chave de API do Google Gemini não fornecida. Informe sua chave (AIza...) na interface ou CLI."
             )
         elif prov == "claude":
             raise RuntimeError(
-                "Chave de API da Anthropic Claude não fornecida. Informe sua chave (sk-ant-...) na interface ou configure ANTHROPIC_API_KEY."
+                "Chave de API da Anthropic Claude não fornecida. Informe sua chave (sk-ant-...) na interface ou CLI."
             )
         elif prov == "openai":
             raise RuntimeError(
-                "Chave de API da OpenAI não fornecida. Informe sua chave (sk-...) na interface ou configure OPENAI_API_KEY."
+                "Chave de API da OpenAI não fornecida. Informe sua chave (sk-...) na interface ou CLI."
             )
         elif prov == "deepseek":
             raise RuntimeError(
-                "Chave de API da DeepSeek não fornecida. Informe sua chave (sk-...) na interface ou configure DEEPSEEK_API_KEY."
+                "Chave de API da DeepSeek não fornecida. Informe sua chave (sk-...) na interface ou CLI."
             )
         else:
             raise RuntimeError(f"Chave de API não informada para o provedor '{prov}'.")

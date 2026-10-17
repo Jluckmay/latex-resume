@@ -22,7 +22,6 @@ PROVIDERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "key_placeholder": "Chave padrão do servidor ativa",
         "key_placeholder_en": "Default server key active",
         "base_url": NVIDIA_BASE_URL,
-        "env_vars": ["NVIDIA_API_KEY", "NVIDIA_VAULT_KEY"],
         "default_model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
         "models": [
             {
@@ -62,7 +61,6 @@ PROVIDERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "key_placeholder": "nvapi-...",
         "key_placeholder_en": "nvapi-...",
         "base_url": NVIDIA_BASE_URL,
-        "env_vars": ["NVIDIA_API_KEY"],
         "default_model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
         "models": [
             {
@@ -103,7 +101,6 @@ PROVIDERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "key_placeholder": "AIzaSy...",
         "key_placeholder_en": "AIzaSy...",
         "base_url": "https://generativelanguage.googleapis.com/v1beta",
-        "env_vars": ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
         "default_model": "gemini-2.0-flash",
         "models": [
             {
@@ -134,7 +131,6 @@ PROVIDERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "key_placeholder": "sk-ant-api03-...",
         "key_placeholder_en": "sk-ant-api03-...",
         "base_url": "https://api.anthropic.com/v1",
-        "env_vars": ["ANTHROPIC_API_KEY", "CLAUDE_API_KEY"],
         "default_model": "claude-3-5-sonnet-20241022",
         "models": [
             {
@@ -160,7 +156,6 @@ PROVIDERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "key_placeholder": "sk-proj-...",
         "key_placeholder_en": "sk-proj-...",
         "base_url": "https://api.openai.com/v1",
-        "env_vars": ["OPENAI_API_KEY"],
         "default_model": "gpt-4o-mini",
         "models": [
             {
@@ -191,7 +186,6 @@ PROVIDERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "key_placeholder": "sk-...",
         "key_placeholder_en": "sk-...",
         "base_url": "https://api.deepseek.com",
-        "env_vars": ["DEEPSEEK_API_KEY"],
         "default_model": "deepseek-chat",
         "models": [
             {

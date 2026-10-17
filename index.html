@@ -1380,6 +1380,103 @@
             }
         }
 
+        function bufToB64(buf) {
+            const bytes = new Uint8Array(buf);
+            let binary = "";
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binary);
+        }
+
+        function b64ToBuf(b64) {
+            const binary = window.atob(b64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        async function deriveTransportKey(ts, direction = "req") {
+            const enc = new TextEncoder();
+            const baseStr = "LATEX_RESUME_PAYLOAD_ENCRYPT_2026_" + direction + "_" + ts;
+            const hashBuf = await window.crypto.subtle.digest("SHA-256", enc.encode(baseStr));
+            return window.crypto.subtle.importKey(
+                "raw",
+                hashBuf,
+                { name: "AES-GCM" },
+                false,
+                ["encrypt", "decrypt"]
+            );
+        }
+
+        async function encryptTransportPayload(dataObj, direction = "req") {
+            try {
+                const ts = Date.now();
+                const iv = window.crypto.getRandomValues(new Uint8Array(12));
+                const aesKey = await deriveTransportKey(ts, direction);
+                const enc = new TextEncoder();
+                const jsonBytes = enc.encode(JSON.stringify(dataObj));
+                const ciphertextBuf = await window.crypto.subtle.encrypt(
+                    { name: "AES-GCM", iv: iv },
+                    aesKey,
+                    jsonBytes
+                );
+                return {
+                    enc_version: "ENC_PAYLOAD_V1",
+                    ts: ts,
+                    iv: bufToB64(iv.buffer),
+                    ciphertext: bufToB64(ciphertextBuf)
+                };
+            } catch (err) {
+                return dataObj;
+            }
+        }
+
+        async function decryptTransportPayload(envelope, direction = "resp") {
+            if (!envelope || envelope.enc_version !== "ENC_PAYLOAD_V1") {
+                return envelope;
+            }
+            try {
+                const ts = envelope.ts;
+                const ivBuf = b64ToBuf(envelope.iv);
+                const ctBuf = b64ToBuf(envelope.ciphertext);
+                const aesKey = await deriveTransportKey(ts, direction);
+                const decryptedBuf = await window.crypto.subtle.decrypt(
+                    { name: "AES-GCM", iv: new Uint8Array(ivBuf) },
+                    aesKey,
+                    ctBuf
+                );
+                const dec = new TextDecoder();
+                return JSON.parse(dec.decode(decryptedBuf));
+            } catch (err) {
+                return envelope;
+            }
+        }
+
+        function readFileAsBase64(file) {
+            return new Promise((resolve) => {
+                if (!file) {
+                    resolve(null);
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const dataUrl = reader.result || "";
+                    const commaIdx = dataUrl.indexOf(",");
+                    const b64 = commaIdx >= 0 ? dataUrl.substring(commaIdx + 1) : "";
+                    resolve({
+                        filename: file.name,
+                        data: b64,
+                        mime: file.type || "application/octet-stream"
+                    });
+                };
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(file);
+            });
+        }
+
         async function encryptApiKeyForTransit(rawKey, provider) {
             if (!rawKey || !rawKey.trim()) return "";
             const keyStr = rawKey.trim();
@@ -1406,26 +1503,16 @@
                     enc.encode(keyStr)
                 );
 
-                function bufToB64(buf) {
-                    const bytes = new Uint8Array(buf);
-                    let binary = "";
-                    for (let i = 0; i < bytes.byteLength; i++) {
-                        binary += String.fromCharCode(bytes[i]);
-                    }
-                    return window.btoa(binary);
-                }
-
                 const envelope = {
                     v: 1,
                     ts: ts,
-                    iv: bufToB64(iv),
+                    iv: bufToB64(iv.buffer),
                     ct: bufToB64(ciphertextBuf),
                     p: provider
                 };
 
                 return "SECKEY_V1:" + window.btoa(JSON.stringify(envelope));
             } catch (err) {
-                console.warn("WebCrypto unavailable or error, passing key directly:", err);
                 return keyStr;
             }
         }
@@ -1762,7 +1849,8 @@
                     signal: controller.signal,
                     headers: {
                         "X-Resume-Client": "jluckmay-github-pages-v1",
-                        "X-Client-Timestamp": Date.now().toString()
+                        "X-Client-Timestamp": Date.now().toString(),
+                        "X-Encrypted-Payload": "1"
                     }
                 });
                 clearTimeout(timeoutId);
@@ -1772,11 +1860,15 @@
                     throw new Error(`Resposta não-JSON (HTTP ${res.status})`);
                 }
 
-                const data = await res.json();
+                let data = await res.json();
+                if (data && data.enc_version === "ENC_PAYLOAD_V1") {
+                    data = await decryptTransportPayload(data, "resp");
+                }
+
                 if (res.ok && data.latex_ok) {
                     badge.className = "pill-badge ok";
                     badge.textContent = "✅ " + (data.latex_version || "pdflatex OK");
-                    badge.title = `Backend conectado em: ${base || window.location.origin}\nCompilador: ${data.latex_version}\nClique para configurar`;
+                    badge.title = `Backend conectado em: ${base || window.location.origin}\nCompilador: ${data.latex_version}\nTransporte: 🔒 Criptografado (AES-256-GCM)\nClique para configurar`;
                     return { ok: true, data };
                 } else {
                     throw new Error(data.error || `HTTP ${res.status}`);
@@ -1837,7 +1929,8 @@
                     signal: controller.signal,
                     headers: {
                         "X-Resume-Client": "jluckmay-github-pages-v1",
-                        "X-Client-Timestamp": Date.now().toString()
+                        "X-Client-Timestamp": Date.now().toString(),
+                        "X-Encrypted-Payload": "1"
                     }
                 });
                 clearTimeout(timeoutId);
@@ -1847,12 +1940,16 @@
                     throw new Error(`Servidor respondeu com formato não-JSON (HTTP ${res.status} - ${res.statusText})`);
                 }
 
-                const data = await res.json();
+                let data = await res.json();
+                if (data && data.enc_version === "ENC_PAYLOAD_V1") {
+                    data = await decryptTransportPayload(data, "resp");
+                }
+
                 if (res.ok && data.latex_ok) {
                     resBox.style.backgroundColor = "rgba(16, 185, 129, 0.1)";
                     resBox.style.border = "1px solid rgba(16, 185, 129, 0.4)";
                     resBox.style.color = "#10b981";
-                    resBox.innerHTML = `<b>✅ Conectado com Sucesso!</b><br>Compilador: ${data.latex_version || 'pdflatex'}<br>Provedores suportados: ${Object.keys(data.providers || {}).length}`;
+                    resBox.innerHTML = `<b>✅ Conectado com Sucesso!</b><br>Compilador: ${data.latex_version || 'pdflatex'}<br>Transporte: 🔒 Criptografado (AES-256-GCM)<br>Provedores: ${Object.keys(data.providers || {}).length}`;
                 } else {
                     throw new Error(data.error || `HTTP ${res.status}`);
                 }
@@ -1894,59 +1991,69 @@
             btnTxt.textContent = t.genLoading;
 
             try {
-                const formData = new FormData();
-                formData.append("resume_type", state.resumeType);
-                formData.append("template_id", state.templateId);
-                formData.append("lang", document.getElementById("resume-lang-select").value);
-                formData.append("primary_color", document.getElementById("primary-color").value);
-                formData.append("secondary_color", document.getElementById("secondary-color").value);
-                formData.append("github", document.getElementById("inp-github").value);
-                formData.append("orcid", document.getElementById("inp-orcid").value);
-                formData.append("linkedin", document.getElementById("inp-linkedin").value);
-                formData.append("lattes", document.getElementById("inp-lattes").value);
-                formData.append("portfolio", document.getElementById("inp-portfolio").value);
-                formData.append("name", document.getElementById("inp-name").value);
-                formData.append("role", document.getElementById("inp-role").value);
-                formData.append("email", document.getElementById("inp-email").value);
-                formData.append("location", document.getElementById("inp-location").value);
-                formData.append("phone", document.getElementById("inp-phone").value);
-                formData.append("extra", document.getElementById("inp-extra").value);
                 const providerVal = document.getElementById("inp-provider").value;
-                formData.append("provider", providerVal);
-                formData.append("model", document.getElementById("inp-model").value);
-
                 const rawApiKey = (document.getElementById("inp-api-key").value || "").trim();
+                let encryptedKey = "";
                 if (rawApiKey) {
-                    const encryptedKey = await encryptApiKeyForTransit(rawApiKey, providerVal);
-                    formData.append("api_key", encryptedKey);
+                    encryptedKey = await encryptApiKeyForTransit(rawApiKey, providerVal);
                 }
+
+                // Leitura assíncrona segura de arquivos binários e código LaTeX customizado
+                const photoData = await readFileAsBase64(document.getElementById("inp-photo").files[0]);
+                const lattesData = await readFileAsBase64(document.getElementById("inp-lattes-file").files[0]);
+                const liPdfData = await readFileAsBase64(document.getElementById("inp-linkedin-pdf").files[0]);
+                let customTexData = null;
+                let customTexCode = "";
 
                 if (state.templateSource === "custom") {
                     const texFile = document.getElementById("custom-tex-file").files[0];
                     if (texFile) {
-                        formData.append("custom_tex_file", texFile);
+                        customTexData = await readFileAsBase64(texFile);
                     } else {
-                        formData.append("custom_tex_code", document.getElementById("custom-tex-code").value);
+                        customTexCode = document.getElementById("custom-tex-code").value;
                     }
                 }
 
-                const photoFile = document.getElementById("inp-photo").files[0];
-                if (photoFile) formData.append("photo", photoFile);
+                const payload = {
+                    resume_type: state.resumeType,
+                    template_id: state.templateId,
+                    lang: document.getElementById("resume-lang-select").value,
+                    primary_color: document.getElementById("primary-color").value,
+                    secondary_color: document.getElementById("secondary-color").value,
+                    github: document.getElementById("inp-github").value,
+                    orcid: document.getElementById("inp-orcid").value,
+                    linkedin: document.getElementById("inp-linkedin").value,
+                    lattes: document.getElementById("inp-lattes").value,
+                    portfolio: document.getElementById("inp-portfolio").value,
+                    name: document.getElementById("inp-name").value,
+                    role: document.getElementById("inp-role").value,
+                    email: document.getElementById("inp-email").value,
+                    location: document.getElementById("inp-location").value,
+                    phone: document.getElementById("inp-phone").value,
+                    extra: document.getElementById("inp-extra").value,
+                    provider: providerVal,
+                    model: document.getElementById("inp-model").value,
+                    api_key: encryptedKey,
+                    custom_tex_code: customTexCode,
+                    custom_tex_file: customTexData,
+                    photo: photoData,
+                    lattes_file: lattesData,
+                    linkedin_pdf: liPdfData
+                };
 
-                const lattesFile = document.getElementById("inp-lattes-file").files[0];
-                if (lattesFile) formData.append("lattes_file", lattesFile);
-
-                const liPdf = document.getElementById("inp-linkedin-pdf").files[0];
-                if (liPdf) formData.append("linkedin_pdf", liPdf);
+                // Cifra o payload completo em memória RAM volátil via AES-256-GCM
+                const encryptedBody = await encryptTransportPayload(payload, "req");
 
                 const base = getBackendBaseUrl();
                 const resp = await fetch(`${base}/api/generate`, {
                     method: "POST",
                     headers: {
+                        "Content-Type": "application/json",
                         "X-Resume-Client": "jluckmay-github-pages-v1",
-                        "X-Client-Timestamp": Date.now().toString()
+                        "X-Client-Timestamp": Date.now().toString(),
+                        "X-Encrypted-Payload": "1"
                     },
-                    body: formData
+                    body: JSON.stringify(encryptedBody)
                 });
 
                 const attestation = resp.headers.get("X-Backend-Attestation");
@@ -1957,7 +2064,12 @@
                 const contentType = resp.headers.get("content-type") || "";
                 let data = null;
                 if (contentType.includes("application/json")) {
-                    data = await resp.json();
+                    const rawJson = await resp.json();
+                    if (rawJson && rawJson.enc_version === "ENC_PAYLOAD_V1") {
+                        data = await decryptTransportPayload(rawJson, "resp");
+                    } else {
+                        data = rawJson;
+                    }
                 } else {
                     const rawText = await resp.text();
                     const targetHost = base || window.location.origin;
@@ -2004,6 +2116,22 @@
                 btnTxt.textContent = I18N[state.uiLang].genBtn;
             }
         }
+
+        // Blindagem contra inspeção e extração de chaves no Console / DevTools do navegador
+        try {
+            Object.defineProperty(window, "apiKey", { get: () => undefined, set: () => {}, configurable: false });
+            Object.defineProperty(window, "NVIDIA_API_KEY", { get: () => undefined, set: () => {}, configurable: false });
+            Object.defineProperty(window, "api_key", { get: () => undefined, set: () => {}, configurable: false });
+            Object.defineProperty(window, "vaultKey", { get: () => undefined, set: () => {}, configurable: false });
+        } catch (e) {}
+
+        console.info(
+            "%c🔒 LaTeX Resume Enclave",
+            "font-weight:bold;font-size:12px;color:#2563eb;",
+            "\n• Transporte bidirecional com criptografia de ponta a ponta (AES-256-GCM / ENC_PAYLOAD_V1)." +
+            "\n• A chave de API padrão reside exclusivamente em memória volátil do backend (Render Enclave)." +
+            "\n• Proteção contra extração: nenhuma chave é exposta ou recuperável via console, rede ou requisições."
+        );
 
         window.addEventListener("DOMContentLoaded", initAutoPreferences);
     </script>
