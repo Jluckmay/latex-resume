@@ -88,8 +88,30 @@ def _scrub_network_environment() -> None:
             os.environ.pop(var, None)
 
 
+_SERVER_ENCLAVE_STORE: Dict[str, str] = {}
+
+
+def _get_server_key_for_provider(prov: str) -> str:
+    """Recupera chave do servidor armazenada no enclave em RAM, lendo do ambiente se disponível."""
+    global _SERVER_ENCLAVE_STORE
+    if prov in _SERVER_ENCLAVE_STORE and _SERVER_ENCLAVE_STORE[prov]:
+        return _SERVER_ENCLAVE_STORE[prov]
+
+    env_vars = _PROVIDER_ENV_KEYS.get(prov, _PROVIDER_ENV_KEYS["default"])
+    for ev in env_vars:
+        val = os.environ.get(ev, "").strip()
+        if val:
+            _SERVER_ENCLAVE_STORE[prov] = val
+            # Limpa de os.environ para que nenhum processo-filho herde as credenciais
+            os.environ.pop(ev, None)
+            return val
+    return ""
+
+
 def _scrub_all_provider_keys() -> None:
     """Higieniza o ambiente de execução removendo todas as variáveis de chave de provedor."""
+    for prov in _PROVIDER_ENV_KEYS:
+        _get_server_key_for_provider(prov)
     for var_list in _PROVIDER_ENV_KEYS.values():
         for var in var_list:
             if var in os.environ:
@@ -273,36 +295,29 @@ def dispatch_secure_llm_chat(
     # 1. Recupera e descriptografa a chave em memória volátil
     unwrapped_key = unwrap_secure_api_key(custom_key, provider=prov)
     if not unwrapped_key:
-        env_vars = _PROVIDER_ENV_KEYS.get(prov, _PROVIDER_ENV_KEYS["default"])
-        for ev in env_vars:
-            val = os.environ.get(ev, "").strip()
-            if val:
-                unwrapped_key = val
-                break
-
-    _scrub_all_provider_keys()
+        unwrapped_key = _get_server_key_for_provider(prov)
 
     if not unwrapped_key:
         if prov in ("default", "nvidia"):
             raise RuntimeError(
-                "Chave de API NVIDIA não configurada no servidor seguro. "
-                "Informe sua própria chave de API na interface ou CLI."
+                "Chave de API NVIDIA não configurada no servidor backend. "
+                "Informe sua própria chave de API (iniciando em 'nvapi-...') no campo 'Chave de API do Provedor'."
             )
         elif prov == "google":
             raise RuntimeError(
-                "Chave de API do Google Gemini não fornecida. Informe sua chave (AIza...) na interface ou CLI."
+                "Chave de API do Google Gemini não fornecida. Informe sua chave (AIza...) no campo 'Chave de API do Provedor'."
             )
         elif prov == "claude":
             raise RuntimeError(
-                "Chave de API da Anthropic Claude não fornecida. Informe sua chave (sk-ant-...) na interface ou CLI."
+                "Chave de API da Anthropic Claude não fornecida. Informe sua chave (sk-ant-...) no campo 'Chave de API do Provedor'."
             )
         elif prov == "openai":
             raise RuntimeError(
-                "Chave de API da OpenAI não fornecida. Informe sua chave (sk-...) na interface ou CLI."
+                "Chave de API da OpenAI não fornecida. Informe sua chave (sk-...) no campo 'Chave de API do Provedor'."
             )
         elif prov == "deepseek":
             raise RuntimeError(
-                "Chave de API da DeepSeek não fornecida. Informe sua chave (sk-...) na interface ou CLI."
+                "Chave de API da DeepSeek não fornecida. Informe sua chave (sk-...) no campo 'Chave de API do Provedor'."
             )
         else:
             raise RuntimeError(f"Chave de API não informada para o provedor '{prov}'.")

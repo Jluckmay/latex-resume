@@ -246,3 +246,4 @@ def test_apply_fallbacks_scrubs_orcid_from_awards():
     }
     LLMResumeGenerator._apply_fallbacks(cv, raw_data, "academico", "pt-br")
     assert cv["awards"] == []
+

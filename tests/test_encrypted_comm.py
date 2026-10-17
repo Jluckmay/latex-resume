@@ -238,3 +238,41 @@ def test_adversarial_key_probing_resistance(client):
             assert res3.status_code == 200
             decrypted = decrypt_payload_envelope(res3.get_json(), direction="resp")
             assert "nvapi-SECRET_TEST_KEY_NEVER_LEAK" not in json.dumps(decrypted)
+
+
+def test_server_runtime_error_message_is_informative_and_scrubbed(client):
+    """Valida se erros de execução retornam mensagens explicativas higienizadas em vez de 'RuntimeError' opaco."""
+    raw_payload = {
+        "name": "Teste Candidato",
+        "role": "Dev",
+        "provider": "default",
+    }
+    enc_payload = encrypt_payload_envelope(raw_payload, direction="req")
+
+    with patch("server.build_resume_pipeline", side_effect=RuntimeError(
+        "Chave de API NVIDIA não configurada no servidor backend. "
+        "Informe sua própria chave de API (iniciando em 'nvapi-...') no campo 'Chave de API do Provedor'."
+    )):
+        res = client.post(
+            "/api/generate",
+            headers={
+                "Origin": "https://jluckmay.github.io",
+                "Referer": "https://jluckmay.github.io/latex-resume",
+                "Content-Type": "application/json",
+            },
+            data=json.dumps(enc_payload),
+        )
+        assert res.status_code == 500
+        decrypted = decrypt_payload_envelope(res.get_json(), direction="resp")
+        assert decrypted["success"] is False
+        assert "Chave de API NVIDIA não configurada no servidor backend" in decrypted["error"]
+        # Garante que não é apenas a string genérica 'Falha no processamento: RuntimeError'
+        assert decrypted["error"] != "Falha no processamento: RuntimeError"
+
+
+def test_csp_explicit_font_and_style_directives():
+    """Valida se a política CSP no index.html declara explicitamente font-src e style-src para evitar bloqueio de fontes."""
+    html_text = (Path(__file__).parent.parent / "index.html").read_text(encoding="utf-8")
+    assert "font-src 'self' https://fonts.gstatic.com data: blob:;" in html_text
+    assert "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;" in html_text
+

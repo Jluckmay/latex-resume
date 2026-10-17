@@ -472,7 +472,9 @@ def api_generate() -> Response | tuple[Response, int]:
             # Destruição segura e imediata: sobrescreve com zeros e remove todos os arquivos efêmeros
             secure_wipe_and_remove_dir(build_path)
     except Exception as exc:
-        err_msg = scrub_sensitive_api_keys(f"Falha no processamento: {type(exc).__name__}")
+        raw_msg = str(exc).strip()
+        exc_msg = raw_msg if raw_msg else type(exc).__name__
+        err_msg = scrub_sensitive_api_keys(f"Falha no processamento: {exc_msg}")
         if is_encrypted_transport:
             enc_err = encrypt_payload_envelope({"error": err_msg, "success": False}, direction="resp")
             return jsonify(enc_err), 500
