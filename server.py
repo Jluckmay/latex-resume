@@ -306,8 +306,8 @@ def api_generate() -> Response | tuple[Response, int]:
             resume_type = payload_data.get("resume_type", "profissional")
             template_id = payload_data.get("template_id", "modern_pro")
             lang = payload_data.get("lang", "pt-br")
-            primary_color = payload_data.get("primary_color", "#0F4C81")
-            secondary_color = payload_data.get("secondary_color", "#1E293B")
+            primary_color = payload_data.get("primary_color", "#18181B")
+            secondary_color = payload_data.get("secondary_color", "#3F3F46")
 
             prov_info = PROVIDERS_CONFIG.get(provider, PROVIDERS_CONFIG["default"])
             model = payload_data.get("model") or prov_info.get("default_model") or DEFAULT_MODEL
@@ -367,8 +367,8 @@ def api_generate() -> Response | tuple[Response, int]:
             resume_type = form.get("resume_type", "profissional")
             template_id = form.get("template_id", "modern_pro")
             lang = form.get("lang", "pt-br")
-            primary_color = form.get("primary_color", "#0F4C81")
-            secondary_color = form.get("secondary_color", "#1E293B")
+            primary_color = form.get("primary_color", "#18181B")
+            secondary_color = form.get("secondary_color", "#3F3F46")
 
             prov_info = PROVIDERS_CONFIG.get(provider, PROVIDERS_CONFIG["default"])
             model = form.get("model") or prov_info.get("default_model") or DEFAULT_MODEL

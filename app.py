@@ -200,7 +200,7 @@ with col_left:
     st.subheader(txt["color_sec_title"])
     preset_map = {v[ui_lang]: k for k, v in COLOR_PRESETS.items()}
     preset_options = list(preset_map.keys()) + [txt["color_custom_opt"]]
-    default_preset_idx = 1 if resume_type == "academico" else 0
+    default_preset_idx = 0
 
     col_preset, col_c1, col_c2 = st.columns([1.6, 0.7, 0.7])
     with col_preset:
@@ -215,8 +215,8 @@ with col_left:
         default_p_col = COLOR_PRESETS[preset_key]["primary"]
         default_s_col = COLOR_PRESETS[preset_key]["secondary"]
     else:
-        default_p_col = "#0F4C81"
-        default_s_col = "#1E293B"
+        default_p_col = "#18181B"
+        default_s_col = "#3F3F46"
 
     with col_c1:
         primary_color = st.color_picker(txt["primary_color_label"], value=default_p_col)

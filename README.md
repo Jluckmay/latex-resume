@@ -59,7 +59,7 @@ Para executar o gerador e compilar os currículos em PDF, o ambiente deve atende
    - **Alternância Instantânea**: incluem seletor rápido entre **☀️ Modo Claro** e **🌙 Modo Escuro** e alternância instantânea entre **Português (`pt-BR`)** e **Inglês (`en-US`)**.
 2. **Preview Visual em Tempo Real dos Modelos LaTeX e Customização de Cores**:
    - **Preview Interativo**: exibe uma prévia visual fiel do layout do modelo LaTeX escolhido (`modern_pro`, `academic_classic`, `tech_sidebar`, `minimal_ats`, `overleaf_russell_ti`, `overleaf_awesome_cv`, `overleaf_single_page_keywords`, `google_standard`, `ai_ats_max`) que reflete instantaneamente as cores e o idioma selecionados antes mesmo de compilar o PDF.
-   - **Paletas e Seletor de Cores (`HEX`)**: escolha entre 6 paletas executivas/acadêmicas predefinidas (*Azul Oceano*, *Azul Marinho Acadêmico*, *Verde Esmeralda Tech*, *Índigo Real*, *Bordô Clássico*, *Grafite Minimalista*) ou defina manualmente a **Cor Principal** e a **Cor Secundária** aplicadas ao código LaTeX (`\definecolor`).
+   - **Paletas e Seletor de Cores (`HEX`)**: escolha entre 6 paletas executivas/acadêmicas predefinidas (*Grafite ATS (Padrão)*, *Azul Oceano*, *Azul Marinho Acadêmico*, *Verde Esmeralda Tech*, *Índigo Real*, *Bordô Clássico*) ou defina manualmente a **Cor Principal** e a **Cor Secundária** aplicadas ao código LaTeX (`\definecolor`).
 3. **Coleta Multi-Fonte Automática (incluindo Página de Portfólio)**:
    - **Portfólio Pessoal (`URL`)**: extrai título, descrição, seções (`h1`/`h2`/`h3`), bio e projetos diretamente da página web de portfólio do usuário e adiciona o link clicável **Portfólio** no cabeçalho do PDF.
    - **GitHub**: extrai bio, localização, linguagens principais e repositórios de maior destaque via API REST pública.
@@ -182,7 +182,7 @@ flowchart LR
   formData.append("github", "octocat");
   formData.append("portfolio", "https://jluckmay.github.io/");
 
-  const response = await fetch("https://latex-resume-backend.onrender.com/api/generate", {
+  const response = await fetch("https://<seu-servico-backend>.onrender.com/api/generate", {
     method: "POST",
     headers: {
       "X-Resume-Client": "jluckmay-github-pages-v1",
@@ -322,7 +322,7 @@ A aplicação web pode ser utilizada diretamente pela nuvem através do GitHub P
 #### 2. Conectando a Interface Web ao Backend no Render
 1. Abra a página web oficial no navegador.
 2. No painel de configurações (ícone de engrenagem ou rodapé), verifique o campo **URL do Backend (Render)**:
-   - Insira a URL do seu serviço no Render: `https://latex-resume-backend.onrender.com`
+   - O frontend conecta-se automaticamente ao servidor Render padrão através de um enclave protegido e ofuscado em runtime (ou você pode configurar a URL do seu próprio serviço no Render: `https://<seu-servico>.onrender.com` ou servidor local: `http://127.0.0.1:5000`).
 3. A interface verifica automaticamente a saúde do serviço (`/healthz`) e a disponibilidade do compilador LaTeX (`/api/status`), exibindo o selo verde com a versão do TeX Live.
 
 #### 3. Chaves de API Próprias Opcionais & Criptografia Efêmera (Zero-Storage)
@@ -417,7 +417,7 @@ To run the generator and compile resumes into PDF, your environment must meet th
    - **Instant Switching**: includes a one-click switcher between **☀️ Light Mode** and **🌙 Dark Mode**, plus instant toggling between **English (`en-US`)** and **Portuguese (`pt-BR`)**.
 2. **Real-Time Visual LaTeX Template Preview & Color Customization**:
    - **Interactive Template Preview**: renders a live visual preview of your chosen LaTeX template (`modern_pro`, `academic_classic`, `tech_sidebar`, `minimal_ats`, `overleaf_russell_ti`, `overleaf_awesome_cv`, `overleaf_single_page_keywords`, `google_standard`, `ai_ats_max`) that updates immediately as you tweak colors or switch languages prior to compiling the PDF.
-   - **Curated Palettes & `HEX` Color Pickers**: choose from 6 executive/academic presets (*Ocean Blue*, *Academic Navy*, *Emerald Tech*, *Royal Indigo*, *Classic Burgundy*, *Minimalist Charcoal*) or pick custom **Primary** and **Secondary** colors injected directly into LaTeX (`\definecolor`).
+   - **Curated Palettes & `HEX` Color Pickers**: choose from 6 executive/academic presets (*Minimalist Charcoal (ATS Default)*, *Ocean Blue*, *Academic Navy*, *Emerald Tech*, *Royal Indigo*, *Classic Burgundy*) or pick custom **Primary** and **Secondary** colors injected directly into LaTeX (`\definecolor`).
 3. **Automated Multi-Source Profile Extraction (including Portfolio Websites)**:
    - **Personal Portfolio (`URL`)**: scrapes title, meta description, section headings (`h1`/`h2`/`h3`), bio, and project highlights from your portfolio website and injects a clickable **Portfolio** link in the resume header.
    - **GitHub**: fetches bio, location, top programming languages, and top repositories via the public GitHub REST API.
@@ -540,7 +540,7 @@ flowchart LR
   formData.append("github", "octocat");
   formData.append("portfolio", "https://jluckmay.github.io/");
 
-  const response = await fetch("https://latex-resume-backend.onrender.com/api/generate", {
+  const response = await fetch("https://<your-backend-service>.onrender.com/api/generate", {
     method: "POST",
     headers: {
       "X-Resume-Client": "jluckmay-github-pages-v1",
@@ -680,7 +680,7 @@ The web application can be used directly in the cloud through GitHub Pages paire
 #### 2. Connecting the Web Interface to your Render Backend
 1. Open the official web app in any modern browser.
 2. In the settings panel (gear icon or footer), check the **Backend URL (Render)** field:
-   - Enter your Render backend service URL: `https://latex-resume-backend.onrender.com`
+   - The frontend automatically connects to the default Render server via an obfuscated, encrypted runtime enclave (or you can specify your own Render deployment: `https://<your-service>.onrender.com` or local server: `http://127.0.0.1:5000`).
 3. The web app automatically performs health probes (`/healthz` and `/api/status`), displaying a green badge indicating the live status and TeX Live compiler version.
 
 #### 3. Optional Custom API Keys & Ephemeral In-Memory Encryption (Zero-Storage Policy)

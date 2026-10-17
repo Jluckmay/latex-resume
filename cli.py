@@ -52,8 +52,8 @@ def parse_args() -> argparse.Namespace:
         default="",
         help="Caminho para arquivo .tex customizado / Path to custom .tex template file.",
     )
-    parser.add_argument("--primary-color", default="#0F4C81", help="Cor principal HEX / Primary HEX color (e.g. #047857).")
-    parser.add_argument("--secondary-color", default="#1E293B", help="Cor secundária HEX / Secondary HEX color (e.g. #064E3B).")
+    parser.add_argument("--primary-color", default="#18181B", help="Cor principal HEX / Primary HEX color (e.g. #18181B).")
+    parser.add_argument("--secondary-color", default="#3F3F46", help="Cor secundária HEX / Secondary HEX color (e.g. #3F3F46).")
     parser.add_argument("--name", default="", help="Nome completo / Full name.")
     parser.add_argument("--role", default="", help="Cargo ou título principal / Primary role or headline.")
     parser.add_argument("--email", default="", help="E-mail de contato / Contact e-mail.")

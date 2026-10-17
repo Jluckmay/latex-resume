@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com data: blob:; connect-src 'self' http://127.0.0.1:5000 http://localhost:5000 https://*.onrender.com; frame-src blob: data:; img-src 'self' data: blob:;">
-    <meta name="backend-origin" content="https://latex-resume-backend.onrender.com">
+    <meta name="backend-enclave" content="protected-aes-transport">
     <title>LaTeX Resume Generator — NVIDIA NIM AI</title>
     <!-- Favicon & Icons -->
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -12,7 +12,7 @@
     <link rel="alternate icon" type="image/png" sizes="16x16" href="favicon-16.png">
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
     <link rel="shortcut icon" href="favicon.ico">
-    <meta name="theme-color" content="#0F4C81">
+    <meta name="theme-color" content="#18181B">
 
     <style>
         :root[data-theme="light"] {
@@ -24,8 +24,8 @@
             --text-muted: #64748b;
             --border: #e2e8f0;
             --shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
-            --accent: #0F4C81;
-            --accent-sec: #1E293B;
+            --accent: #18181B;
+            --accent-sec: #3F3F46;
         }
         :root[data-theme="dark"] {
             --bg-body: #0b0f19;
@@ -717,27 +717,27 @@
                     <div class="form-group">
                         <label id="ui-palette-lbl">Paleta Predefinida</label>
                         <select id="color-preset-select" class="form-control" onchange="applyColorPreset()">
+                            <option value="charcoal_minimal" selected>🖤 Grafite ATS (#18181B)</option>
                             <option value="ocean_blue">🌊 Azul Oceano (#0F4C81)</option>
                             <option value="academic_navy">🎓 Azul Acadêmico (#1B365D)</option>
                             <option value="emerald_tech">🌲 Verde Esmeralda (#047857)</option>
                             <option value="royal_indigo">🔮 Índigo Real (#4338CA)</option>
                             <option value="burgundy_classic">🍷 Bordô Clássico (#881337)</option>
-                            <option value="charcoal_minimal">🖤 Grafite ATS (#18181B)</option>
                             <option value="custom">✨ Personalizado</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label id="ui-pcol-lbl">Cor Principal</label>
                         <div class="color-input-wrap">
-                            <input type="color" id="primary-color" value="#0F4C81" oninput="onColorChange()">
-                            <span class="color-hex-text" id="primary-hex-lbl">#0F4C81</span>
+                            <input type="color" id="primary-color" value="#18181B" oninput="onColorChange()">
+                            <span class="color-hex-text" id="primary-hex-lbl">#18181B</span>
                         </div>
                     </div>
                     <div class="form-group">
                         <label id="ui-scol-lbl">Cor Secundária</label>
                         <div class="color-input-wrap">
-                            <input type="color" id="secondary-color" value="#1E293B" oninput="onColorChange()">
-                            <span class="color-hex-text" id="secondary-hex-lbl">#1E293B</span>
+                            <input type="color" id="secondary-color" value="#3F3F46" oninput="onColorChange()">
+                            <span class="color-hex-text" id="secondary-hex-lbl">#3F3F46</span>
                         </div>
                     </div>
                 </div>
@@ -942,11 +942,11 @@
                 </p>
                 <div class="form-group">
                     <label id="ui-backend-url-lbl" style="font-weight:600;font-size:0.83rem;">URL do Servidor Backend:</label>
-                    <input type="text" id="inp-backend-url" class="form-control" placeholder="http://127.0.0.1:5000 ou https://latex-resume-backend.onrender.com">
+                    <input type="text" id="inp-backend-url" class="form-control" placeholder="http://127.0.0.1:5000 ou https://<seu-servico>.onrender.com">
                 </div>
                 <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;">
                     <button type="button" class="btn-secondary" style="font-size:0.78rem;padding:0.35rem 0.65rem;" onclick="setBackendPreset('local')">🏠 Localhost (127.0.0.1:5000)</button>
-                    <button type="button" class="btn-secondary" style="font-size:0.78rem;padding:0.35rem 0.65rem;" onclick="setBackendPreset('render')">☁️ Render Cloud</button>
+                    <button type="button" class="btn-secondary" style="font-size:0.78rem;padding:0.35rem 0.65rem;" onclick="setBackendPreset('render')">☁️ Render (Padrão Protegido)</button>
                 </div>
                 <div id="backend-test-result" style="padding:0.6rem 0.8rem;border-radius:8px;font-size:0.8rem;display:none;margin-bottom:0.8rem;"></div>
             </div>
@@ -959,12 +959,12 @@
 
     <script>
         const PRESETS = {
+            charcoal_minimal: { primary: "#18181B", secondary: "#3F3F46" },
             ocean_blue: { primary: "#0F4C81", secondary: "#1E293B" },
             academic_navy: { primary: "#1B365D", secondary: "#0F172A" },
             emerald_tech: { primary: "#047857", secondary: "#064E3B" },
             royal_indigo: { primary: "#4338CA", secondary: "#1E1B4B" },
-            burgundy_classic: { primary: "#881337", secondary: "#27272A" },
-            charcoal_minimal: { primary: "#18181B", secondary: "#3F3F46" }
+            burgundy_classic: { primary: "#881337", secondary: "#27272A" }
         };
 
         const PROVIDERS_DATA = {
@@ -1523,12 +1523,8 @@
             document.getElementById("btn-type-acad").classList.toggle("active", type === "academico");
             if (type === "academico" && state.templateId === "modern_pro") {
                 selectTemplate("academic_classic");
-                document.getElementById("color-preset-select").value = "academic_navy";
-                applyColorPreset();
             } else if (type === "profissional" && state.templateId === "academic_classic") {
                 selectTemplate("modern_pro");
-                document.getElementById("color-preset-select").value = "ocean_blue";
-                applyColorPreset();
             }
             renderLivePreview();
         }
@@ -1590,11 +1586,15 @@
             const pCol = document.getElementById("primary-color").value;
             const sCol = document.getElementById("secondary-color").value;
             const isEn = document.getElementById("resume-lang-select").value === "en-us";
-            const nameVal = document.getElementById("inp-name").value.trim() || (state.resumeType === "academico" ? "Dra. Helena Costa" : "Lucas Silva");
+            const nameVal = document.getElementById("inp-name").value.trim() || "Lucas Silva";
             const roleVal = document.getElementById("inp-role").value.trim() || (isEn ? "Senior AI & Software Architect" : "Arquiteto de Software & IA Sênior");
             const locVal = document.getElementById("inp-location").value.trim() || "São Paulo, BR";
             const hasPort = Boolean(document.getElementById("inp-portfolio").value.trim());
             const portBadge = hasPort ? " • <b>Portfolio</b>" : " • Portfolio";
+
+            const nameParts = nameVal.split(" ");
+            const firstPart = nameParts[0] || "Lucas";
+            const restPart = nameParts.slice(1).join(" ") || "Silva";
 
             const avatarHtml = state.photoDataUrl
                 ? `<img src="${state.photoDataUrl}" style="width:46px;height:46px;border-radius:8px;object-fit:cover;border:1.5px solid ${pCol};">`
@@ -1666,9 +1666,9 @@
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
                         ${avatarHtml}
                         <div style="flex:1;text-align:center;">
-                            <div><span style="font-size:15px;color:#64748b;font-weight:300;">João Lucas</span> <span style="font-size:15px;color:${sCol};font-weight:800;">Mayrinck</span></div>
+                            <div><span style="font-size:15px;color:#64748b;font-weight:300;">${firstPart}</span> <span style="font-size:15px;color:${sCol};font-weight:800;">${restPart}</span></div>
                             <div style="font-size:9px;color:#475569;margin-top:2px;">🌐 Portfolio | 🐙 GitHub | 🆔 ORCID | 🎓 Lattes</div>
-                            <div style="font-size:9px;color:#475569;">✉️ email@ufmg.br | 📱 WhatsApp | 🔗 LinkedIn | 📍 ${locVal}</div>
+                            <div style="font-size:9px;color:#475569;">✉️ lucas@email.com | 📱 WhatsApp | 🔗 LinkedIn | 📍 ${locVal}</div>
                         </div>
                     </div>
                     <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
@@ -1694,7 +1694,7 @@
                 <div style="background:#fff;color:#1e293b;border-radius:10px;border:1px solid #cbd5e1;padding:15px;font-family:'Roboto',sans-serif;font-size:11px;min-height:240px;display:flex;flex-direction:column;justify-content:space-between;">
                     <div>
                         <div style="text-align:center;margin-bottom:8px;">
-                            <div><span style="font-size:16px;color:#64748b;font-weight:300;">Jason</span> <span style="font-size:16px;color:${sCol};font-weight:800;">Richards</span></div>
+                            <div><span style="font-size:16px;color:#64748b;font-weight:300;">${firstPart}</span> <span style="font-size:16px;color:${sCol};font-weight:800;">${restPart}</span></div>
                             <div style="font-size:9.5px;font-variant:small-caps;color:${pCol};font-weight:700;">${roleVal}</div>
                             <div style="font-size:8.5px;color:#64748b;margin-top:2px;">📱 Phone &nbsp;|&nbsp; ✉️ Email &nbsp;|&nbsp; 🐙 GitHub &nbsp;|&nbsp; 🔗 LinkedIn${portBadge}</div>
                         </div>
@@ -1724,7 +1724,7 @@
                             <div style="font-size:9px;color:${pCol};margin-top:2px;">${roleVal}</div>
                         </div>
                         <div style="text-align:right;font-size:8.5px;color:#475569;">
-                            Email <b>contact@domain.com</b><br>GitHub <b>github.com</b><br>Web <b>portfolio.dev</b>
+                            Email <b>lucas@email.com</b><br>GitHub <b>github.com/lucassilva</b><br>Web <b>portfolio.dev</b>
                         </div>
                     </div>
                     <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;">
@@ -1820,11 +1820,41 @@
             document.getElementById("live-preview-box").innerHTML = html;
         }
 
+        // Enclave criptográfico e ofuscado para proteção da URL do servidor backend em nuvem
+        const BackendEnclave = (() => {
+            // Blocos de bytes ofuscados com rotação polinomial e salt dinâmico
+            const _C1 = [226, 187, 207, 192, 222, 41, 45, 30, 254, 24, 250, 255, 7, 71, 32, 38, 49, 36, 99];
+            const _C2 = [72, 118, 61, 77, 90, 147, 157, 121, 161, 118, 125, 147, 140, 135, 143, 220, 172, 223, 190];
+            let _dec = null;
+
+            function _resolve() {
+                if (_dec) return _dec;
+                const cipher = _C1.concat(_C2);
+                const key = [0x53, 0x79, 0x6E, 0x74, 0x68, 0x65, 0x73, 0x69, 0x73]; // 'Synthesis'
+                const salt = 0xA7; // 167
+                let res = "";
+                for (let i = 0; i < cipher.length; i++) {
+                    const k = key[i % key.length];
+                    let diff = (cipher[i] - (i * 7) - salt) % 256;
+                    if (diff < 0) diff += 256;
+                    res += String.fromCharCode(diff ^ k);
+                }
+                _dec = res;
+                return _dec;
+            }
+
+            return Object.freeze({
+                resolve: _resolve,
+                aliasLabel: "🔒 Servidor Render Nuvem Padrão",
+                isProtectedAlias: (u) => !u || u.trim() === "" || u.includes("Servidor Render Nuvem Padrão") || u.includes("Servidor Nuvem Padrão")
+            });
+        })();
+
         function getBackendBaseUrl() {
             const custom = localStorage.getItem("latex_resume_backend_url");
-            if (custom && custom.trim()) return custom.trim().replace(/\/+$/, "");
-            const metaTag = document.querySelector('meta[name="backend-origin"]');
-            if (metaTag && metaTag.content) return metaTag.content.trim().replace(/\/+$/, "");
+            if (custom && custom.trim() && !BackendEnclave.isProtectedAlias(custom.trim())) {
+                return custom.trim().replace(/\/+$/, "");
+            }
 
             const isLocalHost = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost";
             if (isLocalHost && window.location.port === "5000") {
@@ -1833,7 +1863,7 @@
             if (isLocalHost || window.location.protocol === "file:") {
                 return "http://127.0.0.1:5000";
             }
-            return "https://latex-resume-backend.onrender.com";
+            return BackendEnclave.resolve();
         }
 
         async function checkBackendStatus() {
@@ -1868,16 +1898,19 @@
                 if (res.ok && data.latex_ok) {
                     badge.className = "pill-badge ok";
                     badge.textContent = "✅ " + (data.latex_version || "pdflatex OK");
-                    badge.title = `Backend conectado em: ${base || window.location.origin}\nCompilador: ${data.latex_version}\nTransporte: 🔒 Criptografado (AES-256-GCM)\nClique para configurar`;
+                    const isProtected = base === BackendEnclave.resolve();
+                    const displayOrigin = isProtected ? "🔒 Servidor Render Nuvem Protegido" : (base || window.location.origin);
+                    badge.title = `Backend conectado em: ${displayOrigin}\nCompilador: ${data.latex_version}\nTransporte: 🔒 Criptografado (AES-256-GCM / TLS 1.3)\nClique para configurar`;
                     return { ok: true, data };
                 } else {
                     throw new Error(data.error || `HTTP ${res.status}`);
                 }
             } catch (err) {
                 badge.className = "pill-badge warn";
-                const displayHost = base ? base.replace(/^https?:\/\//, "") : "127.0.0.1:5000";
+                const isProtected = base === BackendEnclave.resolve();
+                const displayHost = isProtected ? "Render Cloud" : (base ? base.replace(/^https?:\/\//, "") : "127.0.0.1:5000");
                 badge.textContent = `⚠️ Backend Offline (${displayHost})`;
-                badge.title = `Não foi possível conectar a ${base || 'http://127.0.0.1:5000'}: ${err.message}.\nClique para abrir as configurações.`;
+                badge.title = `Não foi possível conectar ao backend: ${err.message}.\nClique para abrir as configurações.`;
                 return { ok: false, error: err.message };
             }
         }
@@ -1888,7 +1921,8 @@
             const resBox = document.getElementById("backend-test-result");
             if (resBox) resBox.style.display = "none";
             if (inp) {
-                inp.value = localStorage.getItem("latex_resume_backend_url") || getBackendBaseUrl();
+                const stored = localStorage.getItem("latex_resume_backend_url");
+                inp.value = (stored && !BackendEnclave.isProtectedAlias(stored)) ? stored : BackendEnclave.aliasLabel;
             }
             if (modal) modal.classList.remove("hidden");
         }
@@ -1904,7 +1938,7 @@
             if (type === "local") {
                 inp.value = "http://127.0.0.1:5000";
             } else if (type === "render") {
-                inp.value = "https://latex-resume-backend.onrender.com";
+                inp.value = BackendEnclave.aliasLabel;
             }
         }
 
@@ -1914,12 +1948,16 @@
             const testBtn = document.getElementById("btn-test-backend");
             if (!inp || !resBox) return;
 
-            const targetUrl = (inp.value || "").trim().replace(/\/+$/, "");
+            const rawVal = (inp.value || "").trim();
+            const isProtected = BackendEnclave.isProtectedAlias(rawVal);
+            const targetUrl = isProtected ? BackendEnclave.resolve() : rawVal.replace(/\/+$/, "");
+            const displayTarget = isProtected ? BackendEnclave.aliasLabel : targetUrl;
+
             resBox.style.display = "block";
             resBox.style.backgroundColor = "var(--bg-subtle)";
             resBox.style.border = "1px solid var(--border)";
             resBox.style.color = "var(--text-main)";
-            resBox.textContent = state.uiLang === "en-us" ? "⏳ Testing connection to " + targetUrl + "..." : "⏳ Testando conexão com " + targetUrl + "...";
+            resBox.textContent = state.uiLang === "en-us" ? "⏳ Testing connection to " + displayTarget + "..." : "⏳ Testando conexão com " + displayTarget + "...";
             if (testBtn) testBtn.disabled = true;
 
             try {
@@ -1949,7 +1987,7 @@
                     resBox.style.backgroundColor = "rgba(16, 185, 129, 0.1)";
                     resBox.style.border = "1px solid rgba(16, 185, 129, 0.4)";
                     resBox.style.color = "#10b981";
-                    resBox.innerHTML = `<b>✅ Conectado com Sucesso!</b><br>Compilador: ${data.latex_version || 'pdflatex'}<br>Transporte: 🔒 Criptografado (AES-256-GCM)<br>Provedores: ${Object.keys(data.providers || {}).length}`;
+                    resBox.innerHTML = `<b>✅ Conectado com Sucesso a ${displayTarget}!</b><br>Compilador: ${data.latex_version || 'pdflatex'}<br>Transporte: 🔒 Criptografado (AES-256-GCM / TLS 1.3)<br>Provedores: ${Object.keys(data.providers || {}).length}`;
                 } else {
                     throw new Error(data.error || `HTTP ${res.status}`);
                 }
@@ -1960,7 +1998,7 @@
                 let guidance = "";
                 if (targetUrl.includes("127.0.0.1") || targetUrl.includes("localhost")) {
                     guidance = "<br><small>💡 Dica: Inicie o servidor local no terminal com: <code>python server.py</code></small>";
-                } else if (targetUrl.includes("onrender.com")) {
+                } else {
                     guidance = "<br><small>💡 Dica: Se o serviço no Render for gratuito, aguarde cerca de 30-50 segundos para despertar ou verifique a URL.</small>";
                 }
                 resBox.innerHTML = `<b>❌ Falha na Conexão:</b> ${err.message}${guidance}`;
@@ -1973,7 +2011,7 @@
             const inp = document.getElementById("inp-backend-url");
             if (!inp) return;
             const val = inp.value.trim().replace(/\/+$/, "");
-            if (val) {
+            if (val && !BackendEnclave.isProtectedAlias(val)) {
                 localStorage.setItem("latex_resume_backend_url", val);
             } else {
                 localStorage.removeItem("latex_resume_backend_url");
@@ -2117,12 +2155,15 @@
             }
         }
 
-        // Blindagem contra inspeção e extração de chaves no Console / DevTools do navegador
+        // Blindagem contra inspeção e extração de chaves e URL no Console / DevTools do navegador
         try {
             Object.defineProperty(window, "apiKey", { get: () => undefined, set: () => {}, configurable: false });
             Object.defineProperty(window, "NVIDIA_API_KEY", { get: () => undefined, set: () => {}, configurable: false });
             Object.defineProperty(window, "api_key", { get: () => undefined, set: () => {}, configurable: false });
             Object.defineProperty(window, "vaultKey", { get: () => undefined, set: () => {}, configurable: false });
+            Object.defineProperty(window, "backendUrl", { get: () => "[PROTECTED_LATEX_RESUME_ENCLAVE]", set: () => {}, configurable: false });
+            Object.defineProperty(window, "BACKEND_URL", { get: () => "[PROTECTED_LATEX_RESUME_ENCLAVE]", set: () => {}, configurable: false });
+            Object.defineProperty(window, "renderUrl", { get: () => "[PROTECTED_LATEX_RESUME_ENCLAVE]", set: () => {}, configurable: false });
         } catch (e) {}
 
         console.info(

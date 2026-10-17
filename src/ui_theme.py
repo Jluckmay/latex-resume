@@ -8,6 +8,12 @@ import re
 from typing import Any, Dict, Tuple
 
 COLOR_PRESETS: Dict[str, Dict[str, str]] = {
+    "charcoal_minimal": {
+        "pt-br": "🖤 Grafite ATS (#18181B)",
+        "en-us": "🖤 Minimalist Charcoal (ATS)",
+        "primary": "#18181B",
+        "secondary": "#3F3F46",
+    },
     "ocean_blue": {
         "pt-br": "🌊 Azul Oceano (Padrão Executivo)",
         "en-us": "🌊 Ocean Blue (Executive Default)",
@@ -33,16 +39,10 @@ COLOR_PRESETS: Dict[str, Dict[str, str]] = {
         "secondary": "#1E1B4B",
     },
     "burgundy_classic": {
-        "pt-br": "🍷 Борdô Clássico / Burgundy",
+        "pt-br": "🍷 Bordô Clássico / Burgundy",
         "en-us": "🍷 Classic Burgundy",
         "primary": "#881337",
         "secondary": "#27272A",
-    },
-    "charcoal_minimal": {
-        "pt-br": "🖤 Grafite Minimalista (ATS)",
-        "en-us": "🖤 Minimalist Charcoal (ATS)",
-        "primary": "#18181B",
-        "secondary": "#3F3F46",
     },
 }
 
@@ -108,7 +108,7 @@ def detect_default_theme(st_context_headers: Dict[str, str] | None = None) -> st
     return "light"
 
 
-def sanitize_hex_color(color: str, default: str = "0F4C81") -> str:
+def sanitize_hex_color(color: str, default: str = "18181B") -> str:
     """Retorna código HEX de 6 dígitos maiúsculo sem '#' para uso no pacote xcolor do LaTeX."""
     if not color:
         return default
@@ -120,14 +120,14 @@ def sanitize_hex_color(color: str, default: str = "0F4C81") -> str:
 
 def apply_custom_colors_and_portfolio_to_latex(
     latex_code: str,
-    primary_color: str = "#0F4C81",
-    secondary_color: str = "#1E293B",
+    primary_color: str = "#18181B",
+    secondary_color: str = "#3F3F46",
     portfolio_url: str = "",
     lang: str = "pt-br",
 ) -> str:
     """Aplica as cores customizadas pelo usuário e o link de Portfólio ao código LaTeX."""
-    p_hex = sanitize_hex_color(primary_color, "0F4C81")
-    s_hex = sanitize_hex_color(secondary_color, "1E293B")
+    p_hex = sanitize_hex_color(primary_color, "18181B")
+    s_hex = sanitize_hex_color(secondary_color, "3F3F46")
 
     out = latex_code
     # Substitui definições de cores nos modelos integrados
@@ -181,8 +181,8 @@ def apply_custom_colors_and_portfolio_to_latex(
 
 def render_template_preview_html(
     template_id: str,
-    primary_color: str = "#0F4C81",
-    secondary_color: str = "#1E293B",
+    primary_color: str = "#18181B",
+    secondary_color: str = "#3F3F46",
     lang: str = "pt-br",
     has_photo: bool = True,
 ) -> str:
@@ -242,7 +242,7 @@ def render_template_preview_html(
                     font-size:11px;line-height:1.35;min-height:255px;">
             <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1.5px solid {p_col};padding-bottom:8px;margin-bottom:8px;">
                 <div>
-                    <div style="font-weight:700;font-size:15px;color:{p_col};">Dra. Helena Costa</div>
+                    <div style="font-weight:700;font-size:15px;color:{p_col};">Lucas Silva</div>
                     <div style="font-style:italic;font-size:10.5px;color:{s_col};">Postdoctoral Researcher in Artificial Intelligence</div>
                     <div style="font-size:9px;color:#475569;margin-top:3px;">ORCID • Lattes CNPq • GitHub • Portfolio</div>
                 </div>
@@ -254,8 +254,8 @@ def render_template_preview_html(
             </div>
             <div style="font-weight:700;font-size:10px;letter-spacing:0.6px;color:{p_col};border-bottom:1px solid #cbd5e1;padding-bottom:2px;margin:8px 0 5px 0;">{lbl_pub}</div>
             <div style="font-size:9.5px;color:#334155;">
-                1. COSTA, H.; SILVA, L. <b>Token-Efficient Reasoning in LLMs</b>. <i>JAIR</i>, 2025. <span style="color:{p_col};">DOI:10.1000/jair</span><br>
-                2. COSTA, H. <b>Graph Neural Networks in Bioinformatics</b>. <i>Nature Mach. Intell.</i>, 2024.
+                1. SILVA, L.; COSTA, H. <b>Token-Efficient Reasoning in LLMs</b>. <i>JAIR</i>, 2025. <span style="color:{p_col};">DOI:10.1000/jair</span><br>
+                2. SILVA, L. <b>Graph Neural Networks in Bioinformatics</b>. <i>Nature Mach. Intell.</i>, 2024.
             </div>
         </div>
         """
@@ -288,9 +288,9 @@ def render_template_preview_html(
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
                 {photo_circle}
                 <div style="flex:1;text-align:center;">
-                    <div><span style="font-size:15px;color:#64748b;font-weight:300;">João Lucas</span> <span style="font-size:15px;color:{s_col};font-weight:800;">Mayrinck</span></div>
+                    <div><span style="font-size:15px;color:#64748b;font-weight:300;">Lucas</span> <span style="font-size:15px;color:{s_col};font-weight:800;">Silva</span></div>
                     <div style="font-size:9px;color:#475569;margin-top:2px;">🌐 Portfolio | 🐙 GitHub | 🆔 ORCID | 🎓 Lattes</div>
-                    <div style="font-size:9px;color:#475569;">✉️ email@ufmg.br | 📱 WhatsApp | 🔗 LinkedIn</div>
+                    <div style="font-size:9px;color:#475569;">✉️ lucas@email.com | 📱 WhatsApp | 🔗 LinkedIn</div>
                 </div>
             </div>
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
@@ -320,7 +320,7 @@ def render_template_preview_html(
                     font-size:11px;line-height:1.35;min-height:255px;display:flex;flex-direction:column;justify-content:space-between;">
             <div>
                 <div style="text-align:center;margin-bottom:8px;">
-                    <div><span style="font-size:16px;color:#64748b;font-weight:300;">Jason</span> <span style="font-size:16px;color:{s_col};font-weight:800;">Richards</span></div>
+                    <div><span style="font-size:16px;color:#64748b;font-weight:300;">Lucas</span> <span style="font-size:16px;color:{s_col};font-weight:800;">Silva</span></div>
                     <div style="font-size:9.5px;font-variant:small-caps;color:{p_col};font-weight:700;">{role_txt}</div>
                     <div style="font-size:8.5px;color:#64748b;margin-top:2px;">📱 Phone &nbsp;|&nbsp; ✉️ Email &nbsp;|&nbsp; 🐙 GitHub &nbsp;|&nbsp; 🔗 LinkedIn &nbsp;|&nbsp; 🌐 Portfolio</div>
                 </div>
@@ -338,7 +338,7 @@ def render_template_preview_html(
                 </div>
             </div>
             <div style="display:flex;justify-content:space-between;font-size:8px;color:#94a3b8;border-top:1px solid #f1f5f9;padding-top:4px;margin-top:6px;">
-                <span>2026</span><span>Jason Richards · Résumé</span><span>1</span>
+                <span>2026</span><span>Lucas Silva · Résumé</span><span>1</span>
             </div>
         </div>
         """
@@ -350,11 +350,11 @@ def render_template_preview_html(
                     font-size:10.5px;line-height:1.3;min-height:255px;">
             <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #cbd5e1;padding-bottom:6px;margin-bottom:6px;">
                 <div>
-                    <div style="font-size:14px;font-weight:900;color:{s_col};line-height:1;">JOHN <span style="font-weight:300;color:{p_col};">DOE</span></div>
+                    <div style="font-size:14px;font-weight:900;color:{s_col};line-height:1;">LUCAS <span style="font-weight:300;color:{p_col};">SILVA</span></div>
                     <div style="font-size:9px;color:{s_col};margin-top:2px;">{role_txt}</div>
                 </div>
                 <div style="text-align:right;font-size:8.5px;color:#475569;">
-                    Email <b>john@doe.com</b><br>GitHub <b>github.com/johndoe</b><br>Web <b>portfolio.dev</b>
+                    Email <b>lucas@email.com</b><br>GitHub <b>github.com/lucassilva</b><br>Web <b>portfolio.dev</b>
                 </div>
             </div>
             <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;">
@@ -464,7 +464,7 @@ def render_template_preview_html(
     """
 
 
-def get_theme_css(theme_mode: str = "light", primary_color: str = "#0F4C81") -> str:
+def get_theme_css(theme_mode: str = "light", primary_color: str = "#18181B") -> str:
     """Gera folha de estilos CSS moderna e responsiva para Modo Claro (Light) ou Modo Escuro (Dark)."""
     is_light = theme_mode == "light"
     bg_main = "#F8FAFC" if is_light else "#0B0F19"

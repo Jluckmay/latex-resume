@@ -125,3 +125,97 @@ def test_index_html_encrypted_transport_and_devtools_defense():
     assert "nvapi-" not in html_text or "placeholder" in html_text
     assert "sk-" not in html_text or "placeholder" in html_text
     assert "AIza" not in html_text or "placeholder" in html_text
+
+    # Blindagem de propriedades de backend no console
+    assert 'Object.defineProperty(window, "backendUrl"' in html_text
+    assert 'Object.defineProperty(window, "BACKEND_URL"' in html_text
+    assert 'Object.defineProperty(window, "renderUrl"' in html_text
+
+
+def test_all_template_previews_use_lucas_silva():
+    """Valida se todos os previews de templates LaTeX utilizam exclusivamente o candidato de exemplo 'Lucas Silva'."""
+    from src.ui_theme import render_template_preview_html
+
+    templates = [
+        "modern_pro",
+        "academic_classic",
+        "tech_sidebar",
+        "minimal_ats",
+        "overleaf_russell_ti",
+        "overleaf_awesome_cv",
+        "overleaf_single_page_keywords",
+        "google_standard",
+        "ai_ats_max",
+    ]
+
+    for tpl in templates:
+        html = render_template_preview_html(tpl)
+        has_lucas_silva = (
+            "Lucas Silva" in html
+            or "LUCAS SILVA" in html
+            or ("Lucas" in html and "Silva" in html)
+            or ("LUCAS" in html and "SILVA" in html)
+        )
+        assert has_lucas_silva, f"Template {tpl} não contém 'Lucas Silva' no preview"
+        # Nomes legados não devem constar
+        assert "Helena Costa" not in html
+        assert "Jason Richards" not in html
+        assert "Mayrinck" not in html
+        assert "John Doe" not in html
+        assert "JOHN DOE" not in html
+
+
+def test_default_palette_is_charcoal_minimal():
+    """Valida se a paleta padrão do sistema é a 'charcoal_minimal' (Grafite ATS #18181B / #3F3F46)."""
+    from src.ui_theme import COLOR_PRESETS
+
+    first_key = list(COLOR_PRESETS.keys())[0]
+    assert first_key == "charcoal_minimal"
+    assert COLOR_PRESETS["charcoal_minimal"]["primary"] == "#18181B"
+    assert COLOR_PRESETS["charcoal_minimal"]["secondary"] == "#3F3F46"
+
+    html_text = (PROJECT_ROOT / "index.html").read_text(encoding="utf-8")
+    assert '<option value="charcoal_minimal" selected>' in html_text
+    assert 'value="#18181B"' in html_text
+    assert 'value="#3F3F46"' in html_text
+
+
+def test_backend_enclave_obfuscated_url():
+    """Valida se a URL do servidor backend em nuvem é ofuscada e não exposta em texto puro no projeto."""
+    import hashlib
+    import re
+
+    html_text = (PROJECT_ROOT / "index.html").read_text(encoding="utf-8")
+
+    # O enclave criptográfico deve estar presente no index.html
+    assert "const BackendEnclave = (() => {" in html_text
+    assert "aliasLabel: \"🔒 Servidor Render Nuvem Padrão\"" in html_text
+
+    # Validação do algoritmo de decifragem do enclave em Python
+    c1_match = re.search(r"_C1\s*=\s*\[([0-9,\s]+)\]", html_text)
+    c2_match = re.search(r"_C2\s*=\s*\[([0-9,\s]+)\]", html_text)
+    assert c1_match and c2_match
+
+    c1 = [int(x.strip()) for x in c1_match.group(1).split(",")]
+    c2 = [int(x.strip()) for x in c2_match.group(1).split(",")]
+    cipher = c1 + c2
+    key = [0x53, 0x79, 0x6E, 0x74, 0x68, 0x65, 0x73, 0x69, 0x73]
+    salt = 0xA7
+
+    dec = ""
+    for i, b in enumerate(cipher):
+        k = key[i % len(key)]
+        diff = (b - (i * 7) - salt) % 256
+        if diff < 0:
+            diff += 256
+        dec += chr(diff ^ k)
+
+    # A URL decifrada deve coincidir com o hash criptográfico SHA-256 esperado
+    expected_hash = "11f1f1b11b67d29a6c7595c5013db65ed6ed94fecb2f0f150fa06b2bcc2bdd3d"
+    assert hashlib.sha256(dec.encode("utf-8")).hexdigest() == expected_hash
+
+    # Garante que a URL decifrada ou seu host privado não estão em texto puro no index.html
+    sensitive_subdomain = dec.split("://")[1].split(".")[0]
+    assert sensitive_subdomain not in html_text
+    assert dec not in html_text
+
