@@ -1,23 +1,46 @@
+# --- Segredos & Credenciais ---
 nvidia-api-key.txt
 .vault.key
 *.key
 .env
 .env.*
+
+# --- Python, Caches & Ambientes Virtuais ---
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# --- Armazenamento Temporário (Zero-Storage) ---
 .cache/
 output/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
+tmp/
+*.tmp
+
+# --- Resíduos de Compilação LaTeX ---
 *.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
 *.log
 *.out
-*.fls
-*.fdb_latexmk
 *.synctex.gz
+*.toc
+*.nav
+*.snm
+*.vrb
+
+# --- Sistema Operacional & IDEs ---
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
-
-

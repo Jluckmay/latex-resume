@@ -32,6 +32,9 @@ jobs:
         run: |
           mkdir -p _site
           cp index.html _site/
+          cp -r assets _site/ 2>/dev/null || true
+          cp favicon* _site/ 2>/dev/null || true
+          cp apple-touch-icon.png _site/ 2>/dev/null || true
           touch _site/.nojekyll
 
       - name: Upload artifact

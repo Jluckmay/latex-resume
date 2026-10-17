@@ -87,6 +87,66 @@ Para executar o gerador e compilar os currículos em PDF, o ambiente deve atende
    - **Compilação Efêmera & Destruição Imediata (`finally`)**: a compilação LaTeX ocorre em diretório temporário efêmero isolado (`tempfile.mkdtemp`). Imediatamente após a conversão do PDF para base64/bytes em RAM, todos os arquivos temporários são sobrescritos com bytes nulos (`0x00`) e expurgados via `secure_wipe_and_remove_dir` no bloco `finally:`.
    - **Cache de Tokens Volátil (RAM-Only)**: o cache de tokens opera em memória volátil durante a execução do processo (`in_memory_only=True`), sem gravação de currículos ou prompts em arquivos de disco no servidor.
 
+### 📂 Estrutura de Arquivos e Diretórios
+
+O projeto segue padrões modulares da indústria, organizando código, testes, scripts, modelos e assets de forma limpa e intuitiva:
+
+```
+latex-resume/
+├── .github/
+│   └── workflows/
+│       ├── ci.yml              # CI automatizado com matriz de testes (Python 3.10, 3.11, 3.12)
+│       └── deploy-pages.yml    # Build e deploy contínuo no GitHub Pages (index.html + assets)
+├── assets/                     # Identidade visual, logotipos SVG/PNG e favicons do projeto
+│   ├── favicon.svg             # Vetor SVG de alta definição (512x512)
+│   ├── favicon.png             # Ícone PNG 512x512
+│   ├── favicon-192.png         # Variante PWA / Android (192x192)
+│   ├── favicon-32.png          # Ícone para guias desktop (32x32)
+│   ├── favicon-16.png          # Ícone compacto (16x16)
+│   ├── apple-touch-icon.png    # Ícone para iOS Safari / Apple Home Screen (180x180)
+│   ├── favicon.ico             # Ícone multi-resolução
+│   └── README.md               # Especificações técnicas de branding e tokens de cor
+├── examples/                   # Dados de exemplo e templates de referência
+│   ├── sample_lattes.xml       # Arquivo XML de teste padrão CNPq
+│   ├── sample_photo.png        # Foto neutra de perfil para testes
+│   ├── custom_template_example.tex # Exemplo de template .tex customizado
+│   ├── custom_template_example.pdf # PDF de referência compilado
+│   └── README.md               # Guia de utilização dos arquivos de exemplo
+├── scripts/                    # Scripts utilitários de manutenção e geração
+│   ├── generate_icons.py       # Gerador dos ícones e favicons oficiais
+│   ├── clean_artifacts.py      # Script de limpeza de resíduos temporários e caches
+│   └── README.md               # Documentação dos scripts utilitários
+├── src/                        # Pacote central da aplicação
+│   ├── _vault.py               # Enclave criptográfico em memória RAM (ENC_PAYLOAD_V1 / SECKEY_V1)
+│   ├── compiler.py             # Validação e compilação LaTeX segura com pdflatex
+│   ├── config.py               # Constantes, diretórios e configurações de provedores de IA
+│   ├── extractors.py           # Parsers multi-fonte (GitHub, ORCID, Lattes, LinkedIn, Portfólio)
+│   ├── i18n.py                 # Dicionários de internacionalização (pt-BR e en-US)
+│   ├── llm_client.py           # Cliente orquestrador multi-provedor (NVIDIA, Gemini, Claude, OpenAI, DeepSeek)
+│   ├── nvidia_client.py        # Adaptador de compatibilidade NVIDIA NIM
+│   ├── pipeline.py             # Pipeline completo de síntese e compilação
+│   ├── templates.py            # 9 modelos LaTeX integrados e suporte a templates customizados
+│   ├── token_plugins.py        # Plugins de economia de tokens (Caveman, TOON, ShortKey, Cache)
+│   ├── ui_theme.py             # Temas visuais e CSS responsivo para Streamlit
+│   └── README.md               # Documentação detalhada da arquitetura de módulos
+├── tests/                      # Suíte de testes automatizados com Pytest
+│   ├── conftest.py             # Configurações globais e fixtures compartilhadas do Pytest
+│   ├── test_encrypted_comm.py  # Testes de criptografia de ponta a ponta e blindagem contra extração de chaves
+│   ├── test_ui_assets.py       # Testes de integridade de ícones, favicons e responsividade
+│   └── test_zero_storage.py    # Testes de política estrita de Zero-Storage e destruição de memória
+├── app.py                      # Interface gráfica interativa em Streamlit
+├── server.py                   # Servidor backend de API (Flask / Gunicorn) para GitHub Pages e Render
+├── cli.py                      # Interface de linha de comando (CLI)
+├── index.html                  # Interface gráfica web nativa para GitHub Pages e servidor local
+├── pyproject.toml              # Metadados do projeto, dependências e configuração do Pytest
+├── requirements.txt            # Dependências Python para pip
+├── Dockerfile                  # Container Docker de produção com TeX Live e pdflatex
+├── render.yaml                 # Especificação de infraestrutura como código para o Render
+├── .gitignore                  # Regras estritas de exclusão de artefatos, chaves e caches
+├── .dockerignore              # Exclusões para build enxuto do container Docker
+└── README.md                   # Documentação completa em Português e Inglês
+```
+
 ### 🚀 Publicação no GitHub, GitHub Pages e Backend no Render
 
 O projeto foi arquitetado para separação segura entre Frontend Estático (GitHub Pages) e Backend de Compilação (Render):
@@ -384,6 +444,66 @@ To run the generator and compile resumes into PDF, your environment must meet th
    - **Zero Disk Retention**: the server never retains generated resumes (`.pdf`, `.tex`), uploaded profile photos, LinkedIn PDFs, or Lattes XMLs on disk. All documents exist strictly in volatile RAM during the active session.
    - **Guaranteed Destruction (`finally`)**: LaTeX compilation executes inside an isolated ephemeral temporary directory (`tempfile.mkdtemp`). As soon as binary assets are read into memory (base64 / bytes), all intermediate files are zero-fill shredded (`0x00`) and unlinked via `secure_wipe_and_remove_dir` in a guaranteed `finally:` block.
    - **Volatile Token Cache (RAM-Only)**: token metrics and caching run exclusively in volatile process memory (`in_memory_only=True`), never written to disk files on the server.
+
+### 📂 Project File & Directory Structure
+
+The repository adheres to clean software engineering practices with strict modular separation:
+
+```
+latex-resume/
+├── .github/
+│   └── workflows/
+│       ├── ci.yml              # Automated CI matrix test suite (Python 3.10, 3.11, 3.12)
+│       └── deploy-pages.yml    # Continuous build & deployment to GitHub Pages (index.html + assets)
+├── assets/                     # Official visual identity, SVG/PNG logos, and browser favicons
+│   ├── favicon.svg             # High-definition SVG vector logo (512x512)
+│   ├── favicon.png             # 512x512 PNG icon
+│   ├── favicon-192.png         # PWA / Android 192x192 variant
+│   ├── favicon-32.png          # Desktop browser tab icon (32x32)
+│   ├── favicon-16.png          # Compact tab icon (16x16)
+│   ├── apple-touch-icon.png    # iOS Safari / Apple Home Screen icon (180x180)
+│   ├── favicon.ico             # Multi-resolution ICO
+│   └── README.md               # Technical branding specifications & color tokens
+├── examples/                   # Sample profile data and reference templates
+│   ├── sample_lattes.xml       # Official CNPq-compliant test XML
+│   ├── sample_photo.png        # Neutral profile avatar for normalization testing
+│   ├── custom_template_example.tex # Custom .tex template demonstration
+│   ├── custom_template_example.pdf # Precompiled reference PDF
+│   └── README.md               # Guide for experimenting with sample assets
+├── scripts/                    # Maintenance & generation developer utilities
+│   ├── generate_icons.py       # Official icon & favicon generator
+│   ├── clean_artifacts.py      # Temporary build artifact and cache cleaner
+│   └── README.md               # Utility scripts documentation
+├── src/                        # Core application package
+│   ├── _vault.py               # Volatile RAM enclave (ENC_PAYLOAD_V1 / SECKEY_V1) & key scrubber
+│   ├── compiler.py             # Secure sandboxed LaTeX compilation with pdflatex
+│   ├── config.py               # Project constants, directories, and AI provider configurations
+│   ├── extractors.py           # Multi-source parsers (GitHub, ORCID, Lattes, LinkedIn, Portfolio)
+│   ├── i18n.py                 # Multi-language dictionary strings (pt-BR and en-US)
+│   ├── llm_client.py           # Multi-provider LLM coordinator (NVIDIA, Gemini, Claude, OpenAI, DeepSeek)
+│   ├── nvidia_client.py        # NVIDIA NIM backward-compatibility adapter
+│   ├── pipeline.py             # Full end-to-end synthesis and compilation pipeline
+│   ├── templates.py            # 9 built-in LaTeX templates and custom template processor
+│   ├── token_plugins.py        # Token-saving plugins (Caveman, TOON, ShortKey, Cache)
+│   ├── ui_theme.py             # Dynamic themes, responsive CSS, and color palettes for Streamlit
+│   └── README.md               # Comprehensive module architecture documentation
+├── tests/                      # Automated test suite (Pytest)
+│   ├── conftest.py             # Global Pytest configuration and shared test fixtures
+│   ├── test_encrypted_comm.py  # End-to-end encryption & anti-key-leakage verification tests
+│   ├── test_ui_assets.py       # Icon integrity, favicon endpoints, and responsive CSS tests
+│   └── test_zero_storage.py    # Strict Zero-Storage & memory destruction tests
+├── app.py                      # Interactive visual Streamlit application
+├── server.py                   # Production API backend server (Flask / Gunicorn) for GitHub Pages & Render
+├── cli.py                      # Command-line interface (CLI)
+├── index.html                  # Standalone client web application for GitHub Pages & local server
+├── pyproject.toml              # Modern project metadata, dependencies & Pytest configuration
+├── requirements.txt            # Pip dependency declarations
+├── Dockerfile                  # Production Docker container with full TeX Live & pdflatex
+├── render.yaml                 # Infrastructure-as-code specification for Render
+├── .gitignore                  # Strict exclusion rules for build artifacts, secrets, and caches
+├── .dockerignore              # Lean build context exclusions for Docker
+└── README.md                   # Comprehensive bilingual documentation
+```
 
 ### 🚀 Publishing to GitHub, GitHub Pages & Render Backend
 

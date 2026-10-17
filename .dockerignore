@@ -13,6 +13,10 @@ __pycache__
 *.pyd
 examples
 tests
+scripts
+.pytest_cache
 .vscode
 .idea
-
+dist
+build
+*.egg-info
