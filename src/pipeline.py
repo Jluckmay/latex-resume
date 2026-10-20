@@ -188,14 +188,42 @@ def build_resume_pipeline(
         )
     else:
         generator = LLMResumeGenerator(provider=chosen_provider, api_key=api_key, model=model, use_cache=use_cache)
-        latex_code, structured_cv, metrics = generator.generate_latex_resume(
-            raw_profile_data=raw_profile_data,
-            resume_type=resume_type,
-            template_id=template_id,
-            custom_latex_template=custom_latex_template,
-            photo_filename=photo_filename,
-            lang=lang,
-        )
+        try:
+            latex_code, structured_cv, metrics = generator.generate_latex_resume(
+                raw_profile_data=raw_profile_data,
+                resume_type=resume_type,
+                template_id=template_id,
+                custom_latex_template=custom_latex_template,
+                photo_filename=photo_filename,
+                lang=lang,
+            )
+        except Exception as exc:
+            # Se for falta de chave própria para provedores que exigem chave (Google, Claude, OpenAI, DeepSeek), propaga o erro explicativo
+            if chosen_provider in ("google", "claude", "openai", "deepseek") and not api_key:
+                raise
+            # Caso contrário (limite de taxa da API, instabilidade de rede ou falha transitória do modelo),
+            # realiza fallback resiliente imediato para o gerador direto determinístico.
+            # Garante que o usuário receba seu currículo compilado sem erros HTTP 500 mesmo em chamadas repetidas.
+            latex_code, structured_cv = generate_direct_latex_resume(
+                raw_profile_data=raw_profile_data,
+                resume_type=resume_type,
+                template_id=template_id,
+                custom_latex_template=custom_latex_template,
+                photo_filename=photo_filename,
+                lang=lang,
+            )
+            metrics = TokenMetrics(
+                model_used=f"resilient_fallback ({type(exc).__name__})",
+                cache_hit=False,
+                prompt_tokens_actual=0,
+                completion_tokens_actual=0,
+                reasoning_tokens_actual=0,
+                total_tokens_actual=0,
+                raw_input_tokens_est=0,
+                compressed_input_tokens_est=0,
+                estimated_tokens_saved=3800,
+                active_plugins=["ResilientFallbackEngine (0-token deterministic fallback)"],
+            )
 
     # 4. Aplica customização de cores do usuário e link clicável de Portfólio ao LaTeX
     latex_code = apply_custom_colors_and_portfolio_to_latex(

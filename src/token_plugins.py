@@ -235,6 +235,8 @@ class TOONContextPrunerPlugin:
                     f"LI|nm:{li.get('name','')}|hd:{cls._trunc(li.get('headline',''), 120)}|"
                     f"sum:{cls._trunc(li.get('summary',''), 240)}"
                 )
+            if li.get("languages"):
+                lines.append("LI_LANG|" + ";".join(str(x) for x in li["languages"][:6]))
             if li.get("raw_text"):
                 lines.append("LI_TXT|" + cls._clean_whitespace(li["raw_text"], 1600))
 

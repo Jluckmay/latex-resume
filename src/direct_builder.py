@@ -17,6 +17,7 @@ import re
 from typing import Any, Dict, List, Tuple
 
 from .i18n import normalize_lang
+from .extractors import extract_languages_from_text
 from .templates import BUILTIN_TEMPLATES, render_builtin_template, sanitize_awards
 
 
@@ -292,8 +293,52 @@ def build_structured_cv_deterministically(
         })
 
     # 10. Idiomas (Languages)
-    raw_languages = lattes.get("languages") or li.get("languages") or []
-    languages = [str(lg).strip() for lg in raw_languages if str(lg).strip()]
+    raw_languages = (
+        lattes.get("languages")
+        or li.get("languages")
+        or raw_profile_data.get("languages")
+        or user_meta.get("languages")
+        or []
+    )
+    if not raw_languages and extra_notes:
+        raw_languages = extract_languages_from_text(extra_notes)
+
+    if is_en:
+        trans_en = {
+            "inglês": "English", "ingles": "English",
+            "português": "Portuguese", "portugues": "Portuguese",
+            "espanhol": "Spanish",
+            "francês": "French", "frances": "French",
+            "alemão": "German", "alemao": "German",
+            "italiano": "Italian",
+            "japonês": "Japanese", "japones": "Japanese",
+            "chinês": "Chinese", "chines": "Chinese", "mandarim": "Mandarin",
+            "russo": "Russian",
+        }
+        prof_trans_en = {
+            "avançado": "Advanced", "avancado": "Advanced", "bom": "Advanced",
+            "fluente": "Fluent", "fluente ou nativo": "Fluent / Native",
+            "nativo": "Native", "nativo ou bilíngue": "Native / Bilingual", "nativo ou bilingue": "Native / Bilingual",
+            "intermediário": "Intermediate", "intermediario": "Intermediate", "regular": "Intermediate", "razoável": "Intermediate", "razoavel": "Intermediate",
+            "básico": "Basic", "basico": "Basic", "pouco": "Basic",
+        }
+        translated_langs: List[str] = []
+        for lg in raw_languages:
+            lg_str = str(lg).strip()
+            if not lg_str:
+                continue
+            m = re.match(r"^([A-Za-zÀ-ÿ]+)(?:\s*\((.*?)\))?$", lg_str)
+            if m:
+                p_name = m.group(1).strip()
+                p_prof = m.group(2).strip() if m.group(2) else ""
+                en_name = trans_en.get(p_name.lower(), p_name)
+                en_prof = prof_trans_en.get(p_prof.lower(), p_prof)
+                translated_langs.append(f"{en_name} ({en_prof})" if en_prof else en_name)
+            else:
+                translated_langs.append(lg_str)
+        languages = translated_langs
+    else:
+        languages = [str(lg).strip() for lg in raw_languages if str(lg).strip()]
 
     # 11. Prêmios, Títulos e Certificações (Awards)
     raw_awards = lattes.get("awards") or li.get("certifications") or []

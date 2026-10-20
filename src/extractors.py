@@ -6,6 +6,7 @@ import io
 import ipaddress
 import re
 import socket
+import unicodedata
 import urllib.parse
 import xml.etree.ElementTree as ET
 import zipfile
@@ -284,6 +285,115 @@ def _parse_orcid_affiliation(item: Dict[str, Any]) -> Dict[str, str]:
     return {"role": role, "org": org, "start": start_yr, "end": end_yr}
 
 
+def _strip_accents(s: str) -> str:
+    """Remove acentos para comparação robusta de strings insensível a diacríticos."""
+    return "".join(c for c in unicodedata.normalize("NFKD", s) if unicodedata.category(c) != "Mn").lower()
+
+
+_KNOWN_LANGS_CANONICAL: Dict[str, str] = {
+    "ingles": "Inglês",
+    "english": "English",
+    "portugues": "Português",
+    "portuguese": "Portuguese",
+    "espanhol": "Espanhol",
+    "spanish": "Spanish",
+    "frances": "Francês",
+    "french": "French",
+    "alemao": "Alemão",
+    "german": "German",
+    "italiano": "Italiano",
+    "italian": "Italian",
+    "japones": "Japonês",
+    "japanese": "Japanese",
+    "chines": "Chinês",
+    "chinese": "Chinese",
+    "mandarim": "Mandarim",
+    "mandarin": "Mandarin",
+    "russo": "Russo",
+    "russian": "Russian",
+    "arabe": "Árabe",
+    "arabic": "Arabic",
+    "coreano": "Coreano",
+    "korean": "Korean",
+    "holandes": "Holandês",
+    "dutch": "Dutch",
+    "sueco": "Sueco",
+    "swedish": "Swedish",
+    "polones": "Polonês",
+    "polish": "Polish",
+    "hebraico": "Hebraico",
+    "hebrew": "Hebrew",
+    "grego": "Grego",
+    "greek": "Greek",
+    "latim": "Latim",
+    "latin": "Latin",
+}
+
+
+def extract_languages_from_text(text: str) -> List[str]:
+    """Extrai idiomas estruturados com proficiência de textos livres (LinkedIn PDF, Lattes texto/PDF, anotações)."""
+    if not text:
+        return []
+
+    results: List[str] = []
+    candidate_lines: List[str] = []
+
+    # 1. Seção estruturada de Idiomas / Languages
+    sec_match = re.search(
+        r"(?:^|\n)\s*(?:Idiomas|Languages|Línguas|Lingua|Idioma)\s*[:\n](.+?)(?=(?:\n\s*(?:Formação|Educação|Education|Atuação|Experiência|Experience|Projetos|Projects|Publicações|Publications|Produção|Prêmios|Premios|Awards|Certificados|Certifications|Competências|Skills)\b|\Z))",
+        text,
+        re.IGNORECASE | re.DOTALL,
+    )
+    if sec_match:
+        sec_text = sec_match.group(1).strip()
+        candidate_lines.extend([l.strip() for l in sec_text.splitlines() if l.strip()])
+
+    # 2. Linha inline 'Idiomas: Inglês (Fluente), Espanhol...'
+    for m in re.finditer(r"(?:Idiomas|Languages|Línguas)\s*:\s*([^\n\r]+)", text, re.IGNORECASE):
+        items = re.split(r"[,;]\s*", m.group(1))
+        candidate_lines.extend(items)
+
+    for line in candidate_lines:
+        line_clean = re.sub(r"^[•\-\*,]\s*", "", line).strip()
+        if not line_clean:
+            continue
+        first_token = line_clean.split()[0].rstrip(":,;()")
+        first_norm = _strip_accents(first_token)
+        if first_norm in _KNOWN_LANGS_CANONICAL:
+            lang_label = _KNOWN_LANGS_CANONICAL[first_norm]
+            low = line_clean.lower()
+            if "compreende" in low:
+                prof = (
+                    "Avançado"
+                    if ("bem" in low or "fluente" in low)
+                    else ("Intermediário" if "razoavel" in low else "Básico")
+                )
+                results.append(f"{lang_label} ({prof})")
+            elif "(" in line_clean and ")" in line_clean:
+                paren_part = line_clean[line_clean.find("(") : line_clean.rfind(")") + 1]
+                results.append(f"{lang_label} {paren_part}")
+            elif " - " in line_clean or ": " in line_clean:
+                sep = " - " if " - " in line_clean else ": "
+                parts = line_clean.split(sep, 1)
+                results.append(f"{lang_label} ({parts[1].strip()})")
+            else:
+                rem = line_clean[len(first_token) :].strip()
+                if rem:
+                    results.append(f"{lang_label} ({rem})")
+                else:
+                    results.append(lang_label)
+
+    # Deduplica preservando ordem de aparição
+    seen: set[str] = set()
+    dedup: List[str] = []
+    for r in results:
+        key = _strip_accents(r.split()[0])
+        if key not in seen:
+            seen.add(key)
+            dedup.append(r)
+    return dedup
+
+
 def extract_lattes(
     lattes_url: str = "",
     file_bytes: bytes | None = None,
@@ -344,6 +454,9 @@ def extract_lattes(
             txt = soup.get_text(" ", strip=True)
             if len(txt) > 200:
                 result["raw_text"] = txt[:4000]
+
+    if not result["languages"] and result.get("raw_text"):
+        result["languages"] = extract_languages_from_text(result["raw_text"])
 
     return result
 
@@ -434,15 +547,50 @@ def _parse_lattes_xml(xml_bytes: bytes, out: Dict[str, Any]) -> None:
                         }
                     )
 
-        # Idiomas
+        # Idiomas (suporte completo a IDIOMA e DESCRICAO-DO-IDIOMA do CNPq)
         idiomas = dados_gerais.find("IDIOMAS")
         if idiomas is not None:
+            prof_map = {
+                "bom": "Avançado",
+                "muito_bom": "Fluente",
+                "excelente": "Fluente",
+                "fluente": "Fluente",
+                "regular": "Intermediário",
+                "razoavel": "Intermediário",
+                "pouco": "Básico",
+                "nenhum": "",
+            }
             for idm in idiomas.findall("IDIOMA"):
-                desc = idm.attrib.get("DESCRICAO-DO-IDIOMA", "")
-                leit = idm.attrib.get("PROFICIENCIA-DE-LEITURA", "")
-                fala = idm.attrib.get("PROFICIENCIA-DE-FALA", "")
-                if desc:
-                    out["languages"].append(f"{desc} (Leitura: {leit}, Fala: {fala})")
+                raw_name = (
+                    idm.attrib.get("DESCRICAO-DO-IDIOMA", "").strip()
+                    or idm.attrib.get("IDIOMA", "").strip()
+                    or idm.attrib.get("NOME-DO-IDIOMA", "").strip()
+                )
+                if not raw_name:
+                    continue
+                norm_key = _strip_accents(raw_name)
+                if norm_key == "outro":
+                    raw_name = idm.attrib.get("DESCRICAO-DO-IDIOMA", "").strip() or "Outro"
+                    norm_key = _strip_accents(raw_name)
+                display_name = _KNOWN_LANGS_CANONICAL.get(norm_key, raw_name)
+
+                leit = prof_map.get(idm.attrib.get("PROFICIENCIA-DE-LEITURA", "").strip().lower(), "")
+                fala = prof_map.get(idm.attrib.get("PROFICIENCIA-DE-FALA", "").strip().lower(), "")
+                comp = prof_map.get(idm.attrib.get("PROFICIENCIA-DE-COMPREENSAO", "").strip().lower(), "")
+
+                if leit and fala and leit == fala:
+                    prof_str = leit
+                elif fala:
+                    prof_str = fala
+                elif leit:
+                    prof_str = f"Leitura: {leit}"
+                elif comp:
+                    prof_str = comp
+                else:
+                    prof_str = ""
+
+                entry = f"{display_name} ({prof_str})" if prof_str else display_name
+                out["languages"].append(entry)
 
         # Prêmios e títulos
         premios = dados_gerais.find("PREMIOS-TITULOS")
@@ -497,7 +645,7 @@ def extract_linkedin(
     pasted_text: str = "",
 ) -> Dict[str, Any]:
     """Extrai dados do LinkedIn a partir de URL, PDF exportado ('Salvar como PDF') ou texto."""
-    result: Dict[str, Any] = {"url": linkedin_url.strip()}
+    result: Dict[str, Any] = {"url": linkedin_url.strip(), "languages": []}
 
     if file_bytes:
         if len(file_bytes) > _MAX_UPLOAD_FILE_BYTES:
@@ -523,6 +671,9 @@ def extract_linkedin(
                 result["headline"] = title_meta["content"]
             if desc_meta and desc_meta.get("content"):
                 result["summary"] = desc_meta["content"]
+
+    if not result.get("languages") and result.get("raw_text"):
+        result["languages"] = extract_languages_from_text(result["raw_text"])
 
     return result
 

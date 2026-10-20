@@ -480,11 +480,15 @@ def api_generate() -> Response | tuple[Response, int]:
             secure_wipe_and_remove_dir(build_path)
     except Exception as exc:
         raw_msg = str(exc).strip()
-        if raw_msg:
+        if raw_msg and raw_msg != "RuntimeError":
             exc_msg = raw_msg
         else:
-            exc_msg = f"{type(exc).__name__}: Erro inesperado durante o processamento do pipeline. Verifique as configurações de entrada ou selecione 'Sem IA / Offline'."
-        err_msg = scrub_sensitive_api_keys(f"Falha no processamento: {exc_msg}")
+            exc_msg = (
+                f"Erro durante o processamento do currículo ({type(exc).__name__}). "
+                "Verifique as informações de entrada ou selecione 'Sem IA / Offline (0 Tokens)' para geração direta garantida."
+            )
+        prefix = "" if exc_msg.startswith("Falha no processamento") else "Falha no processamento: "
+        err_msg = scrub_sensitive_api_keys(f"{prefix}{exc_msg}")
         if is_encrypted_transport:
             enc_err = encrypt_payload_envelope({"error": err_msg, "success": False}, direction="resp")
             return jsonify(enc_err), 500

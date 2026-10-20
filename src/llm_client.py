@@ -395,6 +395,15 @@ class LLMResumeGenerator:
             if isinstance(s.get("items"), list):
                 s["items"] = ", ".join(str(i) for i in s["items"] if str(i).strip())
         cv["languages"] = [str(l).strip() for l in (cv.get("languages") or []) if str(l).strip()]
+        if not cv["languages"]:
+            raw_langs = (
+                lattes.get("languages")
+                or (raw_profile_data.get("linkedin") or {}).get("languages")
+                or raw_profile_data.get("languages")
+                or meta.get("languages")
+                or []
+            )
+            cv["languages"] = [str(l).strip() for l in raw_langs if str(l).strip()][:5]
         cv["awards"] = sanitize_awards(cv.get("awards") or [])
         if not cv["awards"] and lattes.get("awards"):
             cv["awards"] = sanitize_awards(lattes["awards"][:5])

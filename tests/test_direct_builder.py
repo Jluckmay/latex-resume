@@ -234,3 +234,163 @@ def test_server_offline_mode_zero_token_api(client):
     assert decrypted["token_metrics"]["total_tokens_actual"] == 0
     assert decrypted["token_metrics"]["model_used"] == "direct_extractor_engine"
     assert "Mariana Souza" in decrypted["latex_code"]
+
+
+def test_extract_languages_from_cnpq_lattes_xml():
+    """Valida se XML oficial do CNPq (usando atributo IDIOMA sem DESCRICAO-DO-IDIOMA) extrai idiomas corretamente."""
+    from src.extractors import extract_lattes
+
+    cnpq_xml = b"""<?xml version="1.0" encoding="UTF-8"?>
+    <CURRICULO-VITAE NUMERO-IDENTIFICADOR="1122334455667788">
+        <DADOS-GERAIS NOME-COMPLETO="Dr. Carlos Drummond">
+            <FORMACAO-ACADEMICA-TITULACAO>
+                <GRADUACAO NOME-CURSO="Letras" NOME-INSTITUICAO="UFMG" ANO-DE-INICIO="2010" ANO-DE-CONCLUSAO="2014" />
+            </FORMACAO-ACADEMICA-TITULACAO>
+            <IDIOMAS>
+                <IDIOMA IDIOMA="Ingles" PROFICIENCIA-DE-LEITURA="BOM" PROFICIENCIA-DE-FALA="BOM" PROFICIENCIA-DE-ESCRITA="BOM" PROFICIENCIA-DE-COMPREENSAO="BOM"/>
+                <IDIOMA IDIOMA="Espanhol" PROFICIENCIA-DE-LEITURA="RAZOAVEL" PROFICIENCIA-DE-FALA="POUCO"/>
+                <IDIOMA IDIOMA="Outro" DESCRICAO-DO-IDIOMA="Mandarim" PROFICIENCIA-DE-LEITURA="BOM"/>
+                <IDIOMA IDIOMA="Alemao"/>
+            </IDIOMAS>
+        </DADOS-GERAIS>
+    </CURRICULO-VITAE>
+    """
+    res = extract_lattes(file_bytes=cnpq_xml, filename="lattes.xml")
+    langs = res.get("languages") or []
+
+    assert any("Inglês" in l and "Avançado" in l for l in langs)
+    assert any("Espanhol" in l for l in langs)
+    assert any("Mandarim" in l for l in langs)
+    assert any("Alemão" in l for l in langs)
+
+
+def test_extract_languages_from_text_sources():
+    """Valida extração de idiomas a partir de texto bruto do LinkedIn e anotações livres."""
+    from src.extractors import extract_languages_from_text, extract_linkedin
+
+    linkedin_text = """
+    Experiência Profissional
+    Desenvolvedor Sênior na GlobalTech
+    Idiomas
+    Inglês (Fluente ou nativo)
+    Francês (Intermediário)
+    Competências
+    Python, Docker, AWS
+    """
+    res_li = extract_linkedin(pasted_text=linkedin_text)
+    assert any("Inglês" in l for l in res_li["languages"])
+    assert any("Francês" in l for l in res_li["languages"])
+
+    notes = "Candidato com 6 anos de mercado. Idiomas: Italiano (Fluente), Alemão (Básico)."
+    langs_notes = extract_languages_from_text(notes)
+    assert any("Italiano" in l for l in langs_notes)
+    assert any("Alemão" in l for l in langs_notes)
+
+
+def test_build_structured_cv_languages_translation_en():
+    """Valida se idiomas em português são automaticamente traduzidos para o currículo em inglês."""
+    raw_profile = {
+        "user_meta": {"name": "Lucas Silva", "role": "Software Architect"},
+        "lattes": {"languages": ["Inglês (Avançado)", "Português (Nativo)", "Espanhol (Intermediário)"]},
+        "linkedin": {},
+        "github": {},
+        "orcid": {},
+        "extra_notes": "",
+    }
+    cv_en = build_structured_cv_deterministically(raw_profile, resume_type="profissional", lang="en-us")
+    langs = cv_en["languages"]
+
+    assert any("English" in l and "Advanced" in l for l in langs)
+    assert any("Portuguese" in l and "Native" in l for l in langs)
+    assert any("Spanish" in l and "Intermediate" in l for l in langs)
+
+
+def test_llm_apply_fallbacks_preserves_languages():
+    """Valida se o fallback do LLM recupera os idiomas coletados caso o modelo os omita no JSON."""
+    raw_profile = {
+        "user_meta": {"name": "Julia Roberts"},
+        "lattes": {"languages": ["Inglês (Fluente)", "Espanhol (Básico)"]},
+        "linkedin": {},
+        "github": {},
+        "orcid": {},
+    }
+    generator = LLMResumeGenerator()
+    cv_empty_langs = {"name": "Julia Roberts", "languages": []}
+    generator._apply_fallbacks(cv_empty_langs, raw_profile, resume_type="profissional", lang="pt-br")
+
+    assert len(cv_empty_langs["languages"]) == 2
+    assert "Inglês (Fluente)" in cv_empty_langs["languages"]
+
+
+def test_pipeline_resilient_fallback_on_api_limit(tmp_path):
+    """Valida se o pipeline cai graciosamente para o gerador direto em caso de falha de API (evitando 500 em cliques repetidos)."""
+    with patch.object(
+        LLMResumeGenerator,
+        "generate_latex_resume",
+        side_effect=RuntimeError("HTTP 429 Too Many Requests (NVIDIA NIM Rate Limit)"),
+    ):
+        result = build_resume_pipeline(
+            resume_type="profissional",
+            user_name="Roberto Firmino",
+            user_role="Tech Lead",
+            provider="default",
+            use_ai=True,
+            ai_mode="auto",
+            build_dir=tmp_path,
+        )
+
+        assert result.success is True
+        assert "Roberto Firmino" in result.latex_code
+        assert result.token_metrics["model_used"].startswith("resilient_fallback")
+        assert "ResilientFallbackEngine" in result.token_metrics["active_plugins"][0]
+
+
+def test_server_multiple_consecutive_generations_succeed(client):
+    """Garante que requisições consecutivas a /api/generate funcionem perfeitamente sem erro 500."""
+    from server import encrypt_payload_envelope, decrypt_payload_envelope
+
+    payload1 = {
+        "name": "Primeira Chamada",
+        "role": "Engenheiro de Software",
+        "provider": "none",
+        "resume_type": "profissional",
+        "template_id": "modern_pro",
+        "lang": "pt-br",
+    }
+    enc1 = encrypt_payload_envelope(payload1, direction="req")
+    res1 = client.post(
+        "/api/generate",
+        headers={
+            "Origin": "https://jluckmay.github.io",
+            "Referer": "https://jluckmay.github.io/latex-resume",
+            "Content-Type": "application/json",
+        },
+        json=enc1,
+    )
+    assert res1.status_code == 200
+    dec1 = decrypt_payload_envelope(res1.get_json(), direction="resp")
+    assert dec1["success"] is True
+    assert "Primeira Chamada" in dec1["latex_code"]
+
+    payload2 = {
+        "name": "Segunda Chamada Consecutiva",
+        "role": "Tech Lead",
+        "provider": "none",
+        "resume_type": "profissional",
+        "template_id": "minimal_ats",
+        "lang": "pt-br",
+    }
+    enc2 = encrypt_payload_envelope(payload2, direction="req")
+    res2 = client.post(
+        "/api/generate",
+        headers={
+            "Origin": "https://jluckmay.github.io",
+            "Referer": "https://jluckmay.github.io/latex-resume",
+            "Content-Type": "application/json",
+        },
+        json=enc2,
+    )
+    assert res2.status_code == 200
+    dec2 = decrypt_payload_envelope(res2.get_json(), direction="resp")
+    assert dec2["success"] is True
+    assert "Segunda Chamada Consecutiva" in dec2["latex_code"]
