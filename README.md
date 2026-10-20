@@ -346,7 +346,8 @@ A aplicação web pode ser utilizada diretamente pela nuvem através do GitHub P
 1. Abra a página web oficial no navegador.
 2. No painel de configurações (ícone de engrenagem ou rodapé), verifique o campo **URL do Backend (Render)**:
    - O frontend conecta-se automaticamente ao servidor Render padrão através de um enclave protegido e ofuscado em runtime (ou você pode configurar a URL do seu próprio serviço no Render: `https://<seu-servico>.onrender.com` ou servidor local: `http://127.0.0.1:5000`).
-3. A interface verifica automaticamente a saúde do serviço (`/healthz`) e a disponibilidade do compilador LaTeX (`/api/status`), exibindo o selo verde com a versão do TeX Live.
+3. A interface verifica automaticamente a saúde do serviço (`/healthz`) e a disponibilidade do compilador LaTeX (`/api/status`), considerando o tempo de despertar de instâncias gratuitas no Render (~30 a 50s) com retentativas automáticas, indicador visual pulsante e retentativas transparentes na compilação, exibindo o selo verde com a versão do TeX Live.
+4. **Modo Apenas Revisão Habilitado por Padrão**: O "Modo Apenas Revisão (~75% de Economia de Tokens)" já vem ativado por padrão nas interfaces web e local, gerando primeiro o currículo determinístico via extratores e acionando o modelo de IA estritamente para refinamento e polimento textual.
 
 #### 3. Chaves de API Próprias Opcionais & Criptografia Efêmera (Zero-Storage)
 O projeto permite que os usuários utilizem a chave padrão do servidor ou utilizem **suas próprias chaves de API de forma opcional**, com suporte multi-provedor:
@@ -726,7 +727,8 @@ The web application can be used directly in the cloud through GitHub Pages paire
 1. Open the official web app in any modern browser.
 2. In the settings panel (gear icon or footer), check the **Backend URL (Render)** field:
    - The frontend automatically connects to the default Render server via an obfuscated, encrypted runtime enclave (or you can specify your own Render deployment: `https://<your-service>.onrender.com` or local server: `http://127.0.0.1:5000`).
-3. The web app automatically performs health probes (`/healthz` and `/api/status`), displaying a green badge indicating the live status and TeX Live compiler version.
+3. The web app automatically performs health probes (`/healthz` and `/api/status`), accounting for Render free instance cold starts (~30-50s) with automatic polling retries, pulsing visual indicators, and transparent compile retries, displaying a green badge indicating the live status and TeX Live compiler version.
+4. **Review-Only Mode Enabled by Default**: The "Review-Only Mode (~75% Token Savings)" comes pre-enabled across web and local interfaces, building the deterministic resume first from extractors and using AI strictly for phrasing refinement and syntax polishing.
 
 #### 3. Optional Custom API Keys & Ephemeral In-Memory Encryption (Zero-Storage Policy)
 Users can choose between the secure server-provided default or **provide their own optional API keys**, with multi-provider architecture:

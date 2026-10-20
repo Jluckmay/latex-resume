@@ -141,7 +141,7 @@ with st.sidebar:
     if selected_provider != "none":
         review_only_cb = st.checkbox(
             "⚡ Modo Apenas Revisão (Economia Máxima de Tokens)" if ui_lang == "pt-br" else "⚡ Review-Only Mode (Maximum Token Savings)",
-            value=False,
+            value=True,
             help=(
                 "Gera o currículo determinístico a partir dos extratores e usa a IA apenas para revisar, polir o texto e melhorar os bullet points, economizando até ~75% de tokens."
                 if ui_lang == "pt-br"

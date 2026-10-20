@@ -133,6 +133,16 @@
             border-color: rgba(16, 185, 129, 0.3);
             background-color: rgba(16, 185, 129, 0.08);
         }
+        .pill-badge.waking {
+            color: #2563eb;
+            border-color: rgba(37, 99, 235, 0.4);
+            background-color: rgba(37, 99, 235, 0.08);
+            animation: pulse-waking 2s infinite ease-in-out;
+        }
+        @keyframes pulse-waking {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.85; transform: scale(1.02); }
+        }
         .pill-badge.warn {
             color: #f59e0b;
             border-color: rgba(245, 158, 11, 0.4);
@@ -855,7 +865,7 @@
 
                 <div class="form-group" id="group-ai-mode" style="margin-top:-0.3rem;margin-bottom:0.85rem;">
                     <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;font-size:0.84rem;color:var(--text-main);">
-                        <input type="checkbox" id="chk-review-only" style="cursor:pointer;width:16px;height:16px;">
+                        <input type="checkbox" id="chk-review-only" style="cursor:pointer;width:16px;height:16px;" checked>
                         <span id="ui-review-only-lbl">⚡ <b>Modo Apenas Revisão:</b> Gerar direto via extratores e usar IA só para revisar/polir o texto (Economiza ~75% de tokens)</span>
                     </label>
                 </div>
@@ -1903,15 +1913,27 @@
             return BackendEnclave.resolve();
         }
 
-        async function checkBackendStatus() {
+        async function checkBackendStatus(isRetry = false, attempt = 1) {
             const badge = document.getElementById("ui-latex-badge");
             const base = getBackendBaseUrl();
             if (!badge) return;
-            try {
+
+            const isProtected = base === BackendEnclave.resolve();
+            const isRender = isProtected || (base && base.includes("onrender.com"));
+            const displayOrigin = isProtected ? "🔒 Servidor Render Nuvem Protegido" : (base || window.location.origin);
+            const displayHost = isProtected ? "Render Cloud" : (base ? base.replace(/^https?:\/\//, "") : "127.0.0.1:5000");
+
+            if (!isRetry) {
                 badge.className = "pill-badge";
                 badge.textContent = state.uiLang === "en-us" ? "⏳ Connecting..." : "⏳ Conectando backend...";
+            }
+
+            const timeoutMs = isRender ? 18000 : 5000;
+            const maxAttempts = isRender ? 5 : 1;
+
+            try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 6000);
+                const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
                 const res = await fetch(`${base}/api/status`, {
                     signal: controller.signal,
                     headers: {
@@ -1922,8 +1944,15 @@
                 });
                 clearTimeout(timeoutId);
 
+                if ((res.status === 502 || res.status === 503 || res.status === 504) && isRender && attempt < maxAttempts) {
+                    throw new Error(`Servidor Render em fase de ativação (HTTP ${res.status})`);
+                }
+
                 const cType = res.headers.get("content-type") || "";
                 if (!cType.includes("application/json")) {
+                    if (isRender && attempt < maxAttempts) {
+                        throw new Error(`Aguardando inicialização do container (HTTP ${res.status})`);
+                    }
                     throw new Error(`Resposta não-JSON (HTTP ${res.status})`);
                 }
 
@@ -1935,19 +1964,28 @@
                 if (res.ok && data.latex_ok) {
                     badge.className = "pill-badge ok";
                     badge.textContent = "✅ " + (data.latex_version || "pdflatex OK");
-                    const isProtected = base === BackendEnclave.resolve();
-                    const displayOrigin = isProtected ? "🔒 Servidor Render Nuvem Protegido" : (base || window.location.origin);
                     badge.title = `Backend conectado em: ${displayOrigin}\nCompilador: ${data.latex_version}\nTransporte: 🔒 Criptografado (AES-256-GCM / TLS 1.3)\nClique para configurar`;
                     return { ok: true, data };
                 } else {
                     throw new Error(data.error || `HTTP ${res.status}`);
                 }
             } catch (err) {
+                if (isRender && attempt < maxAttempts) {
+                    badge.className = "pill-badge waking";
+                    badge.textContent = (state.uiLang === "en-us")
+                        ? "⏳ Waking up Render (~30s)..."
+                        : "⏳ Despertando Render (~30s)...";
+                    badge.title = (state.uiLang === "en-us")
+                        ? `Render cloud instance is waking up from idle sleep (~30-50s). Checking container activation (${attempt}/${maxAttempts})...`
+                        : `Instância em nuvem do Render está despertando da hibernação (~30-50s). Aguardando ativação do container (${attempt}/${maxAttempts})...`;
+
+                    await new Promise(r => setTimeout(r, 4000));
+                    return checkBackendStatus(true, attempt + 1);
+                }
+
                 badge.className = "pill-badge warn";
-                const isProtected = base === BackendEnclave.resolve();
-                const displayHost = isProtected ? "Render Cloud" : (base ? base.replace(/^https?:\/\//, "") : "127.0.0.1:5000");
                 badge.textContent = `⚠️ Backend Offline (${displayHost})`;
-                badge.title = `Não foi possível conectar ao backend: ${err.message}.\nClique para abrir as configurações.`;
+                badge.title = `Não foi possível conectar ao backend: ${err.message}.\nClique para abrir as configurações ou tentar novamente.`;
                 return { ok: false, error: err.message };
             }
         }
@@ -1994,58 +2032,91 @@
             const isProtected = BackendEnclave.isProtectedAlias(rawVal);
             const targetUrl = isProtected ? BackendEnclave.resolve() : rawVal.replace(/\/+$/, "");
             const displayTarget = isProtected ? BackendEnclave.aliasLabel : targetUrl;
+            const isRender = isProtected || targetUrl.includes("onrender.com");
 
             resBox.style.display = "block";
             resBox.style.backgroundColor = "var(--bg-subtle)";
             resBox.style.border = "1px solid var(--border)";
             resBox.style.color = "var(--text-main)";
-            resBox.textContent = state.uiLang === "en-us" ? "⏳ Testing connection to " + displayTarget + "..." : "⏳ Testando conexão com " + displayTarget + "...";
+            resBox.innerHTML = state.uiLang === "en-us" ? "⏳ Testing connection to " + displayTarget + "..." : "⏳ Testando conexão com " + displayTarget + "...";
             if (testBtn) testBtn.disabled = true;
 
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 7000);
-                const res = await fetch(`${targetUrl}/api/status`, {
-                    signal: controller.signal,
-                    headers: {
-                        "X-Resume-Client": "jluckmay-github-pages-v1",
-                        "X-Client-Timestamp": Date.now().toString(),
-                        "X-Encrypted-Payload": "1"
+            const maxAttempts = isRender ? 5 : 1;
+            const timeoutMs = isRender ? 18000 : 5000;
+
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+                if (attempt > 1) {
+                    resBox.innerHTML = (state.uiLang === "en-us")
+                        ? `⏳ <b>Waking up Render server...</b> (Attempt ${attempt}/${maxAttempts})<br><small>Free tier services on Render spin down after 15 min of inactivity. Spin-up takes ~30-50s. Please wait...</small>`
+                        : `⏳ <b>Despertando servidor no Render...</b> (Tentativa ${attempt}/${maxAttempts})<br><small>Instâncias gratuitas no Render hibernam após inatividade e levam cerca de 30 a 50 segundos para despertar. Aguarde...</small>`;
+                }
+
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+                    const res = await fetch(`${targetUrl}/api/status`, {
+                        signal: controller.signal,
+                        headers: {
+                            "X-Resume-Client": "jluckmay-github-pages-v1",
+                            "X-Client-Timestamp": Date.now().toString(),
+                            "X-Encrypted-Payload": "1"
+                        }
+                    });
+                    clearTimeout(timeoutId);
+
+                    if ((res.status === 502 || res.status === 503 || res.status === 504) && isRender && attempt < maxAttempts) {
+                        await new Promise(r => setTimeout(r, 4000));
+                        continue;
                     }
-                });
-                clearTimeout(timeoutId);
 
-                const cType = res.headers.get("content-type") || "";
-                if (!cType.includes("application/json")) {
-                    throw new Error(`Servidor respondeu com formato não-JSON (HTTP ${res.status} - ${res.statusText})`);
-                }
+                    const cType = res.headers.get("content-type") || "";
+                    if (!cType.includes("application/json")) {
+                        if (isRender && attempt < maxAttempts) {
+                            await new Promise(r => setTimeout(r, 4000));
+                            continue;
+                        }
+                        throw new Error(`Servidor respondeu com formato não-JSON (HTTP ${res.status} - ${res.statusText})`);
+                    }
 
-                let data = await res.json();
-                if (data && data.enc_version === "ENC_PAYLOAD_V1") {
-                    data = await decryptTransportPayload(data, "resp");
-                }
+                    let data = await res.json();
+                    if (data && data.enc_version === "ENC_PAYLOAD_V1") {
+                        data = await decryptTransportPayload(data, "resp");
+                    }
 
-                if (res.ok && data.latex_ok) {
-                    resBox.style.backgroundColor = "rgba(16, 185, 129, 0.1)";
-                    resBox.style.border = "1px solid rgba(16, 185, 129, 0.4)";
-                    resBox.style.color = "#10b981";
-                    resBox.innerHTML = `<b>✅ Conectado com Sucesso a ${displayTarget}!</b><br>Compilador: ${data.latex_version || 'pdflatex'}<br>Transporte: 🔒 Criptografado (AES-256-GCM / TLS 1.3)<br>Provedores: ${Object.keys(data.providers || {}).length}`;
-                } else {
-                    throw new Error(data.error || `HTTP ${res.status}`);
+                    if (res.ok && data.latex_ok) {
+                        resBox.style.backgroundColor = "rgba(16, 185, 129, 0.1)";
+                        resBox.style.border = "1px solid rgba(16, 185, 129, 0.4)";
+                        resBox.style.color = "#10b981";
+                        resBox.innerHTML = `<b>✅ Conectado com Sucesso a ${displayTarget}!</b><br>Compilador: ${data.latex_version || 'pdflatex'}<br>Transporte: 🔒 Criptografado (AES-256-GCM / TLS 1.3)<br>Provedores: ${Object.keys(data.providers || {}).length}`;
+
+                        const badge = document.getElementById("ui-latex-badge");
+                        if (badge) {
+                            badge.className = "pill-badge ok";
+                            badge.textContent = "✅ " + (data.latex_version || "pdflatex OK");
+                            badge.title = `Backend conectado em: ${displayTarget}\nCompilador: ${data.latex_version}\nTransporte: 🔒 Criptografado (AES-256-GCM / TLS 1.3)`;
+                        }
+                        return;
+                    } else {
+                        throw new Error(data.error || `HTTP ${res.status}`);
+                    }
+                } catch (err) {
+                    if (isRender && attempt < maxAttempts) {
+                        await new Promise(r => setTimeout(r, 4000));
+                        continue;
+                    }
+                    resBox.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
+                    resBox.style.border = "1px solid rgba(239, 68, 68, 0.4)";
+                    resBox.style.color = "#ef4444";
+                    let guidance = "";
+                    if (targetUrl.includes("127.0.0.1") || targetUrl.includes("localhost")) {
+                        guidance = "<br><small>💡 Dica: Inicie o servidor local no terminal com: <code>python server.py</code></small>";
+                    } else {
+                        guidance = "<br><small>💡 Dica: Se o serviço no Render for gratuito, aguarde cerca de 30-50 segundos para despertar e tente novamente.</small>";
+                    }
+                    resBox.innerHTML = `<b>❌ Falha na Conexão:</b> ${err.message}${guidance}`;
+                } finally {
+                    if (testBtn) testBtn.disabled = false;
                 }
-            } catch (err) {
-                resBox.style.backgroundColor = "rgba(239, 68, 68, 0.1)";
-                resBox.style.border = "1px solid rgba(239, 68, 68, 0.4)";
-                resBox.style.color = "#ef4444";
-                let guidance = "";
-                if (targetUrl.includes("127.0.0.1") || targetUrl.includes("localhost")) {
-                    guidance = "<br><small>💡 Dica: Inicie o servidor local no terminal com: <code>python server.py</code></small>";
-                } else {
-                    guidance = "<br><small>💡 Dica: Se o serviço no Render for gratuito, aguarde cerca de 30-50 segundos para despertar ou verifique a URL.</small>";
-                }
-                resBox.innerHTML = `<b>❌ Falha na Conexão:</b> ${err.message}${guidance}`;
-            } finally {
-                if (testBtn) testBtn.disabled = false;
             }
         }
 
@@ -2078,6 +2149,7 @@
             const btn = document.getElementById("btn-generate");
             const btnTxt = document.getElementById("ui-gen-btn-txt");
             const t = I18N[state.uiLang];
+            let wakeTimer = null;
 
             btn.disabled = true;
             btnTxt.textContent = t.genLoading;
@@ -2164,16 +2236,45 @@
                 const encryptedBody = await encryptTransportPayload(payload, "req");
 
                 const base = getBackendBaseUrl();
-                const resp = await fetch(`${base}/api/generate`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-Resume-Client": "jluckmay-github-pages-v1",
-                        "X-Client-Timestamp": Date.now().toString(),
-                        "X-Encrypted-Payload": "1"
-                    },
-                    body: JSON.stringify(encryptedBody)
-                });
+                const isProtected = base === BackendEnclave.resolve();
+                const isRender = isProtected || (base && base.includes("onrender.com"));
+
+                wakeTimer = null;
+                if (isRender) {
+                    wakeTimer = setTimeout(() => {
+                        btnTxt.textContent = (state.uiLang === "en-us")
+                            ? "⏳ Waking up Render server & compiling PDF (~30-50s)..."
+                            : "⏳ Despertando servidor Render & compilando PDF (~30-50s)...";
+                    }, 5000);
+                }
+
+                let resp = null;
+                const maxGenAttempts = isRender ? 3 : 1;
+                for (let genAttempt = 1; genAttempt <= maxGenAttempts; genAttempt++) {
+                    if (genAttempt > 1) {
+                        btnTxt.textContent = (state.uiLang === "en-us")
+                            ? `⏳ Render waking up, retry ${genAttempt}/${maxGenAttempts} (~30s)...`
+                            : `⏳ Servidor Render ativando, tentativa ${genAttempt}/${maxGenAttempts} (~30s)...`;
+                        await new Promise(r => setTimeout(r, 5000));
+                    }
+
+                    resp = await fetch(`${base}/api/generate`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-Resume-Client": "jluckmay-github-pages-v1",
+                            "X-Client-Timestamp": Date.now().toString(),
+                            "X-Encrypted-Payload": "1"
+                        },
+                        body: JSON.stringify(encryptedBody)
+                    });
+
+                    if ((resp.status === 502 || resp.status === 503 || resp.status === 504) && isRender && genAttempt < maxGenAttempts) {
+                        continue;
+                    }
+                    break;
+                }
+                if (wakeTimer) clearTimeout(wakeTimer);
 
                 const attestation = resp.headers.get("X-Backend-Attestation");
                 if (attestation && attestation !== "latex-resume-render-v1") {
@@ -2244,6 +2345,7 @@
                     }
                 }
             } finally {
+                if (wakeTimer) clearTimeout(wakeTimer);
                 btn.disabled = false;
                 btnTxt.textContent = I18N[state.uiLang].genBtn;
             }

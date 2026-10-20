@@ -276,3 +276,32 @@ def test_index_html_auto_environment_detection():
     assert "BackendEnclave.resolve()" in html_text
 
 
+def test_review_only_mode_enabled_by_default():
+    """Valida se o Modo Apenas Revisão (~75% de Economia de Tokens) está habilitado por padrão em todas as interfaces."""
+    html_text = (PROJECT_ROOT / "index.html").read_text(encoding="utf-8")
+    app_text = (PROJECT_ROOT / "app.py").read_text(encoding="utf-8")
+
+    # Interface Web (HTML/JS): checkbox deve possuir o atributo 'checked' por padrão
+    assert 'id="chk-review-only"' in html_text
+    assert 'id="chk-review-only" style="cursor:pointer;width:16px;height:16px;" checked' in html_text
+
+    # Interface Streamlit (Python): st.checkbox do modo de revisão deve ter value=True por padrão
+    assert "review_only_cb = st.checkbox(" in app_text
+    assert "value=True" in app_text
+
+
+def test_render_cold_start_and_activation_handling():
+    """Valida se a interface web lida com o tempo de despertar e ativação do servidor Render."""
+    html_text = (PROJECT_ROOT / "index.html").read_text(encoding="utf-8")
+
+    # Estilo pulsante de badge durante despertar
+    assert ".pill-badge.waking" in html_text
+    assert "pulse-waking" in html_text
+
+    # Lógica de despertar e retentativas em checkBackendStatus e testBackendModalConnection
+    assert "Despertando Render" in html_text or "Waking up Render" in html_text
+    assert "maxAttempts" in html_text
+    assert "502" in html_text and "503" in html_text
+
+
+
