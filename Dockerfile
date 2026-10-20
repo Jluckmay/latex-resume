@@ -28,8 +28,9 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copia código da aplicação
+# Copia código da aplicação e assets
 COPY src/ ./src/
+COPY assets/ ./assets/
 COPY server.py ./
 COPY index.html ./
 
