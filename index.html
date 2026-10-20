@@ -1244,6 +1244,14 @@
         };
 
         function initAutoPreferences() {
+            // 0. Higienização de segurança do localStorage: se existir qualquer URL de backend de produção gravada em texto plano, limpa imediatamente
+            try {
+                const storedBackend = localStorage.getItem("latex_resume_backend_url");
+                if (storedBackend && typeof BackendEnclave !== "undefined" && BackendEnclave.isProtectedAlias(storedBackend)) {
+                    localStorage.removeItem("latex_resume_backend_url");
+                }
+            } catch (e) {}
+
             // 1. Auto-detect default language from browser/OS
             const navLang = (navigator.language || navigator.userLanguage || "pt-BR").toLowerCase();
             state.uiLang = navLang.startsWith("en") ? "en-us" : "pt-br";
@@ -1887,10 +1895,35 @@
                 return _dec;
             }
 
+            function _isProtectedAlias(u) {
+                if (!u) return true;
+                const s = u.trim().replace(/\/+$/, "");
+                if (s === "") return true;
+                if (
+                    s.includes("Servidor Render Nuvem Padrão") ||
+                    s.includes("Servidor Render") ||
+                    s.includes("Servidor Nuvem") ||
+                    s.includes("Padrão Protegido") ||
+                    s.includes("Render (Padrão") ||
+                    s.includes("Render Nuvem")
+                ) {
+                    return true;
+                }
+                const resolved = _resolve().replace(/\/+$/, "");
+                if (s.toLowerCase() === resolved.toLowerCase()) {
+                    return true;
+                }
+                const host = resolved.replace(/^https?:\/\//i, "").toLowerCase();
+                if (s.toLowerCase().includes(host)) {
+                    return true;
+                }
+                return false;
+            }
+
             return Object.freeze({
                 resolve: _resolve,
                 aliasLabel: "🔒 Servidor Render Nuvem Padrão",
-                isProtectedAlias: (u) => !u || u.trim() === "" || u.includes("Servidor Render Nuvem Padrão") || u.includes("Servidor Nuvem Padrão")
+                isProtectedAlias: _isProtectedAlias
             });
         })();
 
@@ -1996,9 +2029,14 @@
             const resBox = document.getElementById("backend-test-result");
             if (resBox) resBox.style.display = "none";
             if (inp) {
+                // Se o localStorage contiver qualquer referência ao backend de produção protegido, higieniza
                 const stored = localStorage.getItem("latex_resume_backend_url");
-                if (stored && stored.trim()) {
-                    inp.value = BackendEnclave.isProtectedAlias(stored.trim()) ? BackendEnclave.aliasLabel : stored.trim();
+                if (stored && BackendEnclave.isProtectedAlias(stored.trim())) {
+                    localStorage.removeItem("latex_resume_backend_url");
+                }
+                const freshStored = localStorage.getItem("latex_resume_backend_url");
+                if (freshStored && freshStored.trim() && !BackendEnclave.isProtectedAlias(freshStored.trim())) {
+                    inp.value = freshStored.trim();
                 } else {
                     const isLocal = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" || window.location.protocol === "file:";
                     inp.value = isLocal ? "http://127.0.0.1:5000" : BackendEnclave.aliasLabel;
@@ -2370,7 +2408,20 @@
             "\n• Proteção contra extração: nenhuma chave é exposta ou recuperável via console, rede ou requisições."
         );
 
-        window.addEventListener("DOMContentLoaded", initAutoPreferences);
+        window.addEventListener("DOMContentLoaded", () => {
+            initAutoPreferences();
+            const inp = document.getElementById("inp-backend-url");
+            if (inp) {
+                const maskIfProtected = () => {
+                    if (inp.value && BackendEnclave.isProtectedAlias(inp.value)) {
+                        inp.value = BackendEnclave.aliasLabel;
+                    }
+                };
+                inp.addEventListener("input", maskIfProtected);
+                inp.addEventListener("change", maskIfProtected);
+                inp.addEventListener("paste", () => setTimeout(maskIfProtected, 10));
+            }
+        });
     </script>
 </body>
 </html>

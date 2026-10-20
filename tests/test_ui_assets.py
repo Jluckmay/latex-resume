@@ -304,4 +304,26 @@ def test_render_cold_start_and_activation_handling():
     assert "502" in html_text and "503" in html_text
 
 
+def test_backend_modal_masks_protected_url_and_sanitizes_local_storage():
+    """Valida se a janela modal de backend e o localStorage mascaram e protegem a URL em vez de exibi-la desprotegida."""
+    html_text = (PROJECT_ROOT / "index.html").read_text(encoding="utf-8")
+
+    # Reconhecimento amplo de aliases protegidos no BackendEnclave
+    assert "function _isProtectedAlias(u)" in html_text
+    assert "s.toLowerCase() === resolved.toLowerCase()" in html_text
+    assert "s.toLowerCase().includes(host)" in html_text
+
+    # Higienização de localStorage no openBackendModal
+    assert "BackendEnclave.isProtectedAlias(stored.trim())" in html_text
+
+    # Higienização de localStorage no initAutoPreferences
+    assert "typeof BackendEnclave !== \"undefined\" && BackendEnclave.isProtectedAlias(storedBackend)" in html_text
+
+    # Mascaramento reativo do input em eventos de digitação e colagem
+    assert "maskIfProtected" in html_text
+    assert 'inp.addEventListener("input", maskIfProtected)' in html_text
+    assert 'inp.addEventListener("paste"' in html_text
+
+
+
 
