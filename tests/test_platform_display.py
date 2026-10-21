@@ -141,3 +141,4 @@ def test_all_templates_render_nicks_and_ids():
         assert "1234567890123456" in tex, f"Lattes ID not found in template {tpl_id}"
         # Ensure fontawesome5 package is included in the preamble
         assert "\\usepackage{fontawesome5}" in tex, f"\\usepackage{{fontawesome5}} missing in template {tpl_id}"
+
