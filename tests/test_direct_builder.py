@@ -394,3 +394,64 @@ def test_server_multiple_consecutive_generations_succeed(client):
     dec2 = decrypt_payload_envelope(res2.get_json(), direction="resp")
     assert dec2["success"] is True
     assert "Segunda Chamada Consecutiva" in dec2["latex_code"]
+
+
+def test_orcid_education_and_experience_extraction_and_translation():
+    """Valida se dados de educação e atuação do ORCID são extraídos com graus, instituições e tradução corretos."""
+    from src.direct_builder import build_structured_cv_deterministically
+
+    mock_orcid = {
+        "name": "Mayrinck, J. L.",
+        "educations": [
+            {
+                "role": "Master's Degree in Computer Science",
+                "org": "Universidade Federal de Minas Gerais",
+                "start": "2026",
+                "end": "Atual",
+            },
+            {
+                "role": "Bachelor's Degree in Information Systems",
+                "org": "Universidade Federal de Viçosa",
+                "start": "2019",
+                "end": "2025",
+            },
+        ],
+        "employments": [
+            {
+                "role": "Introduction to Game Development Teaching Assistant",
+                "org": "Federal University of Viçosa",
+                "start": "2025",
+                "end": "2025",
+            },
+            {
+                "role": "Extension Project Fellow",
+                "org": "Federal University of Viçosa",
+                "start": "2023",
+                "end": "2024",
+            },
+        ],
+    }
+
+    # Teste em Português
+    cv_pt = build_structured_cv_deterministically({"orcid": mock_orcid}, lang="pt-br")
+    edus_pt = cv_pt.get("education", [])
+    assert len(edus_pt) == 2
+    assert edus_pt[0]["degree"] == "Mestrado em Ciência da Computação"
+    assert edus_pt[0]["institution"] == "Universidade Federal de Minas Gerais"
+    assert edus_pt[0]["period"] == "2026 - Atual"
+    assert edus_pt[1]["degree"] == "Bacharelado em Sistemas de Informação"
+    assert edus_pt[1]["institution"] == "Universidade Federal de Viçosa"
+
+    exps_pt = cv_pt.get("experience", [])
+    assert len(exps_pt) == 2
+    assert exps_pt[0]["role"] == "Monitor de Introdução ao Desenvolvimento de Jogos"
+    assert exps_pt[0]["organization"] == "Universidade Federal de Viçosa"
+    assert exps_pt[1]["role"] == "Bolsista de Projeto de Extensão"
+    assert exps_pt[1]["organization"] == "Universidade Federal de Viçosa"
+
+    # Teste em Inglês
+    cv_en = build_structured_cv_deterministically({"orcid": mock_orcid}, lang="en-us")
+    edus_en = cv_en.get("education", [])
+    assert len(edus_en) == 2
+    assert "Computer Science" in edus_en[0]["degree"]
+    assert edus_en[0]["institution"] == "Universidade Federal de Minas Gerais"
