@@ -75,3 +75,15 @@ def test_llm_prompts_contain_entry_isolation_rules():
     assert "CRITICAL ENTRY ISOLATION RULE" in latex_sys
     assert "NEVER merge an institution/location line" in latex_sys
     assert r"\par\vspace{3pt}" in latex_sys
+
+
+def test_index_html_autofill_and_extension_error_suppression():
+    """Verifica se index.html suprime ruídos de extensões (Passkey, Autofill, FN_NOT_FOUND)."""
+    from pathlib import Path
+    html_content = Path("index.html").read_text(encoding="utf-8")
+    assert "FN_NOT_FOUND" in html_content
+    assert "closePasskeyConditionalList" in html_content
+    assert "data-lpignore" in html_content
+    assert 'autocomplete="new-password"' in html_content
+
+
