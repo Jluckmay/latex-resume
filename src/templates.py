@@ -307,21 +307,21 @@ def _build_education_block(educations: List[Dict[str, Any]], lang: str = "pt-br"
     if not educations:
         return ""
     t = LATEX_I18N[normalize_lang(lang)]
-    lines = [rf"\section*{{{t['sec_education']}}}"]
+    entries: List[str] = []
     for ed in educations:
         deg = escape_latex(ed.get("degree"))
         inst = escape_latex(ed.get("institution"))
         per = escape_latex(ed.get("period"))
         det = escape_latex(ed.get("details"))
-        entry_lines = [rf"\noindent\textbf{{{deg}}} \hfill \textit{{{per}}}"]
+        entry_lines = [rf"\noindent\textbf{{{deg}}} \hfill \textbf{{{per}}}"]
         if inst and det:
             entry_lines.append(rf"\textit{{{inst}}} \\ {{\small {det}}}")
         elif inst:
             entry_lines.append(rf"\textit{{{inst}}}")
         elif det:
             entry_lines.append(rf"{{\small {det}}}")
-        lines.append(r" \\ ".join(entry_lines) + r"\par\vspace{3pt}")
-    return "\n".join(lines)
+        entries.append(r" \\ ".join(entry_lines) + r"\par\vspace{4pt}")
+    return rf"\section*{{{t['sec_education']}}}" + "\n\n" + "\n\n".join(entries)
 
 
 def _build_experience_block(experiences: List[Dict[str, Any]], resume_type: str, lang: str = "pt-br") -> str:
@@ -1427,14 +1427,14 @@ def _render_google_standard(
             sub_d = f"\\textit{{{deg}}}" if inst else ""
             ed_lines.append(rf"\noindent{head_i} \hfill \textbf{{{per}}}")
             if sub_d and det:
-                ed_lines.append(rf"\\ {sub_d} \hfill {{\small {det}}}\par\vspace{{3pt}}")
+                ed_lines.append(rf"\\ {sub_d} \hfill {{\small {det}}}\par\vspace{{4pt}}")
             elif sub_d:
-                ed_lines.append(rf"\\ {sub_d}\par\vspace{{3pt}}")
+                ed_lines.append(rf"\\ {sub_d}\par\vspace{{4pt}}")
             elif det:
-                ed_lines.append(rf"\\ {{\small {det}}}\par\vspace{{3pt}}")
+                ed_lines.append(rf"\\ {{\small {det}}}\par\vspace{{4pt}}")
             else:
-                ed_lines.append(r"\par\vspace{3pt}")
-        edu_block = "\n".join(ed_lines)
+                ed_lines.append(r"\par\vspace{4pt}")
+        edu_block = "\n\n".join(ed_lines)
 
     # Projects
     pj_block = ""
@@ -1632,10 +1632,10 @@ def _render_ai_ats_max(
             inst_txt = f" --- {inst}" if inst else ""
             ed_lines.append(rf"\noindent\textbf{{{deg}}}{inst_txt} \hfill \textbf{{{per}}}")
             if det:
-                ed_lines.append(rf"\\ {{\small {det}}}\par\vspace{{3pt}}")
+                ed_lines.append(rf"\\ {{\small {det}}}\par\vspace{{4pt}}")
             else:
-                ed_lines.append(r"\par\vspace{3pt}")
-        blocks.append("\n".join(ed_lines))
+                ed_lines.append(r"\par\vspace{4pt}")
+        blocks.append("\n\n".join(ed_lines))
 
     # 5. Projects
     projs = cv.get("projects") or []

@@ -9,6 +9,7 @@ import re
 from typing import Any, Dict, List, Tuple
 
 from ._vault import dispatch_secure_llm_chat
+from .compiler import sanitize_latex_layout
 from .config import DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDERS_CONFIG
 from .templates import render_builtin_template, sanitize_awards
 from .token_plugins import (
@@ -147,8 +148,8 @@ class LLMResumeGenerator:
                 ],
                 max_tokens=2200,
             )
-            clean_body = CavemanPromptPlugin.strip_code_fences(content)
-            final_latex = LaTeXPreambleSplitPlugin.reassemble(preamble, clean_body)
+            clean_body = sanitize_latex_layout(CavemanPromptPlugin.strip_code_fences(content))
+            final_latex = sanitize_latex_layout(LaTeXPreambleSplitPlugin.reassemble(preamble, clean_body))
             self._populate_metrics(
                 metrics,
                 usage,
@@ -209,7 +210,9 @@ class LLMResumeGenerator:
                 "role": "system",
                 "content": (
                     "MODE:CAVEMAN_LATEX_REPAIR. Zero prose, zero fences. "
-                    "Fix the LaTeX compilation error and output ONLY valid LaTeX code."
+                    "Fix LaTeX compilation and formatting errors. Ensure every entry (education, experience, project) "
+                    "is cleanly isolated with \\par\\vspace{3pt} or blank lines so items never collide on the same line. "
+                    "Output ONLY valid compilable LaTeX code."
                 ),
             },
             {
@@ -218,8 +221,9 @@ class LLMResumeGenerator:
             },
         ]
         fixed, _, _, _ = self._call_llm_chat(messages=messages, max_tokens=2200)
-        cleaned = CavemanPromptPlugin.strip_code_fences(fixed)
-        return LaTeXPreambleSplitPlugin.reassemble(preamble, cleaned) if preamble else cleaned
+        cleaned = sanitize_latex_layout(CavemanPromptPlugin.strip_code_fences(fixed))
+        reassembled = LaTeXPreambleSplitPlugin.reassemble(preamble, cleaned) if preamble else cleaned
+        return sanitize_latex_layout(reassembled)
 
     def review_and_enhance_latex(
         self,
@@ -248,17 +252,25 @@ class LLMResumeGenerator:
         instruction_line = f"CUSTOM INSTRUCTION: {instructions.strip()}\n" if instructions.strip() else ""
 
         sys_prompt = (
-            f"MODE:CAVEMAN_LATEX_REVIEW. LANG:{lang.upper()}. "
-            "Task: Polish and enhance the provided LaTeX resume body. "
-            "1. Improve professional phrasing, punchy bullet points, and strong action verbs. "
-            "2. Keep all facts, institutions, names, dates, and metrics strictly truthful. "
-            "3. Ensure clean LaTeX syntax without syntax errors. "
-            "4. Return ONLY the polished LaTeX body from \\begin{document} to \\end{document}. "
+            f"MODE:CAVEMAN_LATEX_REVIEW. LANG:{lang.upper()}.\n"
+            "Task: Polish and enhance the provided LaTeX resume body.\n"
+            "CRITICAL FORMATTING & LAYOUT INSTRUCTIONS:\n"
+            "1. ENTRY ISOLATION (ZERO COLLISION): Each degree/education, job experience, or project entry MUST be an isolated paragraph. "
+            "NEVER let the end of one entry (institution, location, or details) merge onto the same line as the next entry's title or \\hfill. "
+            "Always conclude an entry with \\par\\vspace{3pt} or a clean blank line before starting the next \\noindent\\textbf{...}.\n"
+            "2. LINE BREAK DISCIPLINE: In LaTeX, a single newline without \\\\ or \\par is treated as a space. "
+            "Subtitle/institution lines (e.g. 'DCC/UFMG $\\cdot$ Belo Horizonte, MG') MUST NOT be followed directly by a new entry on the same line. "
+            "Separate entries clearly with vertical spacing.\n"
+            "3. PUNCHY CONTENT: Improve phrasing, punchy bullet points, and strong action verbs in the target language.\n"
+            "4. STRICT TRUTHFULNESS: Keep all institutions, degrees, dates, metrics, and names 100% truthful to source data.\n"
+            "5. OUTPUT FORMAT: Return ONLY the polished LaTeX body from \\begin{document} to \\end{document}. "
             "Zero prose, zero markdown code fences."
         )
 
         user_prompt = (
             f"{instruction_line}"
+            "CRITICAL INSTRUCTION: Ensure each education, experience, and project entry is cleanly separated. "
+            "Do NOT merge institution/location lines with subsequent degree/title lines. Keep distinct \\par\\vspace{3pt} paragraph breaks.\n\n"
             f"LATEX_BODY_TO_REVIEW:\n{target}\n\n"
             "Return improved LaTeX body from \\begin{document} to \\end{document}."
         )
@@ -271,8 +283,8 @@ class LLMResumeGenerator:
                 ],
                 max_tokens=2200,
             )
-            cleaned = CavemanPromptPlugin.strip_code_fences(fixed)
-            final_latex = LaTeXPreambleSplitPlugin.reassemble(preamble, cleaned) if preamble else cleaned
+            cleaned = sanitize_latex_layout(CavemanPromptPlugin.strip_code_fences(fixed))
+            final_latex = sanitize_latex_layout(LaTeXPreambleSplitPlugin.reassemble(preamble, cleaned) if preamble else cleaned)
 
             self._populate_metrics(
                 metrics,

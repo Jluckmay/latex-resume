@@ -94,7 +94,7 @@ class CavemanPromptPlugin:
             "MODE:CAVEMAN_LATEX_ONLY. Zero prose, zero markdown fences, zero explanations. "
             f"Role: Expert LaTeX CV generator ({focus}). "
             f"Write resume content in {target_lang}. Escape LaTeX specials (%, &, $, #, _) in user text. "
-            "Emit ONLY valid compilable LaTeX code. Do NOT create an awards/certifications section if none exist. NEVER include ORCID in awards."
+            "CRITICAL ENTRY ISOLATION RULE: Each education, experience, or project entry MUST be an isolated paragraph with \\par\\vspace{3pt} or blank lines. NEVER merge an institution/location line with a subsequent entry title on the same line. Emit ONLY valid compilable LaTeX code. Do NOT create an awards/certifications section if none exist. NEVER include ORCID in awards."
         )
 
     @staticmethod

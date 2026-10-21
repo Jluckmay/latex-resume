@@ -180,6 +180,59 @@ def check_latex_compiler() -> Tuple[bool, str]:
         return False, "Erro ao verificar pdflatex / Error checking pdflatex"
 
 
+def sanitize_latex_layout(tex: str) -> str:
+    """Higieniza o layout do LaTeX garantindo separação visual de parágrafos entre entradas estruturadas.
+
+    Previne que linhas de instituições, empresas ou subtítulos se fundam na mesma linha
+    que a próxima formação acadêmica ou cargo com `\\hfill`.
+    """
+    if not tex or not tex.strip():
+        return tex
+
+    lines = tex.splitlines()
+    fixed_lines: List[str] = []
+
+    # Detecta linhas de início de entrada (Grau, Cargo, Projeto) geralmente acompanhadas de \\hfill ou traço
+    entry_header_pattern = re.compile(
+        r"^\s*(?:\\noindent\s*)?\\textbf\{[^\}]+\}(?:\s*\\hfill|\s*---|---|\s*--|--)",
+        re.IGNORECASE,
+    )
+
+    safe_end_pattern = re.compile(
+        r"(\\par(?:\s*\\vspace\{[^\}]*\})?|\\end\{(?:itemize|enumerate|tabular|tabular\*|minipage)\})\s*$",
+        re.IGNORECASE,
+    )
+    sec_header_pattern = re.compile(
+        r"^\s*\\(?:section|subsection|subsubsection|cvsection|cventry|resumeSubHeadingListStart)\b",
+        re.IGNORECASE,
+    )
+
+    for line in lines:
+        stripped = line.strip()
+        if entry_header_pattern.match(stripped) and fixed_lines:
+            prev_idx = len(fixed_lines) - 1
+            while prev_idx >= 0 and not fixed_lines[prev_idx].strip():
+                prev_idx -= 1
+
+            if prev_idx >= 0:
+                prev = fixed_lines[prev_idx].strip()
+                if prev and not prev.startswith("%") and not sec_header_pattern.match(prev):
+                    if prev.endswith(r"\\"):
+                        fixed_lines[prev_idx] = fixed_lines[prev_idx][:-2].rstrip() + r"\par\vspace{3pt}"
+                        if not any(not l.strip() for l in fixed_lines[prev_idx + 1:]):
+                            fixed_lines.append("")
+                    elif not safe_end_pattern.search(prev):
+                        fixed_lines[prev_idx] = fixed_lines[prev_idx] + r"\par\vspace{3pt}"
+                        if not any(not l.strip() for l in fixed_lines[prev_idx + 1:]):
+                            fixed_lines.append("")
+                    elif not any(not l.strip() for l in fixed_lines[prev_idx + 1:]):
+                        fixed_lines.append("")
+
+        fixed_lines.append(line)
+
+    return "\n".join(fixed_lines)
+
+
 def compile_latex_to_pdf(
     latex_code: str,
     output_stem: str = "curriculo",
@@ -190,6 +243,7 @@ def compile_latex_to_pdf(
     Retorna: (sucesso, caminho_pdf, caminho_tex, log_resumido)
     """
     sanitize_custom_latex(latex_code)
+    latex_code = sanitize_latex_layout(latex_code)
 
     target_dir = (build_dir or OUTPUT_DIR).resolve()
     target_dir.mkdir(parents=True, exist_ok=True)
