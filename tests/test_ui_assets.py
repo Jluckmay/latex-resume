@@ -327,3 +327,24 @@ def test_backend_modal_masks_protected_url_and_sanitizes_local_storage():
 
 
 
+
+
+def test_ai_ats_max_is_interface_default():
+    """Valida se o template ai_ats_max é o padrão em index.html, app.py, server.py e src/pipeline.py."""
+    from pathlib import Path
+    import inspect
+    from src.pipeline import build_resume_pipeline
+
+    html = Path("index.html").read_text(encoding="utf-8")
+    assert 'class="tpl-option active" data-tpl="ai_ats_max"' in html
+    assert '<span class="pill-badge" id="preview-tpl-badge">ai_ats_max</span>' in html
+    assert 'templateId: "ai_ats_max",' in html
+
+    app_py = Path("app.py").read_text(encoding="utf-8")
+    assert '"academic_classic" if resume_type == "academico" else "ai_ats_max"' in app_py
+
+    srv = Path("server.py").read_text(encoding="utf-8")
+    assert 'template_id = payload_data.get("template_id", "ai_ats_max")' in srv
+
+    sig = inspect.signature(build_resume_pipeline)
+    assert sig.parameters["template_id"].default == "ai_ats_max"

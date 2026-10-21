@@ -904,7 +904,7 @@ def generate_direct_latex_resume(
 
     resume_type: str = "profissional",
 
-    template_id: str = "modern_pro",
+    template_id: str = "ai_ats_max",
 
     custom_latex_template: str | None = None,
 

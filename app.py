@@ -186,7 +186,7 @@ with col_left:
         )
 
     custom_latex_str: str | None = None
-    selected_template_id = "academic_classic" if resume_type == "academico" else "modern_pro"
+    selected_template_id = "academic_classic" if resume_type == "academico" else "ai_ats_max"
 
     if template_mode == txt["tpl_mode_builtin"]:
         tpl_loc = TEMPLATES_I18N[ui_lang]
@@ -194,7 +194,7 @@ with col_left:
             tpl_loc.get(k, {}).get("name", v["name"]): k
             for k, v in BUILTIN_TEMPLATES.items()
         }
-        default_idx = 1 if resume_type == "academico" else 0
+        default_idx = 1 if resume_type == "academico" else list(tpl_labels.values()).index("ai_ats_max")
         chosen_label = st.selectbox(
             txt["tpl_select_label"],
             options=list(tpl_labels.keys()),

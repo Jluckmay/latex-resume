@@ -737,7 +737,7 @@
                 <!-- Built-in Templates Visual Picker -->
                 <div id="builtin-tpl-container">
                     <div class="tpl-grid">
-                        <div class="tpl-option active" data-tpl="modern_pro" onclick="selectTemplate('modern_pro')">
+                        <div class="tpl-option" data-tpl="modern_pro" onclick="selectTemplate('modern_pro')">
                             <div class="tpl-option-title" id="tpl-name-modern">Moderno Executivo</div>
                             <div class="tpl-option-desc" id="tpl-desc-modern">Coluna única com cabeçalho destacado, foto opcional e links clicáveis.</div>
                         </div>
@@ -769,7 +769,7 @@
                             <div class="tpl-option-title" id="tpl-name-google">🏢 Padrão Google (Big Tech / SWE)</div>
                             <div class="tpl-option-desc" id="tpl-desc-google">Página única densa, margens 0.5in, formato XYZ de realizações e formatação clean.</div>
                         </div>
-                        <div class="tpl-option" data-tpl="ai_ats_max" onclick="selectTemplate('ai_ats_max')">
+                        <div class="tpl-option active" data-tpl="ai_ats_max" onclick="selectTemplate('ai_ats_max')">
                             <div class="tpl-option-title" id="tpl-name-aiats">🤖 Otimizado para IA & ATS (Máx. Legibilidade)</div>
                             <div class="tpl-option-desc" id="tpl-desc-aiats">Triagem automatizada por LLMs (Gemini, Claude, GPT) e ATS. Fluxo 100% linear e sem ícones proprietários.</div>
                         </div>
@@ -969,7 +969,7 @@
             <div class="card">
                 <div class="card-header">
                     <div class="card-title" id="ui-preview-title">👁️ Preview em Tempo Real do Modelo LaTeX & Cores</div>
-                    <span class="pill-badge" id="preview-tpl-badge">modern_pro</span>
+                    <span class="pill-badge" id="preview-tpl-badge">ai_ats_max</span>
                 </div>
                 <div id="live-preview-box"></div>
             </div>
@@ -1313,7 +1313,7 @@
             theme: "light",
             resumeType: "profissional",
             templateSource: "builtin",
-            templateId: "modern_pro",
+            templateId: "ai_ats_max",
             photoDataUrl: null
         };
 
@@ -1642,10 +1642,10 @@
             state.resumeType = type;
             document.getElementById("btn-type-prof").classList.toggle("active", type === "profissional");
             document.getElementById("btn-type-acad").classList.toggle("active", type === "academico");
-            if (type === "academico" && state.templateId === "modern_pro") {
+            if (type === "academico" && state.templateId === "ai_ats_max") {
                 selectTemplate("academic_classic");
             } else if (type === "profissional" && state.templateId === "academic_classic") {
-                selectTemplate("modern_pro");
+                selectTemplate("ai_ats_max");
             }
             renderLivePreview();
         }

@@ -90,7 +90,7 @@ class LLMResumeGenerator:
         self,
         raw_profile_data: Dict[str, Any],
         resume_type: str = "profissional",
-        template_id: str = "modern_pro",
+        template_id: str = "ai_ats_max",
         custom_latex_template: str | None = None,
         photo_filename: str | None = None,
         lang: str = "pt-br",
@@ -307,7 +307,8 @@ class LLMResumeGenerator:
                 extra_saved=preamble_tokens_saved + 1500,
             )
             return final_latex, metrics
-        except Exception:
+        except Exception as exc:
+            metrics.model_used = f"direct_fallback ({type(exc).__name__})"
             # Em caso de indisponibilidade de API ou falha, preserva o LaTeX determinístico com segurança
             return base_latex, metrics
 

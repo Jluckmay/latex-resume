@@ -53,7 +53,7 @@ def build_resume_pipeline(
     portfolio_url: str = "",
     photo_bytes: bytes | None = None,
     photo_path: str | None = None,
-    template_id: str = "modern_pro",
+    template_id: str = "ai_ats_max",
     custom_latex_template: str | None = None,
     primary_color: str = "#18181B",
     secondary_color: str = "#3F3F46",
