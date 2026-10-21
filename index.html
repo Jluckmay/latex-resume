@@ -818,23 +818,23 @@
                 <div class="grid-2">
                     <div class="form-group">
                         <label id="ui-name-lbl">Nome Completo (opcional)</label>
-                        <input type="text" id="inp-name" class="form-control" placeholder="Detectado automaticamente se vazio" oninput="renderLivePreview()">
+                        <input type="text" id="inp-name" class="form-control" placeholder="Detectado automaticamente se vazio" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true">
                     </div>
                     <div class="form-group">
                         <label id="ui-role-lbl">Cargo / Título Principal (opcional)</label>
-                        <input type="text" id="inp-role" class="form-control" placeholder="Ex: Engenheiro de IA Sênior / Pesquisador" oninput="renderLivePreview()">
+                        <input type="text" id="inp-role" class="form-control" placeholder="Ex: Engenheiro de IA Sênior / Pesquisador" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true">
                     </div>
                     <div class="form-group">
                         <label id="ui-email-lbl">E-mail</label>
-                        <input type="email" id="inp-email" class="form-control" placeholder="seu.email@dominio.com" oninput="renderLivePreview()">
+                        <input type="email" id="inp-email" class="form-control" placeholder="seu.email@dominio.com" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true">
                     </div>
                     <div class="form-group">
                         <label id="ui-loc-lbl">Cidade / UF / País</label>
-                        <input type="text" id="inp-location" class="form-control" placeholder="São Paulo, SP, Brasil" oninput="renderLivePreview()">
+                        <input type="text" id="inp-location" class="form-control" placeholder="São Paulo, SP, Brasil" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true">
                     </div>
                     <div class="form-group">
                         <label id="ui-phone-lbl">Telefone</label>
-                        <input type="text" id="inp-phone" class="form-control" placeholder="+55 (11) 99999-9999">
+                        <input type="text" id="inp-phone" class="form-control" placeholder="+55 (11) 99999-9999" autocomplete="off" data-lpignore="true">
                     </div>
                     <div class="form-group">
                         <label id="ui-provider-lbl">Provedor de IA</label>
@@ -858,10 +858,10 @@
                     <div class="form-group">
                         <label id="ui-api-key-lbl">Chave de API do Provedor (Opcional)</label>
                         <div style="position:relative;display:flex;align-items:center;">
-                            <input type="password" id="inp-api-key" class="form-control" style="padding-right:2.4rem;" placeholder="Padrão seguro do servidor ativo">
+                            <input type="password" id="inp-api-key" class="form-control" style="padding-right:2.4rem;" placeholder="Padrão seguro do servidor ativo" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other">
                             <button type="button" id="btn-toggle-key" onclick="toggleKeyVisibility()" style="position:absolute;right:8px;background:none;border:none;cursor:pointer;font-size:0.95rem;color:var(--text-muted);" title="Exibir/Ocultar chave">👁️</button>
                         </div>
-                </div>
+                    </div>
 
                 <div class="form-group" id="group-ai-mode" style="margin-top:-0.3rem;margin-bottom:0.85rem;">
                     <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;font-size:0.84rem;color:var(--text-main);">
@@ -975,6 +975,38 @@
     </div>
 
     <script>
+        // Suprime ruídos de promessas rejeitadas de extensões do navegador (Autofill, Passkeys, Google Password Manager)
+        window.addEventListener("unhandledrejection", (event) => {
+            const r = event.reason;
+            const msg = (typeof r === "string" ? r : (r && (r.message || r.stack))) || "";
+            if (
+                msg.includes("FN_NOT_FOUND") ||
+                msg.includes("closeSiteFrame") ||
+                msg.includes("closeCardFrame") ||
+                msg.includes("closePasskeyConditionalList") ||
+                msg.includes("siteFrame") ||
+                msg.includes("cardFrame") ||
+                msg.includes("passkey") ||
+                msg.includes("chrome-extension://") ||
+                msg.includes("moz-extension://")
+            ) {
+                event.preventDefault();
+            }
+        });
+
+        window.addEventListener("error", (event) => {
+            const msg = (event.message || "") + " " + (event.filename || "");
+            if (
+                msg.includes("FN_NOT_FOUND") ||
+                msg.includes("closeSiteFrame") ||
+                msg.includes("closeCardFrame") ||
+                msg.includes("closePasskeyConditionalList") ||
+                msg.includes("chrome-extension://")
+            ) {
+                event.preventDefault();
+            }
+        });
+
         const PRESETS = {
             charcoal_minimal: { primary: "#18181B", secondary: "#3F3F46" },
             ocean_blue: { primary: "#0F4C81", secondary: "#1E293B" },
