@@ -202,7 +202,7 @@ class LLMResumeGenerator:
         return final_latex, structured_cv, metrics
 
     def repair_latex_error(self, broken_latex: str, error_excerpt: str) -> str:
-        """Reparo cirúrgico de LaTeX enviando apenas a linha decisiva do erro (regra caveman)."""
+        """Reparo cirúrgico de LaTeX auditando sintaxe, caracteres de escape, ambientes e layout."""
         preamble, body, _ = LaTeXPreambleSplitPlugin.split_template(broken_latex)
         target = body if preamble else broken_latex
         messages = [
@@ -210,14 +210,21 @@ class LLMResumeGenerator:
                 "role": "system",
                 "content": (
                     "MODE:CAVEMAN_LATEX_REPAIR. Zero prose, zero fences. "
-                    "Fix LaTeX compilation and formatting errors. Ensure every entry (education, experience, project) "
-                    "is cleanly isolated with \\par\\vspace{3pt} or blank lines so items never collide on the same line. "
+                    "Role: Senior LaTeX Debugger and Code Architect. "
+                    "Analyze pdflatex compiler errors and fix broken LaTeX code. "
+                    "1. SYNTAX AUDIT: Fix unclosed braces {}, unclosed environments (itemize, tabular, minipage), and broken macros. "
+                    "2. ESCAPING AUDIT: Ensure %, &, $, #, _ in regular text are escaped (e.g. C\\#, R\\&D, 100\\%, PL/SQL). "
+                    "3. ENTRY ISOLATION: Ensure every entry (education, experience, project) is cleanly isolated with \\par\\vspace{3pt} or blank lines so items never collide on the same line. "
                     "Output ONLY valid compilable LaTeX code."
                 ),
             },
             {
                 "role": "user",
-                "content": f"ERROR:\n{error_excerpt[:400]}\n\nLATEX:\n{target}",
+                "content": (
+                    f"COMPILER_ERROR:\n{error_excerpt[:600]}\n\n"
+                    f"BROKEN_LATEX:\n{target}\n\n"
+                    "Fix all syntax, escaping, and formatting errors. Return valid compilable LaTeX code."
+                ),
             },
         ]
         fixed, _, _, _ = self._call_llm_chat(messages=messages, max_tokens=2200)
@@ -234,6 +241,8 @@ class LLMResumeGenerator:
     ) -> Tuple[str, TokenMetrics]:
         """Revisa e aprimora cirurgicamente o código LaTeX existente sem reconstruir do zero.
 
+        Realiza revisão dupla: auditoria completa do código LaTeX (sintaxe, escape, espaçamento)
+        e aprimoramento textual (verbos de ação, impacto, síntese de resumo).
         Economiza até ~75% dos tokens comparado com síntese direta a partir de páginas web brutas.
         Envia apenas o corpo do documento (\\begin{document} .. \\end{document}) com split de preâmbulo.
         """
@@ -252,27 +261,31 @@ class LLMResumeGenerator:
         instruction_line = f"CUSTOM INSTRUCTION: {instructions.strip()}\n" if instructions.strip() else ""
 
         sys_prompt = (
-            f"MODE:CAVEMAN_LATEX_REVIEW. LANG:{lang.upper()}.\n"
-            "Task: Polish and enhance the provided LaTeX resume body.\n"
-            "CRITICAL FORMATTING & LAYOUT INSTRUCTIONS:\n"
-            "1. ENTRY ISOLATION (ZERO COLLISION): Each degree/education, job experience, or project entry MUST be an isolated paragraph. "
-            "NEVER let the end of one entry (institution, location, or details) merge onto the same line as the next entry's title or \\hfill. "
-            "Always conclude an entry with \\par\\vspace{3pt} or a clean blank line before starting the next \\noindent\\textbf{...}.\n"
-            "2. LINE BREAK DISCIPLINE: In LaTeX, a single newline without \\\\ or \\par is treated as a space. "
-            "Subtitle/institution lines (e.g. 'DCC/UFMG $\\cdot$ Belo Horizonte, MG') MUST NOT be followed directly by a new entry on the same line. "
-            "Separate entries clearly with vertical spacing.\n"
-            "3. PUNCHY CONTENT: Improve phrasing, punchy bullet points, and strong action verbs in the target language.\n"
-            "4. STRICT TRUTHFULNESS: Keep all institutions, degrees, dates, metrics, and names 100% truthful to source data.\n"
-            "5. OUTPUT FORMAT: Return ONLY the polished LaTeX body from \\begin{document} to \\end{document}. "
-            "Zero prose, zero markdown code fences."
+            f"MODE:CAVEMAN_LATEX_CODE_AND_CONTENT_REVIEW. LANG:{lang.upper()}.\n"
+            "Role: Senior LaTeX Architect & Executive Technical Resume Editor.\n"
+            "Task: Perform a comprehensive dual review of the provided LaTeX resume body (LaTeX code audit + text content optimization).\n\n"
+            "PART 1: LATEX CODE & TYPESETTING AUDIT\n"
+            "1. SYNTAX & ENVIRONMENTS: Check and ensure all braces {} are balanced. Ensure all environments (\\begin{itemize} ... \\end{itemize}, minipage, tabular) are properly opened and closed.\n"
+            r"2. SPECIAL CHARACTER ESCAPING: Audit all user text, company names, skills, URLs, and descriptions for unescaped reserved LaTeX characters. Ensure '%', '&', '$', '#', and '_' are properly escaped (e.g. C\#, C\texttt{++}, R\&D, PL/SQL, 100\%, \$1M, tech\_stack) while preserving LaTeX commands and math symbols (\cdot, \textbf, \hfill)." "\n"
+            "3. ENTRY ISOLATION (ZERO COLLISION): Each education degree, job experience, or project entry MUST be an isolated paragraph block. Conclude each entry with \\par\\vspace{3pt} or a clean blank line. NEVER allow an institution, location, or details line to merge onto the same line as the next entry title or \\hfill.\n"
+            "4. LINE BREAK & SPACING DISCIPLINE: Avoid awkward line breaks, overlapping text, or overfull boxes. Ensure clean vertical rhythm and correct use of \\par and \\vspace.\n"
+            "5. MACRO PRESERVATION: Preserve existing template structure, commands, and styling macros (e.g. \\cventry, \\cvsection, \\cvskill, \\textbf, \\textit, \\href, \\color).\n\n"
+            "PART 2: TEXT & CONTENT ENHANCEMENT\n"
+            "1. ACTION VERBS & METRICS: Polish bullet points with high-impact, punchy action verbs and clear accomplishments in the target language.\n"
+            "2. EXECUTIVE SUMMARY: If the summary/resumo section is sparse or missing, synthesize a concise 2-3 sentence technical overview based strictly on the candidate's actual data.\n"
+            "3. STRICT TRUTHFULNESS: Keep all institutions, degrees, dates, metrics, and names 100% truthful to source facts. Never invent experiences or credentials.\n\n"
+            "PART 3: OUTPUT FORMAT\n"
+            "Return ONLY the audited, polished LaTeX body from \\begin{document} to \\end{document}. "
+            "Zero prose commentary, zero markdown code fences."
         )
 
         user_prompt = (
             f"{instruction_line}"
-            "CRITICAL INSTRUCTION: Ensure each education, experience, and project entry is cleanly separated. "
-            "Do NOT merge institution/location lines with subsequent degree/title lines. Keep distinct \\par\\vspace{3pt} paragraph breaks.\n\n"
+            "DUAL REVIEW MANDATE: Review both the LaTeX code (syntax, balanced braces, special character escaping %, &, $, #, _, entry isolation) "
+            "and the text content (punchy action verbs, high-impact phrasing, strict truthfulness).\n"
+            "Ensure every education, experience, and project entry is isolated with \\par\\vspace{3pt} or blank lines.\n\n"
             f"LATEX_BODY_TO_REVIEW:\n{target}\n\n"
-            "Return improved LaTeX body from \\begin{document} to \\end{document}."
+            "Return the audited and improved LaTeX body from \\begin{document} to \\end{document}."
         )
 
         try:

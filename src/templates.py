@@ -828,12 +828,35 @@ def _build_acv_sections(
         if with_lang_circles:
             l_rows: List[str] = []
             for idx, lg in enumerate(langs):
-                dots = (
-                    r"\faIcon{circle} \faIcon{circle} \faIcon{circle} \faIcon{circle} \faIcon{circle}"
-                    if idx == 0
-                    else r"\faIcon{circle} \faIcon{circle} \faIcon{circle} \faIcon{circle} \faIcon[regular]{circle}"
-                )
-                l_rows.append(rf"    \textbf{{\color{{sidecolor}} {escape_latex(lg)}}} & {{\color{{accent}} {dots}}} \\")
+                low_lg = lg.lower()
+                m = re.match(r"^([^\(]+)(?:\s*\((.*?)\))?$", lg)
+                clean_name = m.group(1).strip() if m else lg
+                prof_note = m.group(2).strip().lower() if m and m.group(2) else ""
+
+                if any(k in prof_note or k in low_lg for k in ("fluente", "fluent", "nativo", "native")):
+                    filled = 5
+                elif any(k in prof_note or k in low_lg for k in ("avançado", "avancado", "advanced")):
+                    filled = 4
+                elif any(k in prof_note or k in low_lg for k in ("intermediário", "intermediario", "intermediate")):
+                    filled = 3
+                elif any(k in prof_note or k in low_lg for k in ("iniciante", "básico", "basico", "beginner", "basic", "pouco")):
+                    filled = 2
+                else:
+                    if "portugu" in low_lg:
+                        filled = 5
+                    elif "ingl" in low_lg or "engl" in low_lg:
+                        filled = 3
+                    elif any(k in low_lg for k in ("espanh", "span", "libra")):
+                        filled = 2
+                    elif idx == 0:
+                        filled = 5
+                    else:
+                        filled = 3
+
+                full_circle = r"\faIcon{circle}"
+                empty_circle = r"\faIcon[regular]{circle}"
+                dots = " ".join([full_circle] * filled + [empty_circle] * (5 - filled))
+                l_rows.append(rf"    \textbf{{\color{{sidecolor}} {escape_latex(clean_name)}}} & {{\color{{accent}} {dots}}} \\")
             l_body = (
                 r"\noindent\begin{tabular}{@{} p{0.55\textwidth} >{\raggedleft\arraybackslash}p{0.40\textwidth} @{}}"
                 + "\n"

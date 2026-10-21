@@ -143,10 +143,10 @@ with st.sidebar:
             "⚡ Modo Apenas Revisão (Economia Máxima de Tokens)" if ui_lang == "pt-br" else "⚡ Review-Only Mode (Maximum Token Savings)",
             value=True,
             help=(
-                "Gera o currículo determinístico a partir dos extratores e usa a IA apenas para revisar, polir o texto e melhorar os bullet points, economizando até ~75% de tokens."
-                if ui_lang == "pt-br"
-                else "Generates a deterministic resume from extractors first, using AI only to review, polish phrasing, and enhance bullet points, saving up to ~75% tokens."
-            ),
+            "Gera o currículo determinístico a partir dos extratores e usa a IA para auditar/revisar tanto o código LaTeX quanto os textos e bullet points, economizando até ~75% de tokens."
+            if ui_lang == "pt-br"
+            else "Generates a deterministic resume from extractors first, using AI to audit/review both the LaTeX code and the text phrasing, saving up to ~75% tokens."
+        ),
         )
         if review_only_cb:
             ai_mode = "review_only"

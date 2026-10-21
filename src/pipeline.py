@@ -148,6 +148,7 @@ def build_resume_pipeline(
     # 3. Geração do LaTeX (Direta / Determinística 0-token ou via IA com economia de tokens)
     chosen_provider = (provider or DEFAULT_PROVIDER).strip().lower()
     is_offline = (chosen_provider == "none") or (not use_ai) or (ai_mode == "disabled")
+    generator = None
 
     if is_offline:
         latex_code, structured_cv = generate_direct_latex_resume(
@@ -241,8 +242,8 @@ def build_resume_pipeline(
         build_dir=target_dir,
     )
 
-    # 6. Auto-reparo cirúrgico (1 tentativa) caso template customizado tenha erro de sintaxe
-    if not ok and custom_latex_template:
+    # 6. Auto-reparo cirúrgico (1 tentativa) caso ocorra erro de compilação em qualquer template
+    if not ok and generator is not None:
         try:
             repaired_latex = generator.repair_latex_error(latex_code, comp_msg)
             repaired_latex = apply_custom_colors_and_portfolio_to_latex(

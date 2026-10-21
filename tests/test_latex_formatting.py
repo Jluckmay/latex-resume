@@ -86,4 +86,123 @@ def test_index_html_autofill_and_extension_error_suppression():
     assert "data-lpignore" in html_content
     assert 'autocomplete="new-password"' in html_content
 
+def test_review_and_enhance_latex_mandates_dual_latex_code_and_content_review():
+    """Valida se o prompt de review_and_enhance_latex instrui expressamente a revisão do código LaTeX e do texto."""
+    from unittest.mock import patch
+    from src.llm_client import LLMResumeGenerator
+
+    generator = LLMResumeGenerator(provider="default")
+    captured_messages = []
+
+    def fake_call(messages, max_tokens):
+        captured_messages.extend(messages)
+        return (
+            "\\begin{document}\nReviewed content\\end{document}",
+            {"prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 150},
+            "nvidia/test-model",
+            False,
+        )
+
+    with patch.object(generator, "_call_llm_chat", side_effect=fake_call):
+        base_latex = "\\documentclass{article}\n\\begin{document}\nBase\n\\end{document}"
+        generator.review_and_enhance_latex(
+            base_latex=base_latex,
+            resume_type="profissional",
+            instructions="Destacar Python e Docker",
+            lang="pt-br",
+        )
+
+    sys_msg = captured_messages[0]["content"]
+    user_msg = captured_messages[1]["content"]
+
+    # Valida presença das regras de auditoria do código LaTeX
+    assert "MODE:CAVEMAN_LATEX_CODE_AND_CONTENT_REVIEW" in sys_msg
+    assert "PART 1: LATEX CODE & TYPESETTING AUDIT" in sys_msg
+    assert "SYNTAX & ENVIRONMENTS" in sys_msg
+    assert "SPECIAL CHARACTER ESCAPING" in sys_msg
+    assert "ENTRY ISOLATION (ZERO COLLISION)" in sys_msg
+    assert "MACRO PRESERVATION" in sys_msg
+
+    # Valida presença das regras de aprimoramento textual
+    assert "PART 2: TEXT & CONTENT ENHANCEMENT" in sys_msg
+    assert "ACTION VERBS & METRICS" in sys_msg
+    assert "EXECUTIVE SUMMARY" in sys_msg
+    assert "STRICT TRUTHFULNESS" in sys_msg
+
+    # Valida mandado de revisão dupla no prompt do usuário
+    assert "DUAL REVIEW MANDATE" in user_msg
+    assert "Destacar Python e Docker" in user_msg
+
+
+def test_repair_latex_error_mandates_code_and_syntax_audit():
+    """Valida se o método repair_latex_error instrui auditoria de sintaxe, ambientes e layout."""
+    from unittest.mock import patch
+    from src.llm_client import LLMResumeGenerator
+
+    generator = LLMResumeGenerator(provider="default")
+    captured_messages = []
+
+    def fake_call(messages, max_tokens):
+        captured_messages.extend(messages)
+        return (
+            "\\begin{document}\nFixed\n\\end{document}",
+            {"total_tokens": 100},
+            "nvidia/test-model",
+            False,
+        )
+
+    with patch.object(generator, "_call_llm_chat", side_effect=fake_call):
+        generator.repair_latex_error(
+            broken_latex="\\begin{document}\nBroken C# and R&D\n\\end{document}",
+            error_excerpt=r"! LaTeX Error: Something's wrong--perhaps a missing \item.",
+        )
+
+    sys_msg = captured_messages[0]["content"]
+    user_msg = captured_messages[1]["content"]
+
+    assert "MODE:CAVEMAN_LATEX_REPAIR" in sys_msg
+    assert "SYNTAX AUDIT" in sys_msg
+    assert "ESCAPING AUDIT" in sys_msg
+    assert "ENTRY ISOLATION" in sys_msg
+    assert "COMPILER_ERROR:" in user_msg
+
+
+def test_pipeline_triggers_universal_latex_repair_on_compiler_error(tmp_path):
+    """Garante que qualquer erro de compilação pdflatex aciona o auto-reparo cirúrgico por IA."""
+    from unittest.mock import patch, MagicMock
+    from src.pipeline import build_resume_pipeline
+
+    mock_generator = MagicMock()
+    mock_generator.repair_latex_error.return_value = (
+        r"\documentclass{article}\begin{document}Repaired\end{document}"
+    )
+    mock_generator.generate_latex_resume.return_value = (
+        r"\documentclass{article}\begin{document}Broken Code\end{document}",
+        {"name": "Test"},
+        MagicMock(to_dict=lambda: {"total_tokens_actual": 100}),
+    )
+
+    compile_calls = []
+
+    def fake_compile(latex_code, output_stem, build_dir):
+        compile_calls.append(latex_code)
+        # Primeira compilação falha, segunda (após reparo) tem sucesso
+        if len(compile_calls) == 1:
+            return False, None, tmp_path / f"{output_stem}.tex", "Syntax error on line 12"
+        return True, tmp_path / f"{output_stem}.pdf", tmp_path / f"{output_stem}.tex", "Success"
+
+    with patch("src.pipeline.LLMResumeGenerator", return_value=mock_generator),          patch("src.pipeline.compile_latex_to_pdf", side_effect=fake_compile):
+        
+        result = build_resume_pipeline(
+            resume_type="profissional",
+            user_name="Carlos Dev",
+            provider="nvidia",
+            template_id="modern_pro",
+            output_stem="test_universal_repair",
+            build_dir=tmp_path,
+        )
+
+        assert mock_generator.repair_latex_error.called
+        assert len(compile_calls) == 2
+        assert result.success is True
 
