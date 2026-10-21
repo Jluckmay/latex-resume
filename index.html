@@ -81,6 +81,14 @@
     <meta name="theme-color" content="#18181B">
 
     <style>
+        .masked-key {
+            -webkit-text-security: disc !important;
+            text-security: disc !important;
+        }
+        .masked-key.revealed {
+            -webkit-text-security: none !important;
+            text-security: none !important;
+        }
         :root[data-theme="light"] {
             --bg-body: #f8fafc;
             --bg-card: #ffffff;
@@ -842,7 +850,7 @@
                     </div>
                     <div class="form-group">
                         <label id="ui-lattes-lbl">Currículo Lattes (ID de 16 dígitos ou URL)</label>
-                        <input type="text" id="inp-lattes" class="form-control" placeholder="ex: 1234567890123456 ou http://lattes.cnpq.br/0000000000000000" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
+                        <input type="text" id="inp-lattes" class="form-control" placeholder="ex: 0000000000000000 ou http://lattes.cnpq.br/0000000000000000" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
                     </div>
                     <div class="form-group">
                         <label id="ui-port-lbl">Página de Portfólio / Website (URL)</label>
@@ -892,7 +900,7 @@
                     </div>
                     <div class="form-group">
                         <label id="ui-email-lbl">E-mail</label>
-                        <input type="email" id="inp-email" class="form-control" placeholder="seu.email@dominio.com" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
+                        <input type="text" inputmode="email" id="inp-email" class="form-control" placeholder="seu.email@dominio.com" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
                     </div>
                     <div class="form-group">
                         <label id="ui-loc-lbl">Cidade / UF / País</label>
@@ -924,7 +932,7 @@
                     <div class="form-group">
                         <label id="ui-api-key-lbl">Chave de API do Provedor (Opcional)</label>
                         <div style="position:relative;display:flex;align-items:center;">
-                            <input type="password" id="inp-api-key" class="form-control" style="padding-right:2.4rem;" placeholder="Padrão seguro do servidor ativo" autocomplete="new-password" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other">
+                            <input type="text" id="inp-api-key" class="form-control masked-key" style="padding-right:2.4rem;" placeholder="Padrão seguro do servidor ativo" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" autocorrect="off" autocapitalize="off" aria-autocomplete="none">
                             <button type="button" id="btn-toggle-key" onclick="toggleKeyVisibility()" style="position:absolute;right:8px;background:none;border:none;cursor:pointer;font-size:0.95rem;color:var(--text-muted);" title="Exibir/Ocultar chave">👁️</button>
                         </div>
                     </div>
@@ -1489,13 +1497,8 @@
             const inp = document.getElementById("inp-api-key");
             const btn = document.getElementById("btn-toggle-key");
             if (!inp || !btn) return;
-            if (inp.type === "password") {
-                inp.type = "text";
-                btn.textContent = "🙈";
-            } else {
-                inp.type = "password";
-                btn.textContent = "👁️";
-            }
+            const isRevealed = inp.classList.toggle("revealed");
+            btn.textContent = isRevealed ? "🙈" : "👁️";
         }
 
         function bufToB64(buf) {
