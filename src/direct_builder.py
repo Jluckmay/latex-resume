@@ -14,12 +14,14 @@ Garante:
 from __future__ import annotations
 
 import re
+import urllib.parse
 from typing import Any, Dict, List, Tuple
 
 from .i18n import normalize_lang
 from .extractors import extract_languages_from_text
 from .templates import (
     BUILTIN_TEMPLATES,
+    simplify_url_display,
     _get_platform_display,
     escape_latex,
     escape_url,
@@ -430,17 +432,22 @@ def _fill_custom_template_deterministically(
 
     contact_parts = []
     if cv.get("email"):
-        contact_parts.append(cv["email"])
+        em = cv["email"].strip()
+        contact_parts.append(rf"\href{{mailto:{escape_url(em)}}}{{\faIcon{{envelope}}\ {escape_latex(em)}}}")
     if cv.get("phone"):
-        contact_parts.append(cv["phone"])
+        contact_parts.append(rf"\faIcon{{phone}}\ {escape_latex(cv['phone'])}")
     if cv.get("location"):
-        contact_parts.append(cv["location"])
-    if links.get("github"):
-        gh_disp = escape_latex(_get_platform_display(links, "github"))
-        contact_parts.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}")
+        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
+        contact_parts.append(rf"\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'])}}}")
+    if links.get("portfolio"):
+        port_disp = escape_latex(simplify_url_display(links["portfolio"]))
+        contact_parts.append(rf"\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}")
     if links.get("linkedin"):
         li_disp = escape_latex(_get_platform_display(links, "linkedin"))
         contact_parts.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}")
+    if links.get("github"):
+        gh_disp = escape_latex(_get_platform_display(links, "github"))
+        contact_parts.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}")
     if links.get("orcid"):
         orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
         contact_parts.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}")

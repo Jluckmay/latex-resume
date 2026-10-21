@@ -8,6 +8,7 @@ e garantimos compilação 100% livre de erros de sintaxe no `pdflatex`.
 from __future__ import annotations
 
 import re
+import urllib.parse
 from typing import Any, Dict, List
 
 from .i18n import LATEX_I18N, normalize_lang
@@ -190,22 +191,36 @@ def _get_platform_display(links: Dict[str, str], platform: str) -> str:
 
     return ""
 
+def simplify_url_display(url: str) -> str:
+    """Retorna uma versão amigável e simplificada da URL (remove protocolo http/https, www e barra final)."""
+    if not url:
+        return ""
+    u = str(url).strip()
+    u = re.sub(r"^https?://", "", u, flags=re.IGNORECASE)
+    u = re.sub(r"^www\.", "", u, flags=re.IGNORECASE)
+    u = u.rstrip("/")
+    return u or url.strip()
+
+
 def _build_contact_links(links: Dict[str, str], email: str, phone: str, location: str) -> List[str]:
     items: List[str] = []
-    if location:
-        items.append(rf"\faIcon{{map-marker-alt}}\ {escape_latex(location)}")
     if email:
         clean_em = email.strip()
         items.append(rf"\href{{mailto:{escape_url(clean_em)}}}{{\faIcon{{envelope}}\ {escape_latex(clean_em)}}}")
     if phone:
         items.append(rf"\faIcon{{phone}}\ {escape_latex(phone)}")
-
-    if links.get("github"):
-        gh_disp = escape_latex(_get_platform_display(links, "github"))
-        items.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}")
+    if location:
+        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(location.strip())
+        items.append(rf"\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(location.strip())}}}")
+    if links.get("portfolio"):
+        port_disp = escape_latex(simplify_url_display(links["portfolio"]))
+        items.append(rf"\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}")
     if links.get("linkedin"):
         li_disp = escape_latex(_get_platform_display(links, "linkedin"))
         items.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}")
+    if links.get("github"):
+        gh_disp = escape_latex(_get_platform_display(links, "github"))
+        items.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}")
     if links.get("orcid"):
         orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
         items.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}")
@@ -213,7 +228,6 @@ def _build_contact_links(links: Dict[str, str], email: str, phone: str, location
         lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
         items.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}")
     return items
-
 
 
 ORCID_PATTERN = re.compile(
@@ -412,14 +426,14 @@ def _build_projects_block(projects: List[Dict[str, Any]], resume_type: str, lang
         tech = escape_latex(pj.get("tech"))
         url = (pj.get("url") or "").strip()
         desc = escape_latex(pj.get("description"))
-        head = rf"\textbf{{{nm}}}"
+        if url and url.startswith("http"):
+            head = rf"\href{{{escape_url(url)}}}{{\textbf{{{nm}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
+        else:
+            head = rf"\textbf{{{nm}}}"
         if tech:
             head += rf" ({{\small\texttt{{{tech}}}}})"
-        if url:
-            if url.startswith("http"):
-                head += rf" --- \href{{{escape_url(url)}}}{{\small {t['link_label']}}}"
-            else:
-                head += rf" \hfill \textit{{{escape_latex(url)}}}"
+        if url and not url.startswith("http"):
+            head += rf" \hfill \textit{{{escape_latex(url)}}}"
         item_line = f"    \\item {head}"
         if desc:
             item_line += f": {desc}"
@@ -440,10 +454,16 @@ def _build_publications_block(publications: List[Dict[str, Any]], lang: str = "p
         year = escape_latex(pb.get("year"))
         authors = escape_latex(pb.get("authors"))
         doi = (pb.get("doi") or "").strip()
+        pub_url = (pb.get("url") or "").strip()
+        if not pub_url and doi:
+            pub_url = doi if doi.startswith("http") else f"https://doi.org/{doi}"
+        title_head = rf"\textbf{{{title}}}"
+        if pub_url and pub_url.startswith("http"):
+            title_head = rf"\href{{{escape_url(pub_url)}}}{{\textbf{{{title}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
         parts = []
         if authors:
             parts.append(f"{authors}.")
-        parts.append(rf"\textbf{{{title}}}.")
+        parts.append(f"{title_head}.")
         if venue:
             parts.append(rf"\textit{{{venue}}},")
         if year:
@@ -847,7 +867,12 @@ def _build_acv_sections(
         tech = escape_latex(pj.get("tech"))
         url = (pj.get("url") or "").strip()
         desc = escape_latex(pj.get("description"))
-        url_tex = rf"\href{{{escape_url(url)}}}{{\small {t['link_label']}}}" if url.startswith("http") else escape_latex(url)
+        if url and url.startswith("http"):
+            nm_tex = rf"\href{{{escape_url(url)}}}{{\textbf{{{nm}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
+            url_tex = rf"\href{{{escape_url(url)}}}{{\small {t['link_label']}}}"
+        else:
+            nm_tex = rf"\textbf{{{nm}}}"
+            url_tex = escape_latex(url)
         b_items: List[str] = []
         if desc:
             b_items.append(rf"    \item {desc}")
@@ -862,7 +887,7 @@ def _build_acv_sections(
             if b_items
             else ""
         )
-        pj_entries.append(rf"\cventry{{{tech}}}{{{nm}}}{{{url_tex}}}{{}}{{{b_tex}}}")
+        pj_entries.append(rf"\cventry{{{tech}}}{{{nm_tex}}}{{{url_tex}}}{{}}{{{b_tex}}}")
     proj_title = t["sec_proj_acad"] if resume_type == "academico" else t["sec_proj_prof"]
     proj_block = _acv_sec_title_with_body(proj_title, "\n\n".join(pj_entries)) if pj_entries else ""
 
@@ -877,10 +902,16 @@ def _build_acv_sections(
             year = escape_latex(pb.get("year"))
             authors = escape_latex(pb.get("authors"))
             doi = (pb.get("doi") or "").strip()
+            pub_url = (pb.get("url") or "").strip()
+            if not pub_url and doi:
+                pub_url = doi if doi.startswith("http") else f"https://doi.org/{doi}"
+            title_head = rf"\textbf{{{title}}}"
+            if pub_url and pub_url.startswith("http"):
+                title_head = rf"\href{{{escape_url(pub_url)}}}{{\textbf{{{title}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
             parts = []
             if authors:
                 parts.append(f"{authors}.")
-            parts.append(rf"\textbf{{{title}}}.")
+            parts.append(f"{title_head}.")
             if venue:
                 parts.append(rf"\textit{{{venue}}},")
             if year:
@@ -1000,11 +1031,15 @@ def _render_overleaf_russell_ti(
         row2_links.append(rf"\href{{mailto:{escape_url(em)}}}{{\faIcon[regular]{{envelope}}\ {escape_latex(em)}}}")
     if cv.get("phone"):
         row2_links.append(rf"{{\faIcon{{whatsapp}}\ {escape_latex(cv['phone'])}}}")
+    if cv.get("location"):
+        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
+        row2_links.append(rf"\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}")
+    if links.get("portfolio"):
+        port_disp = escape_latex(simplify_url_display(links["portfolio"]))
+        row2_links.append(rf"\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}")
     if links.get("linkedin"):
         li_disp = escape_latex(_get_platform_display(links, "linkedin"))
         row2_links.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}")
-    if cv.get("location"):
-        row2_links.append(rf"{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'])}}}")
 
     r1_str = " \\quad | \\quad ".join(row1_links)
     r2_str = " \\quad | \\quad ".join(row2_links)
@@ -1101,13 +1136,17 @@ def _render_overleaf_awesome_cv(
         em = cv["email"].strip()
         social_items.append(rf"\href{{mailto:{escape_url(em)}}}{{\faIcon[regular]{{envelope}}\ {escape_latex(em)}}}")
     if cv.get("location"):
-        social_items.append(rf"{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'])}}}")
-    if links.get("github"):
-        gh_disp = escape_latex(_get_platform_display(links, "github"))
-        social_items.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}")
+        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
+        social_items.append(rf"\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}")
+    if links.get("portfolio"):
+        port_disp = escape_latex(simplify_url_display(links["portfolio"]))
+        social_items.append(rf"\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}")
     if links.get("linkedin"):
         li_disp = escape_latex(_get_platform_display(links, "linkedin"))
         social_items.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}")
+    if links.get("github"):
+        gh_disp = escape_latex(_get_platform_display(links, "github"))
+        social_items.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}")
     if links.get("orcid"):
         orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
         social_items.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}")
@@ -1228,13 +1267,17 @@ def _render_overleaf_single_page_keywords(
         right_contacts.append(rf"{{\small {lbl_ph}}} \textbf{{{escape_latex(cv['phone'])}}}")
     if cv.get("location"):
         lbl_lc = "Location" if is_en else "Local"
-        right_contacts.append(rf"{{\small {lbl_lc}}} \textbf{{{escape_latex(cv['location'])}}}")
-    if links.get("github"):
-        gh_disp = escape_latex(_get_platform_display(links, "github"))
-        right_contacts.append(rf"{{\small\faIcon{{github}}}} \href{{{escape_url(links['github'])}}}{{\textbf{{{gh_disp}}}}}")
+        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
+        right_contacts.append(rf"{{\small {lbl_lc}}} \href{{{escape_url(maps_url)}}}{{\textbf{{{escape_latex(cv['location'].strip())}}}}}")
+    if links.get("portfolio"):
+        port_disp = escape_latex(simplify_url_display(links["portfolio"]))
+        right_contacts.append(rf"{{\small Web}} \href{{{escape_url(links['portfolio'])}}}{{\textbf{{{port_disp}}}}}")
     if links.get("linkedin"):
         li_disp = escape_latex(_get_platform_display(links, "linkedin"))
         right_contacts.append(rf"{{\small\faIcon{{linkedin}}}} \href{{{escape_url(links['linkedin'])}}}{{\textbf{{{li_disp}}}}}")
+    if links.get("github"):
+        gh_disp = escape_latex(_get_platform_display(links, "github"))
+        right_contacts.append(rf"{{\small\faIcon{{github}}}} \href{{{escape_url(links['github'])}}}{{\textbf{{{gh_disp}}}}}")
     if links.get("orcid"):
         orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
         right_contacts.append(rf"{{\small\faIcon{{orcid}}}} \href{{{escape_url(links['orcid'])}}}{{\textbf{{{orcid_disp}}}}}")
@@ -1288,10 +1331,15 @@ def _render_overleaf_single_page_keywords(
     for pj in (cv.get("projects") or []):
         nm = escape_latex(pj.get("name"))
         tech = escape_latex(pj.get("tech"))
+        url = (pj.get("url") or "").strip()
         desc = escape_latex(pj.get("description"))
+        if url and url.startswith("http"):
+            nm_head = rf"\href{{{escape_url(url)}}}{{\textbf{{{nm}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
+        else:
+            nm_head = rf"\textbf{{{nm}}}"
         kw_suffix = rf" --- \textbf{{{tech}}}" if tech else ""
         body_p = f"{desc}{kw_suffix}" if desc else kw_suffix.lstrip(" -")
-        proj_rows.append(rf"    \item \textbf{{{nm}}}: {body_p}")
+        proj_rows.append(rf"    \item {nm_head}: {body_p}")
     proj_sec = ""
     if proj_rows:
         proj_sec = (
@@ -1321,7 +1369,15 @@ def _render_overleaf_single_page_keywords(
             pt = escape_latex(pb.get("title"))
             pv = escape_latex(pb.get("venue"))
             py = escape_latex(pb.get("year"))
-            p_rows.append(rf"    \item \textbf{{{pt}}} ({pv}, {py})")
+            pub_url = (pb.get("url") or "").strip()
+            doi = (pb.get("doi") or "").strip()
+            if not pub_url and doi:
+                pub_url = doi if doi.startswith("http") else f"https://doi.org/{doi}"
+            if pub_url and pub_url.startswith("http"):
+                pt_head = rf"\href{{{escape_url(pub_url)}}}{{\textbf{{{pt}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
+            else:
+                pt_head = rf"\textbf{{{pt}}}"
+            p_rows.append(rf"    \item {pt_head} ({pv}, {py})")
         pub_sec = (
             rf"\cvsec{{\faIcon{{book}}}}{{{pub_lbl}}}"
             + "\n\\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=2pt]\n"
@@ -1450,21 +1506,22 @@ def _render_google_standard(
 
     contact_parts: List[str] = []
     if cv.get("location"):
-        contact_parts.append(escape_latex(cv["location"]))
-    if cv.get("phone"):
-        contact_parts.append(escape_latex(cv["phone"]))
-    if cv.get("email"):
-        em = cv["email"].strip()
-        contact_parts.append(rf"\href{{mailto:{escape_url(em)}}}{{{escape_latex(em)}}}")
-    if links.get("github"):
-        gh_disp = escape_latex(_get_platform_display(links, "github"))
-        contact_parts.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}")
+        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
+        contact_parts.append(rf"\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}")
+    if links.get("portfolio"):
+        port_disp = escape_latex(simplify_url_display(links["portfolio"]))
+        contact_parts.append(rf"\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}")
     if links.get("linkedin"):
         li_disp = escape_latex(_get_platform_display(links, "linkedin"))
         contact_parts.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}")
-    if links.get("portfolio"):
-        lbl_port = "Portfolio" if is_en else "Portfólio"
-        contact_parts.append(rf"\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{lbl_port}}}}}")
+    if links.get("github"):
+        gh_disp = escape_latex(_get_platform_display(links, "github"))
+        contact_parts.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}")
+    if cv.get("email"):
+        em = cv["email"].strip()
+        contact_parts.append(rf"\href{{mailto:{escape_url(em)}}}{{{escape_latex(em)}}}")
+    if cv.get("phone"):
+        contact_parts.append(escape_latex(cv["phone"]))
     if links.get("orcid"):
         orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
         contact_parts.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}")
@@ -1568,9 +1625,14 @@ def _render_google_standard(
             tech = escape_latex(pj.get("tech"))
             url = (pj.get("url") or "").strip()
             desc = escape_latex(pj.get("description"))
-            link_tex = rf"\href{{{escape_url(url)}}}{{\textit{{{t['link_label']}}}}}" if url.startswith("http") else escape_latex(url)
+            if url and url.startswith("http"):
+                nm_head = rf"\href{{{escape_url(url)}}}{{\textbf{{{nm}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
+                link_tex = rf"\href{{{escape_url(url)}}}{{\textit{{{t['link_label']}}}}}"
+            else:
+                nm_head = rf"\textbf{{{nm}}}"
+                link_tex = escape_latex(url)
             tech_str = rf" \textbar{{}} \textit{{{tech}}}" if tech else ""
-            pj_lines.append(rf"\noindent\textbf{{{nm}}}{tech_str} \hfill {link_tex}")
+            pj_lines.append(rf"\noindent{nm_head}{tech_str} \hfill {link_tex}")
             if desc:
                 pj_lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
                 pj_lines.append(rf"    \item {desc}")
@@ -1673,22 +1735,24 @@ def _render_ai_ats_max(
     contact_parts: List[str] = []
     if cv.get("location"):
         lbl_loc = "Location: " if is_en else "Local: "
-        contact_parts.append(lbl_loc + escape_latex(cv["location"]))
+        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
+        contact_parts.append(rf"{lbl_loc}\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}")
+    if links.get("portfolio"):
+        port_disp = escape_latex(simplify_url_display(links["portfolio"]))
+        lbl_web = "Portfolio: " if is_en else "Portfólio: "
+        contact_parts.append(rf"{lbl_web}\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ {port_disp}}}")
+    if links.get("linkedin"):
+        li_disp = escape_latex(_get_platform_display(links, "linkedin"))
+        contact_parts.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ {li_disp}}}")
+    if links.get("github"):
+        gh_disp = escape_latex(_get_platform_display(links, "github"))
+        contact_parts.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ {gh_disp}}}")
     if cv.get("email"):
         em = cv["email"].strip()
         contact_parts.append(rf"Email: \href{{mailto:{escape_url(em)}}}{{{escape_latex(em)}}}")
     if cv.get("phone"):
         lbl_ph = "Phone: " if is_en else "Tel: "
         contact_parts.append(lbl_ph + escape_latex(cv["phone"]))
-    if links.get("github"):
-        gh_disp = escape_latex(_get_platform_display(links, "github"))
-        contact_parts.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ {gh_disp}}}")
-    if links.get("linkedin"):
-        li_disp = escape_latex(_get_platform_display(links, "linkedin"))
-        contact_parts.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ {li_disp}}}")
-    if links.get("portfolio"):
-        lbl_web = "Portfolio: " if is_en else "Portfólio: "
-        contact_parts.append(rf"\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ {lbl_web}}}")
     if links.get("orcid"):
         orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
         contact_parts.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ {orcid_disp}}}")
@@ -1785,9 +1849,12 @@ def _render_ai_ats_max(
             tech = escape_latex(pj.get("tech"))
             url = (pj.get("url") or "").strip()
             desc = escape_latex(pj.get("description"))
-            link_txt = rf" (\href{{{escape_url(url)}}}{{\small {escape_url(url)}}})" if url.startswith("http") else (f" ({escape_latex(url)})" if url else "")
+            if url and url.startswith("http"):
+                nm_head = rf"\href{{{escape_url(url)}}}{{\textbf{{{nm}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
+            else:
+                nm_head = rf"\textbf{{{nm}}}"
             tech_txt = f" [Stack: {tech}]" if tech else ""
-            pj_lines.append(rf"\noindent\textbf{{{nm}}}{tech_txt}{link_txt}")
+            pj_lines.append(rf"\noindent{nm_head}{tech_txt}")
             if desc:
                 pj_lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
                 pj_lines.append(rf"    \item {desc}")
