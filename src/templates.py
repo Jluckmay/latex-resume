@@ -11,6 +11,12 @@ import re
 from typing import Any, Dict, List
 
 from .i18n import LATEX_I18N, normalize_lang
+from .extractors import (
+    parse_github_input,
+    parse_lattes_input,
+    parse_linkedin_input,
+    parse_orcid_input,
+)
 
 BUILTIN_TEMPLATES: Dict[str, Dict[str, str]] = {
     "modern_pro": {
@@ -143,23 +149,69 @@ def escape_url(url: str) -> str:
     return u.replace("%", r"\%").replace("#", r"\#").replace("&", r"\&")
 
 
+
+def _get_platform_display(links: Dict[str, str], platform: str) -> str:
+    """Retorna o nick (GitHub/LinkedIn) ou ID (Lattes/ORCID) para exibição ao lado do ícone."""
+    if platform == "github":
+        if links.get("github_nick"):
+            return str(links["github_nick"]).strip()
+        val = str(links.get("github") or "").strip()
+        if val:
+            _, nick = parse_github_input(val)
+            return nick or val
+        return "GitHub"
+
+    if platform == "linkedin":
+        if links.get("linkedin_nick"):
+            return str(links["linkedin_nick"]).strip()
+        val = str(links.get("linkedin") or "").strip()
+        if val:
+            _, nick = parse_linkedin_input(val)
+            return nick or val
+        return "LinkedIn"
+
+    if platform == "orcid":
+        if links.get("orcid_id"):
+            return str(links["orcid_id"]).strip()
+        val = str(links.get("orcid") or "").strip()
+        if val:
+            _, oid = parse_orcid_input(val)
+            return oid or val
+        return "ORCID"
+
+    if platform == "lattes":
+        if links.get("lattes_id"):
+            return str(links["lattes_id"]).strip()
+        val = str(links.get("lattes") or "").strip()
+        if val:
+            _, lid = parse_lattes_input(val)
+            return lid or val
+        return "Lattes"
+
+    return ""
+
 def _build_contact_links(links: Dict[str, str], email: str, phone: str, location: str) -> List[str]:
     items: List[str] = []
     if location:
-        items.append(escape_latex(location))
+        items.append(rf"\faIcon{{map-marker-alt}}\ {escape_latex(location)}")
     if email:
         clean_em = email.strip()
-        items.append(rf"\href{{mailto:{escape_url(clean_em)}}}{{{escape_latex(clean_em)}}}")
+        items.append(rf"\href{{mailto:{escape_url(clean_em)}}}{{\faIcon{{envelope}}\ {escape_latex(clean_em)}}}")
     if phone:
-        items.append(escape_latex(phone))
-    if links.get("linkedin"):
-        items.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\textbf{{LinkedIn}}}}")
+        items.append(rf"\faIcon{{phone}}\ {escape_latex(phone)}")
+
     if links.get("github"):
-        items.append(rf"\href{{{escape_url(links['github'])}}}{{\textbf{{GitHub}}}}")
+        gh_disp = escape_latex(_get_platform_display(links, "github"))
+        items.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}")
+    if links.get("linkedin"):
+        li_disp = escape_latex(_get_platform_display(links, "linkedin"))
+        items.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}")
     if links.get("orcid"):
-        items.append(rf"\href{{{escape_url(links['orcid'])}}}{{\textbf{{ORCID}}}}")
+        orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
+        items.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}")
     if links.get("lattes"):
-        items.append(rf"\href{{{escape_url(links['lattes'])}}}{{\textbf{{Lattes}}}}")
+        lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
+        items.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}")
     return items
 
 
@@ -411,12 +463,22 @@ def _build_skills_block(skills: List[Dict[str, Any]], lang: str = "pt-br") -> st
     lines = [rf"\section*{{{t['sec_skills']}}}"]
     lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
     for sk in skills:
-        cat = escape_latex(sk.get("category"))
-        items = escape_latex(sk.get("items"))
+        if isinstance(sk, dict):
+            cat = escape_latex(sk.get("category"))
+            items = escape_latex(sk.get("items"))
+        else:
+            s = str(sk).strip()
+            if ":" in s:
+                p = s.split(":", 1)
+                cat, items = escape_latex(p[0].strip()), escape_latex(p[1].strip())
+            else:
+                cat, items = "", escape_latex(s)
         if cat and items:
             lines.append(rf"    \item \textbf{{{cat}:}} {items}")
         elif items:
             lines.append(rf"    \item {items}")
+        elif cat:
+            lines.append(rf"    \item {cat}")
     lines.append(r"\end{itemize}")
     return "\n".join(lines)
 
@@ -466,6 +528,7 @@ def _render_modern_pro(
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
 \usepackage{{titlesec}}
+\usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
 
 \input{{glyphtounicode}}
@@ -511,6 +574,7 @@ def _render_academic_classic(
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
 \usepackage{{titlesec}}
+\usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
 
 \input{{glyphtounicode}}
@@ -591,6 +655,7 @@ def _render_tech_sidebar(
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
 \usepackage{{titlesec}}
+\usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
 
 \input{{glyphtounicode}}
@@ -655,6 +720,7 @@ def _render_minimal_ats(
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
 \usepackage{{titlesec}}
+\usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
 
 \input{{glyphtounicode}}
@@ -722,8 +788,13 @@ def _build_acv_sections(
     # Skills block (tabular style \cvskills)
     sk_lines: List[str] = []
     for sk in (cv.get("skills") or []):
-        cat = escape_latex(sk.get("category") or t["default_skill_cat"])
-        items = escape_latex(sk.get("items"))
+        if isinstance(sk, dict):
+            cat = escape_latex(sk.get("category") or t["default_skill_cat"])
+            items = escape_latex(sk.get("items"))
+        else:
+            s = str(sk).strip()
+            cat = escape_latex(t["default_skill_cat"])
+            items = escape_latex(s)
         if items:
             sk_lines.append(rf"    \textbf{{\color{{sidecolor}} {cat}}} & {{\small {items}}} \\")
     skill_block = ""
@@ -914,11 +985,14 @@ def _render_overleaf_russell_ti(
 
     row1_links: List[str] = []
     if links.get("github"):
-        row1_links.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{GitHub}}}}")
+        gh_disp = escape_latex(_get_platform_display(links, "github"))
+        row1_links.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}")
     if links.get("orcid"):
-        row1_links.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{ORCID}}}}")
+        orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
+        row1_links.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}")
     if links.get("lattes"):
-        row1_links.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{Lattes}}}}")
+        lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
+        row1_links.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}")
 
     row2_links: List[str] = []
     if cv.get("email"):
@@ -927,7 +1001,8 @@ def _render_overleaf_russell_ti(
     if cv.get("phone"):
         row2_links.append(rf"{{\faIcon{{whatsapp}}\ {escape_latex(cv['phone'])}}}")
     if links.get("linkedin"):
-        row2_links.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{LinkedIn}}}}")
+        li_disp = escape_latex(_get_platform_display(links, "linkedin"))
+        row2_links.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}")
     if cv.get("location"):
         row2_links.append(rf"{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'])}}}")
 
@@ -970,6 +1045,7 @@ def _render_overleaf_russell_ti(
 \usepackage{{xcolor}}
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
+\usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
 
 \input{{glyphtounicode}}
@@ -1027,13 +1103,17 @@ def _render_overleaf_awesome_cv(
     if cv.get("location"):
         social_items.append(rf"{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'])}}}")
     if links.get("github"):
-        social_items.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{GitHub}}}}")
+        gh_disp = escape_latex(_get_platform_display(links, "github"))
+        social_items.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}")
     if links.get("linkedin"):
-        social_items.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{LinkedIn}}}}")
+        li_disp = escape_latex(_get_platform_display(links, "linkedin"))
+        social_items.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}")
     if links.get("orcid"):
-        social_items.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{ORCID}}}}")
+        orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
+        social_items.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}")
     if links.get("lattes"):
-        social_items.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{Lattes}}}}")
+        lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
+        social_items.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}")
 
     social_str = " \\quad\\textbar\\quad ".join(social_items)
 
@@ -1075,6 +1155,7 @@ def _render_overleaf_awesome_cv(
 \usepackage{{xcolor}}
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
+\usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
 
 \input{{glyphtounicode}}
@@ -1132,8 +1213,10 @@ def _render_overleaf_single_page_keywords(
     # Coleta keywords de skills para destacar nas experiências caso necessário
     all_skill_items: List[str] = []
     for sk in (cv.get("skills") or []):
-        if sk.get("items"):
+        if isinstance(sk, dict) and sk.get("items"):
             all_skill_items.append(escape_latex(sk["items"]))
+        elif isinstance(sk, str) and sk.strip():
+            all_skill_items.append(escape_latex(sk.strip()))
     fallback_kw = ", ".join(all_skill_items)[:95]
 
     right_contacts: List[str] = []
@@ -1147,13 +1230,17 @@ def _render_overleaf_single_page_keywords(
         lbl_lc = "Location" if is_en else "Local"
         right_contacts.append(rf"{{\small {lbl_lc}}} \textbf{{{escape_latex(cv['location'])}}}")
     if links.get("github"):
-        right_contacts.append(rf"{{\small GitHub}} \href{{{escape_url(links['github'])}}}{{\textbf{{GitHub}}}}")
+        gh_disp = escape_latex(_get_platform_display(links, "github"))
+        right_contacts.append(rf"{{\small\faIcon{{github}}}} \href{{{escape_url(links['github'])}}}{{\textbf{{{gh_disp}}}}}")
     if links.get("linkedin"):
-        right_contacts.append(rf"{{\small LinkedIn}} \href{{{escape_url(links['linkedin'])}}}{{\textbf{{LinkedIn}}}}")
+        li_disp = escape_latex(_get_platform_display(links, "linkedin"))
+        right_contacts.append(rf"{{\small\faIcon{{linkedin}}}} \href{{{escape_url(links['linkedin'])}}}{{\textbf{{{li_disp}}}}}")
     if links.get("orcid"):
-        right_contacts.append(rf"{{\small ORCID}} \href{{{escape_url(links['orcid'])}}}{{\textbf{{ORCID}}}}")
+        orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
+        right_contacts.append(rf"{{\small\faIcon{{orcid}}}} \href{{{escape_url(links['orcid'])}}}{{\textbf{{{orcid_disp}}}}}")
     if links.get("lattes"):
-        right_contacts.append(rf"{{\small Lattes}} \href{{{escape_url(links['lattes'])}}}{{\textbf{{Lattes}}}}")
+        lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
+        right_contacts.append(rf"{{\small\faIcon{{graduation-cap}}}} \href{{{escape_url(links['lattes'])}}}{{\textbf{{{lattes_disp}}}}}")
 
     right_contact_tex = "\\\\\n    ".join(right_contacts)
     photo_inline = (
@@ -1185,8 +1272,12 @@ def _render_overleaf_single_page_keywords(
     sk_lbl = "SKILLS" if is_en else "COMPETÊNCIAS"
     sk_rows: List[str] = []
     for sk in (cv.get("skills") or []):
-        cat = escape_latex(sk.get("category") or t["default_skill_cat"])
-        items = escape_latex(sk.get("items"))
+        if isinstance(sk, dict):
+            cat = escape_latex(sk.get("category") or t["default_skill_cat"])
+            items = escape_latex(sk.get("items"))
+        else:
+            cat = escape_latex(t["default_skill_cat"])
+            items = escape_latex(str(sk).strip())
         if items:
             sk_rows.append(rf"\noindent\textbf{{{cat}:}} {{\small {items}}}\par\vspace{{2pt}}")
     sk_sec = (rf"\cvsec{{\faIcon{{list}}}}{{{sk_lbl}}}" + "\n" + "\n".join(sk_rows)) if sk_rows else ""
@@ -1273,6 +1364,7 @@ def _render_overleaf_single_page_keywords(
 \usepackage{{xcolor}}
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
+\usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
 
 \input{{glyphtounicode}}
@@ -1364,17 +1456,21 @@ def _render_google_standard(
     if cv.get("email"):
         em = cv["email"].strip()
         contact_parts.append(rf"\href{{mailto:{escape_url(em)}}}{{{escape_latex(em)}}}")
-    if links.get("linkedin"):
-        contact_parts.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\textbf{{LinkedIn}}}}")
     if links.get("github"):
-        contact_parts.append(rf"\href{{{escape_url(links['github'])}}}{{\textbf{{GitHub}}}}")
+        gh_disp = escape_latex(_get_platform_display(links, "github"))
+        contact_parts.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}")
+    if links.get("linkedin"):
+        li_disp = escape_latex(_get_platform_display(links, "linkedin"))
+        contact_parts.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}")
     if links.get("portfolio"):
         lbl_port = "Portfolio" if is_en else "Portfólio"
-        contact_parts.append(rf"\href{{{escape_url(links['portfolio'])}}}{{\textbf{{{lbl_port}}}}}")
+        contact_parts.append(rf"\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{lbl_port}}}}}")
     if links.get("orcid"):
-        contact_parts.append(rf"\href{{{escape_url(links['orcid'])}}}{{\textbf{{ORCID}}}}")
+        orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
+        contact_parts.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}")
     if links.get("lattes"):
-        contact_parts.append(rf"\href{{{escape_url(links['lattes'])}}}{{\textbf{{Lattes}}}}")
+        lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
+        contact_parts.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}")
 
     contacts_str = " \\;\\textbar\\; ".join(contact_parts)
 
@@ -1422,17 +1518,18 @@ def _render_google_standard(
             bullets = [escape_latex(b) for b in (xp.get("bullets") or []) if str(b).strip()]
             head_l = f"\\textbf{{{org}}}" if org else f"\\textbf{{{role}}}"
             sub_l = f"\\textit{{{role}}}" if org else ""
-            xp_lines.append(rf"\noindent{head_l} \hfill \textbf{{{per}}}")
+            item_lines = [rf"\noindent{head_l} \hfill \textbf{{{per}}}"]
             if sub_l:
-                xp_lines.append(rf"\\ {sub_l}")
+                item_lines.append(rf"\\ {sub_l}")
             if bullets:
-                xp_lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
+                item_lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
                 for b in bullets:
-                    xp_lines.append(rf"    \item {b}")
-                xp_lines.append(r"\end{itemize}")
-                xp_lines.append(r"\vspace{3pt}")
+                    item_lines.append(rf"    \item {b}")
+                item_lines.append(r"\end{itemize}")
+                item_lines.append(r"\vspace{3pt}")
             else:
-                xp_lines.append(r"\par\vspace{3pt}")
+                item_lines.append(r"\par\vspace{3pt}")
+            xp_lines.append("\n".join(item_lines))
         xp_block = "\n".join(xp_lines)
 
     # Education
@@ -1448,16 +1545,17 @@ def _render_google_standard(
             det = escape_latex(ed.get("details"))
             head_i = f"\\textbf{{{inst}}}" if inst else f"\\textbf{{{deg}}}"
             sub_d = f"\\textit{{{deg}}}" if inst else ""
-            ed_lines.append(rf"\noindent{head_i} \hfill \textbf{{{per}}}")
+            item_lines = [rf"\noindent{head_i} \hfill \textbf{{{per}}}"]
             if sub_d and det:
-                ed_lines.append(rf"\\ {sub_d} \hfill {{\small {det}}}\par\vspace{{4pt}}")
+                item_lines.append(rf"\\ {sub_d} \hfill {{\small {det}}}\par\vspace{{4pt}}")
             elif sub_d:
-                ed_lines.append(rf"\\ {sub_d}\par\vspace{{4pt}}")
+                item_lines.append(rf"\\ {sub_d}\par\vspace{{4pt}}")
             elif det:
-                ed_lines.append(rf"\\ {{\small {det}}}\par\vspace{{4pt}}")
+                item_lines.append(rf"\\ {{\small {det}}}\par\vspace{{4pt}}")
             else:
-                ed_lines.append(r"\par\vspace{4pt}")
-        edu_block = "\n\n".join(ed_lines)
+                item_lines.append(r"\par\vspace{4pt}")
+            ed_lines.append("\n".join(item_lines))
+        edu_block = "\n".join(ed_lines)
 
     # Projects
     pj_block = ""
@@ -1489,8 +1587,16 @@ def _render_google_standard(
         sec_sk = "TECHNICAL SKILLS" if is_en else t["sec_skills"]
         sk_lines = [rf"\section*{{{sec_sk}}}", r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]"]
         for sk in sk_list:
-            cat = escape_latex(sk.get("category") or t["default_skill_cat"])
-            items = escape_latex(sk.get("items"))
+            if isinstance(sk, dict):
+                cat = escape_latex(sk.get("category") or t["default_skill_cat"])
+                items = escape_latex(sk.get("items"))
+            else:
+                s = str(sk).strip()
+                if ":" in s:
+                    p = s.split(":", 1)
+                    cat, items = escape_latex(p[0].strip()), escape_latex(p[1].strip())
+                else:
+                    cat, items = escape_latex(t["default_skill_cat"]), escape_latex(s)
             if items:
                 sk_lines.append(rf"    \item \textbf{{{cat}:}} {items}")
         sk_lines.append(r"\end{itemize}")
@@ -1518,6 +1624,7 @@ def _render_google_standard(
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
 \usepackage{{titlesec}}
+\usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
 
 \input{{glyphtounicode}}
@@ -1573,17 +1680,21 @@ def _render_ai_ats_max(
     if cv.get("phone"):
         lbl_ph = "Phone: " if is_en else "Tel: "
         contact_parts.append(lbl_ph + escape_latex(cv["phone"]))
-    if links.get("linkedin"):
-        contact_parts.append(rf"LinkedIn: \href{{{escape_url(links['linkedin'])}}}{{{escape_url(links['linkedin'])}}}")
     if links.get("github"):
-        contact_parts.append(rf"GitHub: \href{{{escape_url(links['github'])}}}{{{escape_url(links['github'])}}}")
+        gh_disp = escape_latex(_get_platform_display(links, "github"))
+        contact_parts.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ {gh_disp}}}")
+    if links.get("linkedin"):
+        li_disp = escape_latex(_get_platform_display(links, "linkedin"))
+        contact_parts.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ {li_disp}}}")
     if links.get("portfolio"):
         lbl_web = "Portfolio: " if is_en else "Portfólio: "
-        contact_parts.append(rf"{lbl_web}\href{{{escape_url(links['portfolio'])}}}{{{escape_url(links['portfolio'])}}}")
+        contact_parts.append(rf"\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ {lbl_web}}}")
     if links.get("orcid"):
-        contact_parts.append(rf"ORCID: \href{{{escape_url(links['orcid'])}}}{{{escape_url(links['orcid'])}}}")
+        orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
+        contact_parts.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ {orcid_disp}}}")
     if links.get("lattes"):
-        contact_parts.append(rf"Lattes: \href{{{escape_url(links['lattes'])}}}{{{escape_url(links['lattes'])}}}")
+        lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
+        contact_parts.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ {lattes_disp}}}")
 
     contact_str = " \\;|\\; ".join(contact_parts)
 
@@ -1613,8 +1724,12 @@ def _render_ai_ats_max(
         kw_title = r"CORE COMPETENCIES \& KEYWORDS" if is_en else r"COMPETÊNCIAS PRINCIPAIS \& PALAVRAS-CHAVE"
         kw_lines = [rf"\section*{{{kw_title}}}", r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]"]
         for sk in skills:
-            cat = escape_latex(sk.get("category") or t["default_skill_cat"])
-            items = escape_latex(sk.get("items"))
+            if isinstance(sk, dict):
+                cat = escape_latex(sk.get("category") or t["default_skill_cat"])
+                items = escape_latex(sk.get("items"))
+            else:
+                cat = escape_latex(t["default_skill_cat"])
+                items = escape_latex(str(sk).strip())
             if items:
                 kw_lines.append(rf"    \item \textbf{{{cat}:}} {items}")
         kw_lines.append(r"\end{itemize}")
@@ -1718,6 +1833,7 @@ def _render_ai_ats_max(
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
 \usepackage{{titlesec}}
+\usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
 
 \input{{glyphtounicode}}
@@ -1739,4 +1855,3 @@ def _render_ai_ats_max(
 {body_tex}
 \end{{document}}
 """
-

@@ -18,7 +18,14 @@ from typing import Any, Dict, List, Tuple
 
 from .i18n import normalize_lang
 from .extractors import extract_languages_from_text
-from .templates import BUILTIN_TEMPLATES, render_builtin_template, sanitize_awards
+from .templates import (
+    BUILTIN_TEMPLATES,
+    _get_platform_display,
+    escape_latex,
+    escape_url,
+    render_builtin_template,
+    sanitize_awards,
+)
 
 
 def build_structured_cv_deterministically(
@@ -79,10 +86,10 @@ def build_structured_cv_deterministically(
 
     # 4. Resumo Profissional / Acadêmico
     summary = ""
-    if extra_notes and len(extra_notes) > 40:
-        summary = extra_notes
-    elif lattes.get("summary"):
+    if lattes.get("summary"):
         summary = lattes["summary"].strip()
+    elif extra_notes and len(extra_notes) > 40 and not extra_notes.startswith("PORTFOLIO_URL:"):
+        summary = extra_notes
     elif li.get("summary"):
         summary = li["summary"].strip()
     elif orcid.get("bio"):
@@ -428,10 +435,18 @@ def _fill_custom_template_deterministically(
         contact_parts.append(cv["phone"])
     if cv.get("location"):
         contact_parts.append(cv["location"])
-    if links.get("linkedin"):
-        contact_parts.append(r"\href{" + links["linkedin"] + "}{LinkedIn}")
     if links.get("github"):
-        contact_parts.append(r"\href{" + links["github"] + "}{GitHub}")
+        gh_disp = escape_latex(_get_platform_display(links, "github"))
+        contact_parts.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}")
+    if links.get("linkedin"):
+        li_disp = escape_latex(_get_platform_display(links, "linkedin"))
+        contact_parts.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}")
+    if links.get("orcid"):
+        orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
+        contact_parts.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}")
+    if links.get("lattes"):
+        lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
+        contact_parts.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}")
     contact_line = " $\\cdot$ ".join(contact_parts)
 
     # Substituições case-insensitive seguras de cabeçalho

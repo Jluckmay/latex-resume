@@ -25,6 +25,91 @@ _MAX_HTTP_BYTES = 1_500_000  # 1.5 MB max download size for external pages
 _MAX_UPLOAD_FILE_BYTES = 10 * 1024 * 1024  # 10 MB max upload size
 _MAX_UNCOMPRESSED_XML_BYTES = 15 * 1024 * 1024  # 15 MB max uncompressed Lattes XML
 
+def parse_linkedin_input(val: str) -> Tuple[str, str]:
+    """Normaliza o input do LinkedIn para (url_completa, nick).
+    Aceita URL completa (https://linkedin.com/in/nick), in/nick, @nick ou apenas nick.
+    """
+    v = str(val or "").strip().lstrip("@")
+    if not v:
+        return "", ""
+    m = re.search(r"(?:https?://)?(?:www\.)?linkedin\.com/(?:in/)?([a-zA-Z0-9_\-%]+)", v, re.IGNORECASE)
+    if m:
+        nick = m.group(1).strip("/")
+        return f"https://www.linkedin.com/in/{nick}", nick
+    if v.lower().startswith("in/"):
+        nick = v[3:].strip("/")
+        return f"https://www.linkedin.com/in/{nick}", nick
+    if v.startswith(("http://", "https://")):
+        clean_v = v.rstrip("/")
+        parts = clean_v.split("/")
+        nick = parts[-1] if parts else clean_v
+        return clean_v, nick
+    nick = v.strip("/")
+    return f"https://www.linkedin.com/in/{nick}", nick
+
+
+def parse_lattes_input(val: str) -> Tuple[str, str]:
+    """Normaliza o input do Lattes para (url_completa, id_lattes).
+    Aceita ID de 16 dígitos, ID alfanumérico K-code, URL lattes.cnpq.br ou buscatextual.
+    """
+    v = str(val or "").strip()
+    if not v:
+        return "", ""
+    m16 = re.search(r"\b(\d{16})\b", v)
+    if m16:
+        lid = m16.group(1)
+        return f"http://lattes.cnpq.br/{lid}", lid
+    m_id = re.search(r"[?&]id=([A-Za-z0-9]+)", v)
+    if m_id:
+        lid = m_id.group(1)
+        u = v if v.startswith(("http://", "https://")) else f"http://{v}"
+        return u, lid
+    if v.startswith(("http://", "https://")):
+        parts = v.rstrip("/").split("/")
+        lid = parts[-1] if parts else v
+        return v, lid
+    if "lattes.cnpq.br" in v.lower():
+        parts = v.rstrip("/").split("/")
+        lid = parts[-1] if parts else v
+        return f"http://{v}", lid
+    lid = v.strip("/")
+    return f"http://lattes.cnpq.br/{lid}", lid
+
+
+def parse_github_input(val: str) -> Tuple[str, str]:
+    """Normaliza o input do GitHub para (url_completa, username_nick)."""
+    v = str(val or "").strip().lstrip("@")
+    if not v:
+        return "", ""
+    m = re.search(r"(?:https?://)?(?:www\.)?github\.com/([a-zA-Z0-9_\-%]+)", v, re.IGNORECASE)
+    if m:
+        nick = m.group(1).strip("/")
+        return f"https://github.com/{nick}", nick
+    if v.startswith(("http://", "https://")):
+        parts = v.rstrip("/").split("/")
+        nick = parts[-1] if parts else v
+        return v, nick
+    nick = v.strip("/")
+    return f"https://github.com/{nick}", nick
+
+
+def parse_orcid_input(val: str) -> Tuple[str, str]:
+    """Normaliza o input do ORCID para (url_completa, orcid_id)."""
+    v = str(val or "").strip()
+    if not v:
+        return "", ""
+    m = re.search(r"\b(\d{4}-\d{4}-\d{4}-\d{3}[\dX])\b", v, re.IGNORECASE)
+    if m:
+        oid = m.group(1).upper()
+        return f"https://orcid.org/{oid}", oid
+    if v.startswith(("http://", "https://")):
+        parts = v.rstrip("/").split("/")
+        oid = parts[-1] if parts else v
+        return v, oid
+    oid = v.strip("/")
+    return f"https://orcid.org/{oid}", oid
+
+
 
 def _is_safe_public_url(url: str, allowed_domain_suffixes: tuple[str, ...] | None = None) -> tuple[bool, str]:
     """Valida URL contra ataques de SSRF (bloqueia loopback, redes privadas, link-local/metadata AWS/GCP)."""
@@ -401,8 +486,10 @@ def extract_lattes(
     pasted_text: str = "",
 ) -> Dict[str, Any]:
     """Extrai dados do Currículo Lattes a partir de XML/ZIP oficial, PDF/HTML, URL ou texto."""
+    norm_url, lid = parse_lattes_input(lattes_url)
     result: Dict[str, Any] = {
-        "url": lattes_url.strip(),
+        "url": norm_url,
+        "lattes_id": lid,
         "educations": [],
         "employments": [],
         "publications": [],
@@ -443,9 +530,9 @@ def extract_lattes(
         result["raw_text"] = (existing + "\n" + pasted_text.strip()[:8000]).strip()
 
     # 3. Se informou apenas URL e ainda não há dados extraídos, tenta buscar página pública do CNPq
-    if lattes_url and not result["educations"] and not result.get("raw_text"):
+    if norm_url and not result["educations"] and not result.get("raw_text"):
         status_code, html_text, _ = _safe_http_get(
-            lattes_url.strip(),
+            norm_url,
             timeout=8,
             allowed_domain_suffixes=("cnpq.br",),
         )
@@ -481,8 +568,10 @@ def _parse_lattes_xml(xml_bytes: bytes, out: Dict[str, Any]) -> None:
 
     root = ET.fromstring(text)
     id_lattes = root.attrib.get("NUMERO-IDENTIFICADOR", "")
-    if id_lattes and not out.get("url"):
-        out["url"] = f"http://lattes.cnpq.br/{id_lattes}"
+    if id_lattes:
+        out["lattes_id"] = id_lattes
+        if not out.get("url"):
+            out["url"] = f"http://lattes.cnpq.br/{id_lattes}"
 
     dados_gerais = root.find("DADOS-GERAIS")
     if dados_gerais is not None:
@@ -656,7 +745,8 @@ def extract_linkedin(
     pasted_text: str = "",
 ) -> Dict[str, Any]:
     """Extrai dados do LinkedIn a partir de URL, PDF exportado ('Salvar como PDF') ou texto."""
-    result: Dict[str, Any] = {"url": linkedin_url.strip(), "languages": []}
+    norm_url, li_nick = parse_linkedin_input(linkedin_url)
+    result: Dict[str, Any] = {"url": norm_url, "linkedin_nick": li_nick, "languages": []}
 
     if file_bytes:
         if len(file_bytes) > _MAX_UPLOAD_FILE_BYTES:
@@ -668,9 +758,9 @@ def extract_linkedin(
         existing = result.get("raw_text", "")
         result["raw_text"] = (existing + "\n" + pasted_text.strip()[:8000]).strip()
 
-    if linkedin_url and not result.get("raw_text"):
+    if norm_url and not result.get("raw_text"):
         status_code, html_text, _ = _safe_http_get(
-            linkedin_url.strip(),
+            norm_url,
             timeout=6,
             allowed_domain_suffixes=("linkedin.com",),
         )

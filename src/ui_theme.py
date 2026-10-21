@@ -174,6 +174,14 @@ def apply_custom_colors_and_portfolio_to_latex(
                     inserted = True
                     break
             if not inserted:
+                # Procura links formatados com \faIcon
+                m = list(re.finditer(r"\\href\{[^{}]+\}\{\\faIcon\{(?:github|linkedin|orcid|graduation-cap)\}[^{}]*\}", out))
+                if m:
+                    last_match = m[-1].group(0)
+                    sep = " \\;|\\; " if "\\;|\\;" in out else (" \\;\\textbullet\\; " if "\\textbullet" in out else " | ")
+                    out = out.replace(last_match, f"{last_match}{sep}{port_link}", 1)
+                    inserted = True
+            if not inserted:
                 out = out.replace(r"\end{center}", f"\\\\[2pt] {{\\small {port_link}}}\n\\end{{center}}", 1)
 
     return out
@@ -216,7 +224,7 @@ def render_template_preview_html(
                 <div style="font-weight:800;font-size:13px;color:{s_col};">Lucas Silva</div>
                 <div style="font-style:italic;font-size:10px;color:{p_col};margin-bottom:8px;">{role_txt}</div>
                 <div style="font-weight:700;font-size:9px;color:{p_col};border-bottom:1px solid {p_col};padding-bottom:2px;margin-bottom:4px;">{lbl_cnt}</div>
-                <div style="font-size:9px;color:#475569;">• LinkedIn • GitHub<br>• ORCID • Portfolio</div>
+                <div style="font-size:9px;color:#475569;">• 🔗 in/lucassilva • 🐙 lucassilva<br>• 🆔 0000-0002... • 🌐 Portfolio</div>
                 <div style="font-weight:700;font-size:9px;color:{p_col};border-bottom:1px solid {p_col};padding-bottom:2px;margin:8px 0 4px 0;">{lbl_sk}</div>
                 <div style="font-size:9px;color:#475569;">Python, LaTeX, PyTorch, Cloud, Docker</div>
             </div>
@@ -244,7 +252,7 @@ def render_template_preview_html(
                 <div>
                     <div style="font-weight:700;font-size:15px;color:{p_col};">Lucas Silva</div>
                     <div style="font-style:italic;font-size:10.5px;color:{s_col};">Postdoctoral Researcher in Artificial Intelligence</div>
-                    <div style="font-size:9px;color:#475569;margin-top:3px;">ORCID • Lattes CNPq • GitHub • Portfolio</div>
+                    <div style="font-size:9px;color:#475569;margin-top:3px;">🆔 0000-0002-1825-0097 • 🎓 1234567890123456 • 🐙 lucassilva • 🌐 Portfolio</div>
                 </div>
                 {photo_circle}
             </div>
@@ -268,7 +276,7 @@ def render_template_preview_html(
             <div style="text-align:center;border-bottom:1.5px solid {p_col};padding-bottom:7px;margin-bottom:8px;">
                 <div style="font-weight:800;font-size:15px;color:{p_col};">LUCAS SILVA</div>
                 <div style="font-size:10px;color:{s_col};">{role_txt}</div>
-                <div style="font-size:9px;color:#52525b;margin-top:2px;">São Paulo, BR | lucas@email.com | LinkedIn | GitHub | Portfolio</div>
+                <div style="font-size:9px;color:#52525b;margin-top:2px;">São Paulo, BR | lucas@email.com | 🔗 in/lucassilva | 🐙 lucassilva | 🌐 Portfolio</div>
             </div>
             <div style="font-weight:800;font-size:9.5px;color:{p_col};border-bottom:1px solid {p_col};margin-bottom:5px;">{lbl_exp}</div>
             <div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;">
@@ -289,8 +297,8 @@ def render_template_preview_html(
                 {photo_circle}
                 <div style="flex:1;text-align:center;">
                     <div><span style="font-size:15px;color:#64748b;font-weight:300;">Lucas</span> <span style="font-size:15px;color:{s_col};font-weight:800;">Silva</span></div>
-                    <div style="font-size:9px;color:#475569;margin-top:2px;">🌐 Portfolio | 🐙 GitHub | 🆔 ORCID | 🎓 Lattes</div>
-                    <div style="font-size:9px;color:#475569;">✉️ lucas@email.com | 📱 WhatsApp | 🔗 LinkedIn</div>
+                    <div style="font-size:9px;color:#475569;margin-top:2px;">🌐 Portfolio | 🐙 lucassilva | 🆔 0000-0002-1825-0097 | 🎓 1234567890123456</div>
+                    <div style="font-size:9px;color:#475569;">✉️ lucas@email.com | 📱 WhatsApp | 🔗 in/lucassilva</div>
                 </div>
             </div>
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
@@ -322,7 +330,7 @@ def render_template_preview_html(
                 <div style="text-align:center;margin-bottom:8px;">
                     <div><span style="font-size:16px;color:#64748b;font-weight:300;">Lucas</span> <span style="font-size:16px;color:{s_col};font-weight:800;">Silva</span></div>
                     <div style="font-size:9.5px;font-variant:small-caps;color:{p_col};font-weight:700;">{role_txt}</div>
-                    <div style="font-size:8.5px;color:#64748b;margin-top:2px;">📱 Phone &nbsp;|&nbsp; ✉️ Email &nbsp;|&nbsp; 🐙 GitHub &nbsp;|&nbsp; 🔗 LinkedIn &nbsp;|&nbsp; 🌐 Portfolio</div>
+                    <div style="font-size:8.5px;color:#64748b;margin-top:2px;">📱 Phone &nbsp;|&nbsp; ✉️ Email &nbsp;|&nbsp; 🐙 lucassilva &nbsp;|&nbsp; 🔗 in/lucassilva &nbsp;|&nbsp; 🌐 Portfolio</div>
                 </div>
                 <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
                     <span style="font-weight:800;font-size:11px;"><span style="color:{p_col};">Ski</span><span style="color:{s_col};">lls</span></span>
@@ -389,7 +397,7 @@ def render_template_preview_html(
             <div style="text-align:center;border-bottom:1.5px solid {p_col};padding-bottom:5px;margin-bottom:6px;">
                 <div style="font-weight:800;font-size:15px;color:{s_col};letter-spacing:-0.2px;">LUCAS SILVA</div>
                 <div style="font-size:9.5px;color:{p_col};font-weight:600;">{role_txt}</div>
-                <div style="font-size:8.5px;color:#444746;margin-top:2px;">São Paulo, Brazil &nbsp;|&nbsp; lucas@email.com &nbsp;|&nbsp; +55 11 99999-9999 &nbsp;|&nbsp; LinkedIn &nbsp;|&nbsp; GitHub &nbsp;|&nbsp; Portfolio</div>
+                <div style="font-size:8.5px;color:#444746;margin-top:2px;">São Paulo, Brazil &nbsp;|&nbsp; lucas@email.com &nbsp;|&nbsp; +55 11 99999-9999 &nbsp;|&nbsp; 🔗 in/lucassilva &nbsp;|&nbsp; 🐙 lucassilva &nbsp;|&nbsp; 🌐 Portfolio</div>
             </div>
             <div style="font-weight:800;font-size:9.5px;color:{s_col};border-bottom:1px solid {p_col};margin-bottom:4px;letter-spacing:0.5px;">EXPERIENCE</div>
             <div style="display:flex;justify-content:space-between;font-size:9.5px;font-weight:700;color:{s_col};">
@@ -417,7 +425,7 @@ def render_template_preview_html(
             <div style="text-align:center;border-bottom:1.5px solid {s_col};padding-bottom:5px;margin-bottom:6px;">
                 <div style="font-weight:900;font-size:15px;color:{s_col};">LUCAS SILVA</div>
                 <div style="font-size:9.5px;font-weight:700;color:{p_col};">{role_txt.upper()}</div>
-                <div style="font-size:8px;color:#334155;margin-top:2px;">LOCATION: São Paulo, BR &nbsp;|&nbsp; EMAIL: lucas@email.com &nbsp;|&nbsp; PHONE: +55 11 99999-9999 &nbsp;|&nbsp; LINKEDIN: in/lucas &nbsp;|&nbsp; GITHUB: github.com/lucas</div>
+                <div style="font-size:8px;color:#334155;margin-top:2px;">LOCATION: São Paulo, BR &nbsp;|&nbsp; EMAIL: lucas@email.com &nbsp;|&nbsp; PHONE: +55 11 99999-9999 &nbsp;|&nbsp; LINKEDIN: in/lucassilva &nbsp;|&nbsp; GITHUB: lucassilva</div>
             </div>
             <div style="font-weight:800;font-size:9px;color:{s_col};border-bottom:1px solid #cbd5e1;margin-bottom:3px;">CORE COMPETENCIES & KEYWORDS</div>
             <div style="font-size:8.5px;color:#1e293b;margin-bottom:5px;">
@@ -446,7 +454,7 @@ def render_template_preview_html(
             <div>
                 <div style="font-weight:800;font-size:15px;color:{p_col};">Lucas Silva</div>
                 <div style="font-style:italic;font-size:10.5px;color:{s_col};">{role_txt}</div>
-                <div style="font-size:9px;color:#475569;margin-top:3px;">São Paulo • LinkedIn • GitHub • ORCID • Portfolio</div>
+                <div style="font-size:9px;color:#475569;margin-top:3px;">São Paulo • 🔗 in/lucassilva • 🐙 lucassilva • 🆔 0000-0002-1825-0097 • 🎓 1234567890123456 • 🌐 Portfolio</div>
             </div>
             {photo_circle}
         </div>

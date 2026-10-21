@@ -764,19 +764,19 @@
                 <div class="grid-2">
                     <div class="form-group">
                         <label id="ui-gh-lbl">GitHub (usuário ou URL)</label>
-                        <input type="text" id="inp-github" class="form-control" placeholder="ex: octocat ou https://github.com/usuario">
+                        <input type="text" id="inp-github" class="form-control" placeholder="ex: octocat ou https://github.com/usuario" oninput="renderLivePreview()">
                     </div>
                     <div class="form-group">
                         <label id="ui-orcid-lbl">ORCID (ID ou URL)</label>
-                        <input type="text" id="inp-orcid" class="form-control" placeholder="ex: 0000-0002-1825-0097">
+                        <input type="text" id="inp-orcid" class="form-control" placeholder="ex: 0000-0002-1825-0097" oninput="renderLivePreview()">
                     </div>
                     <div class="form-group">
-                        <label id="ui-li-lbl">LinkedIn (URL do perfil)</label>
-                        <input type="text" id="inp-linkedin" class="form-control" placeholder="https://www.linkedin.com/in/seu-perfil/">
+                        <label id="ui-li-lbl">LinkedIn (nick ou URL)</label>
+                        <input type="text" id="inp-linkedin" class="form-control" placeholder="ex: seu-nick ou https://linkedin.com/in/perfil/" oninput="renderLivePreview()">
                     </div>
                     <div class="form-group">
-                        <label id="ui-lattes-lbl">Currículo Lattes (URL)</label>
-                        <input type="text" id="inp-lattes" class="form-control" placeholder="http://lattes.cnpq.br/0000000000000000">
+                        <label id="ui-lattes-lbl">Currículo Lattes (ID de 16 dígitos ou URL)</label>
+                        <input type="text" id="inp-lattes" class="form-control" placeholder="ex: 1234567890123456 ou http://lattes.cnpq.br/0000000000000000" oninput="renderLivePreview()">
                     </div>
                     <div class="form-group">
                         <label id="ui-port-lbl">Página de Portfólio / Website (URL)</label>
@@ -1149,8 +1149,8 @@
                 step3: "Perfis Online, Página de Portfólio e Foto",
                 ghLbl: "GitHub (usuário ou URL)",
                 orcidLbl: "ORCID (ID ou URL)",
-                liLbl: "LinkedIn (URL do perfil)",
-                lattesLbl: "Currículo Lattes (URL)",
+                liLbl: "LinkedIn (nick ou URL)",
+                lattesLbl: "Currículo Lattes (ID de 16 dígitos ou URL)",
                 portLbl: "Página de Portfólio / Website (URL)",
                 photoLbl: "Foto de Perfil (PNG / JPG / WebP)",
                 extraSummary: "📎 Anexar XML/ZIP do Lattes, PDF do LinkedIn ou Notas Extras",
@@ -1226,8 +1226,8 @@
                 step3: "Online Profiles, Portfolio Website & Photo",
                 ghLbl: "GitHub (username or URL)",
                 orcidLbl: "ORCID (ID or URL)",
-                liLbl: "LinkedIn (Profile URL)",
-                lattesLbl: "Lattes CV (URL)",
+                liLbl: "LinkedIn (username or URL)",
+                lattesLbl: "Lattes CV (16-digit ID or URL)",
                 portLbl: "Portfolio Page / Website (URL)",
                 photoLbl: "Profile Photo (PNG / JPG / WebP)",
                 extraSummary: "📎 Attach Lattes XML/ZIP, LinkedIn PDF, or Additional Notes",
@@ -1676,6 +1676,28 @@
             const hasPort = Boolean(document.getElementById("inp-portfolio").value.trim());
             const portBadge = hasPort ? " • <b>Portfolio</b>" : " • Portfolio";
 
+            const ghVal = (document.getElementById("inp-github")?.value || "").trim();
+            const liVal = (document.getElementById("inp-linkedin")?.value || "").trim();
+            const orcidVal = (document.getElementById("inp-orcid")?.value || "").trim();
+            const lattesVal = (document.getElementById("inp-lattes")?.value || "").trim();
+
+            function extractNick(v, defVal) {
+                if (!v) return defVal;
+                let s = v.replace(/^https?:\/\/(?:www\.)?(?:github\.com|linkedin\.com\/in)\//i, '');
+                s = s.replace(/^\/?in\//i, '').replace(/^@/, '').replace(/\/+$/, '');
+                return s || defVal;
+            }
+            function extractId(v, defVal) {
+                if (!v) return defVal;
+                let s = v.replace(/^https?:\/\/(?:orcid\.org\/|lattes\.cnpq\.br\/)/i, '').replace(/\/+$/, '');
+                return s || defVal;
+            }
+
+            const ghNick = extractNick(ghVal, "octocat");
+            const liNick = extractNick(liVal, "lucassilva");
+            const orcidId = extractId(orcidVal, "0000-0002-1825-0097");
+            const lattesId = extractId(lattesVal, "1234567890123456");
+
             const nameParts = nameVal.split(" ");
             const firstPart = nameParts[0] || "Lucas";
             const restPart = nameParts.slice(1).join(" ") || "Silva";
@@ -1698,7 +1720,7 @@
                         <div style="font-weight:800;font-size:13px;color:${sCol};">${nameVal}</div>
                         <div style="font-style:italic;font-size:10px;color:${pCol};margin-bottom:8px;">${roleVal}</div>
                         <div style="font-weight:700;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:4px;">LINKS</div>
-                        <div style="font-size:9px;color:#475569;">${locVal}<br>LinkedIn • GitHub<br>ORCID${portBadge}</div>
+                        <div style="font-size:9px;color:#475569;">${locVal}<br>🔗 ${liNick} • 🐙 ${ghNick}<br>🆔 ${orcidId.slice(0, 11)}...${portBadge}</div>
                         <div style="font-weight:700;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};margin:8px 0 4px 0;">${lblSk}</div>
                         <div style="font-size:9px;color:#475569;">Python, LaTeX, AI, Cloud</div>
                     </div>
@@ -1719,7 +1741,7 @@
                         <div>
                             <div style="font-weight:700;font-size:15px;color:${pCol};">${nameVal}</div>
                             <div style="font-style:italic;font-size:10.5px;color:${sCol};">${roleVal}</div>
-                            <div style="font-size:9px;color:#475569;margin-top:3px;">${locVal} • ORCID • Lattes CNPq • GitHub${portBadge}</div>
+                            <div style="font-size:9px;color:#475569;margin-top:3px;">${locVal} • 🆔 ${orcidId} • 🎓 ${lattesId} • 🐙 ${ghNick}${portBadge}</div>
                         </div>
                         ${avatarHtml}
                     </div>
@@ -1737,7 +1759,7 @@
                     <div style="text-align:center;border-bottom:1.5px solid ${pCol};padding-bottom:7px;margin-bottom:8px;">
                         <div style="font-weight:800;font-size:15px;color:${pCol};">${nameVal.toUpperCase()}</div>
                         <div style="font-size:10px;color:${sCol};">${roleVal}</div>
-                        <div style="font-size:9px;color:#52525b;margin-top:2px;">${locVal} | LinkedIn | GitHub | ORCID${portBadge}</div>
+                        <div style="font-size:9px;color:#52525b;margin-top:2px;">${locVal} | 🔗 ${liNick} | 🐙 ${ghNick} | 🆔 ${orcidId}${portBadge}</div>
                     </div>
                     <div style="font-weight:800;font-size:9.5px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:5px;">${lblExp}</div>
                     <div style="font-size:9.5px;color:#27272a;margin-bottom:8px;"><b>Senior Software Engineer</b> (2022–Present)<br>• High-throughput microservices & automated LaTeX generation</div>
@@ -1751,8 +1773,8 @@
                         ${avatarHtml}
                         <div style="flex:1;text-align:center;">
                             <div><span style="font-size:15px;color:#64748b;font-weight:300;">${firstPart}</span> <span style="font-size:15px;color:${sCol};font-weight:800;">${restPart}</span></div>
-                            <div style="font-size:9px;color:#475569;margin-top:2px;">🌐 Portfolio | 🐙 GitHub | 🆔 ORCID | 🎓 Lattes</div>
-                            <div style="font-size:9px;color:#475569;">✉️ lucas@email.com | 📱 WhatsApp | 🔗 LinkedIn | 📍 ${locVal}</div>
+                            <div style="font-size:9px;color:#475569;margin-top:2px;">🌐 Portfolio | 🐙 ${ghNick} | 🆔 ${orcidId} | 🎓 ${lattesId}</div>
+                            <div style="font-size:9px;color:#475569;">✉️ lucas@email.com | 📱 WhatsApp | 🔗 ${liNick} | 📍 ${locVal}</div>
                         </div>
                     </div>
                     <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
@@ -1780,7 +1802,7 @@
                         <div style="text-align:center;margin-bottom:8px;">
                             <div><span style="font-size:16px;color:#64748b;font-weight:300;">${firstPart}</span> <span style="font-size:16px;color:${sCol};font-weight:800;">${restPart}</span></div>
                             <div style="font-size:9.5px;font-variant:small-caps;color:${pCol};font-weight:700;">${roleVal}</div>
-                            <div style="font-size:8.5px;color:#64748b;margin-top:2px;">📱 Phone &nbsp;|&nbsp; ✉️ Email &nbsp;|&nbsp; 🐙 GitHub &nbsp;|&nbsp; 🔗 LinkedIn${portBadge}</div>
+                            <div style="font-size:8.5px;color:#64748b;margin-top:2px;">📱 Phone &nbsp;|&nbsp; ✉️ Email &nbsp;|&nbsp; 🐙 ${ghNick} &nbsp;|&nbsp; 🔗 ${liNick}${portBadge}</div>
                         </div>
                         <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
                             <span style="font-weight:800;font-size:11px;"><span style="color:${pCol};">Ski</span><span style="color:${sCol};">lls</span></span>
@@ -1808,7 +1830,7 @@
                             <div style="font-size:9px;color:${pCol};margin-top:2px;">${roleVal}</div>
                         </div>
                         <div style="text-align:right;font-size:8.5px;color:#475569;">
-                            Email <b>lucas@email.com</b><br>GitHub <b>github.com/lucassilva</b><br>Web <b>portfolio.dev</b>
+                            Email <b>lucas@email.com</b><br>GitHub <b>${ghNick}</b><br>LinkedIn <b>${liNick}</b><br>Web <b>portfolio.dev</b>
                         </div>
                     </div>
                     <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;">
@@ -1839,7 +1861,7 @@
                     <div style="text-align:center;border-bottom:1.5px solid ${pCol};padding-bottom:5px;margin-bottom:6px;">
                         <div style="font-weight:800;font-size:15px;color:${sCol};letter-spacing:-0.2px;">${nameVal.toUpperCase()}</div>
                         <div style="font-size:9.5px;color:${pCol};font-weight:600;">${roleVal}</div>
-                        <div style="font-size:8.5px;color:#444746;margin-top:2px;">${locVal} | email@domain.com | LinkedIn | GitHub${portBadge}</div>
+                        <div style="font-size:8.5px;color:#444746;margin-top:2px;">${locVal} | email@domain.com | 🔗 ${liNick} | 🐙 ${ghNick}${portBadge}</div>
                     </div>
                     <div style="font-weight:800;font-size:9.5px;color:${sCol};border-bottom:1px solid ${pCol};margin-bottom:4px;letter-spacing:0.5px;">EXPERIENCE</div>
                     <div style="display:flex;justify-content:space-between;font-size:9.5px;font-weight:700;color:${sCol};">
@@ -1863,7 +1885,7 @@
                     <div style="text-align:center;border-bottom:1.5px solid ${sCol};padding-bottom:5px;margin-bottom:6px;">
                         <div style="font-weight:900;font-size:15px;color:${sCol};">${nameVal.toUpperCase()}</div>
                         <div style="font-size:9.5px;font-weight:700;color:${pCol};">${roleVal.toUpperCase()}</div>
-                        <div style="font-size:8px;color:#334155;margin-top:2px;">LOCATION: ${locVal} &nbsp;|&nbsp; EMAIL: contact@email.com &nbsp;|&nbsp; LINKEDIN: in/profile &nbsp;|&nbsp; GITHUB: github.com${portBadge}</div>
+                        <div style="font-size:8px;color:#334155;margin-top:2px;">LOCATION: ${locVal} &nbsp;|&nbsp; EMAIL: contact@email.com &nbsp;|&nbsp; LINKEDIN: ${liNick} &nbsp;|&nbsp; GITHUB: ${ghNick}${portBadge}</div>
                     </div>
                     <div style="font-weight:800;font-size:9px;color:${sCol};border-bottom:1px solid #cbd5e1;margin-bottom:3px;">CORE COMPETENCIES & KEYWORDS</div>
                     <div style="font-size:8.5px;color:#1e293b;margin-bottom:5px;">
@@ -1888,7 +1910,7 @@
                         <div>
                             <div style="font-weight:800;font-size:15px;color:${pCol};">${nameVal}</div>
                             <div style="font-style:italic;font-size:10.5px;color:${sCol};">${roleVal}</div>
-                            <div style="font-size:9px;color:#475569;margin-top:3px;">${locVal} | LinkedIn | GitHub | ORCID | Lattes${portBadge}</div>
+                            <div style="font-size:9px;color:#475569;margin-top:3px;">${locVal} | 🔗 ${liNick} | 🐙 ${ghNick} | 🆔 ${orcidId} | 🎓 ${lattesId}${portBadge}</div>
                         </div>
                         ${avatarHtml}
                     </div>
