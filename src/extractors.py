@@ -552,12 +552,23 @@ def _parse_lattes_xml(xml_bytes: bytes, out: Dict[str, Any]) -> None:
         if idiomas is not None:
             prof_map = {
                 "bom": "Avançado",
+                "lê bem": "Avançado",
+                "fala bem": "Avançado",
                 "muito_bom": "Fluente",
                 "excelente": "Fluente",
                 "fluente": "Fluente",
                 "regular": "Intermediário",
                 "razoavel": "Intermediário",
+                "lê razoavel": "Intermediário",
+                "fala razoavel": "Intermediário",
+                "intermediário": "Intermediário",
+                "intermediario": "Intermediário",
                 "pouco": "Básico",
+                "lê pouco": "Básico",
+                "fala pouco": "Básico",
+                "iniciante": "Básico",
+                "básico": "Básico",
+                "basico": "Básico",
                 "nenhum": "",
             }
             for idm in idiomas.findall("IDIOMA"):
