@@ -5,6 +5,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.googleapis.com https:; font-src 'self' https://fonts.gstatic.com https://*.gstatic.com https: data: blob:; script-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:5000 http://localhost:5000 https://*.onrender.com; frame-src blob: data:; img-src 'self' data: blob:;">
     <meta name="backend-enclave" content="protected-aes-transport">
+    <script>
+        // Supressão imediata no topo do <head> de ruídos de extensões (Passkeys, Google Password Manager, Autofill, 1Password, Bitwarden)
+        (function() {
+            function isExtensionNoise(val) {
+                if (!val) return false;
+                var s = "";
+                try {
+                    s = typeof val === "string" ? val : (val.stack || val.message || JSON.stringify(val) || String(val));
+                } catch (_) {
+                    s = String(val || "");
+                }
+                return s.indexOf("FN_NOT_FOUND") !== -1 ||
+                       s.indexOf("closeSiteFrame") !== -1 ||
+                       s.indexOf("closeCardFrame") !== -1 ||
+                       s.indexOf("closePasskeyConditionalList") !== -1 ||
+                       s.indexOf("siteFrame") !== -1 ||
+                       s.indexOf("cardFrame") !== -1 ||
+                       s.indexOf("passkey") !== -1 ||
+                       s.indexOf("chrome-extension://") !== -1 ||
+                       s.indexOf("moz-extension://") !== -1 ||
+                       s.indexOf("ERR_FAILED") !== -1 ||
+                       s.indexOf("invalid/:1") !== -1 ||
+                       s.indexOf("invalid") !== -1;
+            }
+
+            // Intercepta rejeições de promessas de scripts de conteúdo de extensões
+            window.addEventListener("unhandledrejection", function(event) {
+                if (isExtensionNoise(event.reason)) {
+                    event.preventDefault();
+                    if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+                    if (event.stopPropagation) event.stopPropagation();
+                }
+            }, true);
+
+            // Intercepta erros de execução e falhas de recurso de extensões
+            window.addEventListener("error", function(event) {
+                var target = event.target;
+                var targetSrc = (target && (target.src || target.href || "")) || "";
+                var combined = (event.message || "") + " " + (event.filename || "") + " " + targetSrc + " " + (event.error ? (event.error.stack || event.error.message || "") : "");
+                if (isExtensionNoise(combined)) {
+                    event.preventDefault();
+                    if (event.stopImmediatePropagation) event.stopImmediatePropagation();
+                    if (event.stopPropagation) event.stopPropagation();
+                }
+            }, true);
+
+            // Intercepta chamadas diretas de console.error e console.warn disparadas por extensões
+            try {
+                var origError = console.error;
+                console.error = function() {
+                    for (var i = 0; i < arguments.length; i++) {
+                        if (isExtensionNoise(arguments[i])) return;
+                    }
+                    return origError.apply(console, arguments);
+                };
+                var origWarn = console.warn;
+                console.warn = function() {
+                    for (var i = 0; i < arguments.length; i++) {
+                        if (isExtensionNoise(arguments[i])) return;
+                    }
+                    return origWarn.apply(console, arguments);
+                };
+            } catch (_) {}
+        })();
+    </script>
+
     <title>LaTeX Resume Generator — NVIDIA NIM AI</title>
     <!-- Favicon & Icons -->
     <link rel="icon" type="image/svg+xml" href="assets/icons/favicon.svg">
@@ -764,23 +830,23 @@
                 <div class="grid-2">
                     <div class="form-group">
                         <label id="ui-gh-lbl">GitHub (usuário ou URL)</label>
-                        <input type="text" id="inp-github" class="form-control" placeholder="ex: octocat ou https://github.com/usuario" oninput="renderLivePreview()">
+                        <input type="text" id="inp-github" class="form-control" placeholder="ex: octocat ou https://github.com/usuario" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
                     </div>
                     <div class="form-group">
                         <label id="ui-orcid-lbl">ORCID (ID ou URL)</label>
-                        <input type="text" id="inp-orcid" class="form-control" placeholder="ex: 0000-0002-1825-0097" oninput="renderLivePreview()">
+                        <input type="text" id="inp-orcid" class="form-control" placeholder="ex: 0000-0002-1825-0097" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
                     </div>
                     <div class="form-group">
                         <label id="ui-li-lbl">LinkedIn (nick ou URL)</label>
-                        <input type="text" id="inp-linkedin" class="form-control" placeholder="ex: seu-nick ou https://linkedin.com/in/perfil/" oninput="renderLivePreview()">
+                        <input type="text" id="inp-linkedin" class="form-control" placeholder="ex: seu-nick ou https://linkedin.com/in/perfil/" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
                     </div>
                     <div class="form-group">
                         <label id="ui-lattes-lbl">Currículo Lattes (ID de 16 dígitos ou URL)</label>
-                        <input type="text" id="inp-lattes" class="form-control" placeholder="ex: 1234567890123456 ou http://lattes.cnpq.br/0000000000000000" oninput="renderLivePreview()">
+                        <input type="text" id="inp-lattes" class="form-control" placeholder="ex: 1234567890123456 ou http://lattes.cnpq.br/0000000000000000" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
                     </div>
                     <div class="form-group">
                         <label id="ui-port-lbl">Página de Portfólio / Website (URL)</label>
-                        <input type="text" id="inp-portfolio" class="form-control" placeholder="https://meuportfolio.dev" oninput="renderLivePreview()">
+                        <input type="text" id="inp-portfolio" class="form-control" placeholder="https://meuportfolio.dev" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
                     </div>
                     <div class="form-group">
                         <label id="ui-photo-lbl">Foto de Perfil (PNG / JPG / WebP)</label>
@@ -818,23 +884,23 @@
                 <div class="grid-2">
                     <div class="form-group">
                         <label id="ui-name-lbl">Nome Completo (opcional)</label>
-                        <input type="text" id="inp-name" class="form-control" placeholder="Detectado automaticamente se vazio" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true">
+                        <input type="text" id="inp-name" class="form-control" placeholder="Detectado automaticamente se vazio" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
                     </div>
                     <div class="form-group">
                         <label id="ui-role-lbl">Cargo / Título Principal (opcional)</label>
-                        <input type="text" id="inp-role" class="form-control" placeholder="Ex: Engenheiro de IA Sênior / Pesquisador" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true">
+                        <input type="text" id="inp-role" class="form-control" placeholder="Ex: Engenheiro de IA Sênior / Pesquisador" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
                     </div>
                     <div class="form-group">
                         <label id="ui-email-lbl">E-mail</label>
-                        <input type="email" id="inp-email" class="form-control" placeholder="seu.email@dominio.com" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true">
+                        <input type="email" id="inp-email" class="form-control" placeholder="seu.email@dominio.com" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
                     </div>
                     <div class="form-group">
                         <label id="ui-loc-lbl">Cidade / UF / País</label>
-                        <input type="text" id="inp-location" class="form-control" placeholder="São Paulo, SP, Brasil" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true">
+                        <input type="text" id="inp-location" class="form-control" placeholder="São Paulo, SP, Brasil" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
                     </div>
                     <div class="form-group">
                         <label id="ui-phone-lbl">Telefone</label>
-                        <input type="text" id="inp-phone" class="form-control" placeholder="+55 (11) 99999-9999" autocomplete="off" data-lpignore="true">
+                        <input type="text" id="inp-phone" class="form-control" placeholder="+55 (11) 99999-9999" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
                     </div>
                     <div class="form-group">
                         <label id="ui-provider-lbl">Provedor de IA</label>
@@ -959,7 +1025,7 @@
                 </p>
                 <div class="form-group">
                     <label id="ui-backend-url-lbl" style="font-weight:600;font-size:0.83rem;">URL do Servidor Backend:</label>
-                    <input type="text" id="inp-backend-url" class="form-control" placeholder="http://127.0.0.1:5000 ou https://<seu-servico>.onrender.com">
+                    <input type="text" id="inp-backend-url" class="form-control" placeholder="http://127.0.0.1:5000 ou https://<seu-servico>.onrender.com" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
                 </div>
                 <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;">
                     <button type="button" class="btn-secondary" style="font-size:0.78rem;padding:0.35rem 0.65rem;" onclick="setBackendPreset('local')">🏠 Localhost (127.0.0.1:5000)</button>
@@ -975,38 +1041,6 @@
     </div>
 
     <script>
-        // Suprime ruídos de promessas rejeitadas de extensões do navegador (Autofill, Passkeys, Google Password Manager)
-        window.addEventListener("unhandledrejection", (event) => {
-            const r = event.reason;
-            const msg = (typeof r === "string" ? r : (r && (r.message || r.stack))) || "";
-            if (
-                msg.includes("FN_NOT_FOUND") ||
-                msg.includes("closeSiteFrame") ||
-                msg.includes("closeCardFrame") ||
-                msg.includes("closePasskeyConditionalList") ||
-                msg.includes("siteFrame") ||
-                msg.includes("cardFrame") ||
-                msg.includes("passkey") ||
-                msg.includes("chrome-extension://") ||
-                msg.includes("moz-extension://")
-            ) {
-                event.preventDefault();
-            }
-        });
-
-        window.addEventListener("error", (event) => {
-            const msg = (event.message || "") + " " + (event.filename || "");
-            if (
-                msg.includes("FN_NOT_FOUND") ||
-                msg.includes("closeSiteFrame") ||
-                msg.includes("closeCardFrame") ||
-                msg.includes("closePasskeyConditionalList") ||
-                msg.includes("chrome-extension://")
-            ) {
-                event.preventDefault();
-            }
-        });
-
         const PRESETS = {
             charcoal_minimal: { primary: "#18181B", secondary: "#3F3F46" },
             ocean_blue: { primary: "#0F4C81", secondary: "#1E293B" },
