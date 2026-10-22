@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.googleapis.com https:; font-src 'self' https://fonts.gstatic.com https://*.gstatic.com https: data: blob:; script-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:5000 http://localhost:5000 https://*.onrender.com; frame-src blob: data:; img-src 'self' data: blob:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.googleapis.com https:; font-src 'self' https://fonts.gstatic.com https://*.gstatic.com https: data: blob:; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; worker-src 'self' blob: data: https://cdnjs.cloudflare.com; connect-src 'self' http://127.0.0.1:5000 http://localhost:5000 https://*.onrender.com https://cdnjs.cloudflare.com; frame-src 'self' blob: data: chrome-extension:; object-src 'self' blob: data:; img-src 'self' data: blob:;">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <meta http-equiv="Permissions-Policy" content="unload=()">
     <meta name="backend-enclave" content="protected-aes-transport">
     <script>
@@ -618,12 +619,46 @@
             border-top: 1px solid var(--border);
             flex-wrap: wrap;
         }
-        /* PDF Iframe Responsive Height */
+        /* PDF Viewer Container & Canvas Responsive Styles */
+        #pdf-viewer-wrap {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+            background: #2a2e37;
+        }
+        #pdf-toolbar {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.45rem 0.8rem;
+            background: var(--card-bg, #1e222b);
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            font-size: 0.84rem;
+            color: var(--text-main);
+        }
+        #pdf-canvas-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px;
+            max-height: clamp(380px, 62vh, 650px);
+            overflow-y: auto;
+            background: #2a2e37;
+        }
+        #pdf-canvas {
+            box-shadow: 0 6px 20px rgba(0,0,0,0.45);
+            border-radius: 4px;
+            background: #fff;
+            max-width: 100%;
+            height: auto;
+        }
         #pdf-iframe {
             width: 100%;
             height: clamp(380px, 62vh, 650px);
-            border: 1px solid var(--border);
-            border-radius: 10px;
+            border: none;
             background: #fff;
         }
 
@@ -1101,7 +1136,28 @@
                         <a id="dl-tex-link" class="btn-secondary" style="flex:1;" download="curriculo.tex">⬇️ Baixar Código (.TEX)</a>
                     </div>
 
-                    <iframe id="pdf-iframe" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" title="PDF Preview" style="width:100%;height:620px;border:1px solid var(--border);border-radius:10px;background:#fff;"></iframe>
+                    <div id="pdf-viewer-wrap">
+                        <div id="pdf-toolbar">
+                            <div style="display:flex;align-items:center;gap:0.35rem;">
+                                <button type="button" id="pdf-btn-prev" class="btn-toggle" style="padding:0.25rem 0.55rem;" title="Página Anterior" aria-label="Página Anterior">◀</button>
+                                <span id="pdf-page-display" style="font-weight:600;min-width:65px;text-align:center;">1 / 1</span>
+                                <button type="button" id="pdf-btn-next" class="btn-toggle" style="padding:0.25rem 0.55rem;" title="Próxima Página" aria-label="Próxima Página">▶</button>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:0.35rem;">
+                                <button type="button" id="pdf-btn-zoom-out" class="btn-toggle" style="padding:0.25rem 0.55rem;" title="Reduzir Zoom" aria-label="Reduzir Zoom">−</button>
+                                <span id="pdf-zoom-display" style="font-weight:600;min-width:45px;text-align:center;">100%</span>
+                                <button type="button" id="pdf-btn-zoom-in" class="btn-toggle" style="padding:0.25rem 0.55rem;" title="Aumentar Zoom" aria-label="Aumentar Zoom">+</button>
+                                <button type="button" id="pdf-btn-zoom-fit" class="btn-toggle" style="padding:0.25rem 0.55rem;" title="Ajustar à Tela" aria-label="Ajustar à Tela">Ajustar</button>
+                            </div>
+                            <div>
+                                <a id="pdf-tab-link" href="#" target="_blank" class="btn-toggle" style="text-decoration:none;padding:0.25rem 0.6rem;font-size:0.8rem;" title="Abrir PDF em nova aba">↗️ Nova Aba</a>
+                            </div>
+                        </div>
+                        <div id="pdf-canvas-container">
+                            <canvas id="pdf-canvas"></canvas>
+                        </div>
+                        <iframe id="pdf-iframe" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" title="PDF Preview" style="width:100%;height:620px;border:none;background:#fff;"></iframe>
+                    </div>
 
                     <details class="collapsible" style="margin-top:0.9rem;">
                         <summary id="ui-tex-code-summary">🔍 Ver Código-Fonte LaTeX Gerado</summary>
@@ -2721,22 +2777,69 @@
                     }
                     state.activePdfBlobUrl = URL.createObjectURL(pdfBlob);
 
-                    const oldIframe = document.getElementById("pdf-iframe");
-                    if (oldIframe && oldIframe.parentNode) {
-                        const newIframe = document.createElement("iframe");
-                        newIframe.id = "pdf-iframe";
-                        newIframe.style.cssText = oldIframe.style.cssText || "width:100%;height:620px;border:1px solid var(--border);border-radius:10px;background:#fff;";
-                        newIframe.setAttribute("data-lpignore", "true");
-                        newIframe.setAttribute("data-1p-ignore", "true");
-                        newIframe.setAttribute("data-bwignore", "true");
-                        newIframe.setAttribute("title", "PDF Preview");
-                        newIframe.src = state.activePdfBlobUrl;
-                        oldIframe.parentNode.replaceChild(newIframe, oldIframe);
-                    }
                     const dlPdf = document.getElementById("dl-pdf-link");
                     if (dlPdf) {
                         dlPdf.href = state.activePdfBlobUrl;
                         dlPdf.classList.remove("hidden");
+                    }
+                    const tabLink = document.getElementById("pdf-tab-link");
+                    if (tabLink) {
+                        tabLink.href = state.activePdfBlobUrl;
+                    }
+
+                    // Tenta renderizar via PDF.js (canvas nativo) para evitar bloqueios de iframe / extensões
+                    let renderedPdfJs = false;
+                    if (window.pdfjsLib) {
+                        try {
+                            pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+                            const loadingTask = pdfjsLib.getDocument({ data: bytes });
+                            loadingTask.promise.then(function(pdfDoc) {
+                                state.pdfDoc = pdfDoc;
+                                state.pdfPageNum = 1;
+                                state.pdfTotalPages = pdfDoc.numPages;
+                                state.pdfScale = 1.0;
+                                state.pdfFitWidth = true;
+
+                                const tb = document.getElementById("pdf-toolbar");
+                                const cc = document.getElementById("pdf-canvas-container");
+                                const ifr = document.getElementById("pdf-iframe");
+                                if (tb) tb.style.display = "flex";
+                                if (cc) cc.style.display = "flex";
+                                if (ifr) ifr.style.display = "none";
+
+                                renderPdfJsPage(1);
+                            }).catch(function(err) {
+                                console.warn("PDF.js load error, falling back to iframe:", err);
+                                fallbackToIframe();
+                            });
+                            renderedPdfJs = true;
+                        } catch (e) {
+                            renderedPdfJs = false;
+                        }
+                    }
+
+                    if (!renderedPdfJs) {
+                        fallbackToIframe();
+                    }
+
+                    function fallbackToIframe() {
+                        const tb = document.getElementById("pdf-toolbar");
+                        const cc = document.getElementById("pdf-canvas-container");
+                        if (tb) tb.style.display = "none";
+                        if (cc) cc.style.display = "none";
+
+                        const oldIframe = document.getElementById("pdf-iframe");
+                        if (oldIframe && oldIframe.parentNode) {
+                            const newIframe = document.createElement("iframe");
+                            newIframe.id = "pdf-iframe";
+                            newIframe.style.cssText = "width:100%;height:620px;border:none;background:#fff;display:block;";
+                            newIframe.setAttribute("data-lpignore", "true");
+                            newIframe.setAttribute("data-1p-ignore", "true");
+                            newIframe.setAttribute("data-bwignore", "true");
+                            newIframe.setAttribute("title", "PDF Preview");
+                            newIframe.src = state.activePdfBlobUrl;
+                            oldIframe.parentNode.replaceChild(newIframe, oldIframe);
+                        }
                     }
                 }
             } catch (err) {
@@ -2763,6 +2866,104 @@
                 btnTxt.textContent = I18N[state.uiLang].genBtn;
             }
         }
+
+        
+        // PDF.js Viewer Engine (Canvas render + Page Navigation + Zoom)
+        function renderPdfJsPage(pageNum) {
+            if (!state.pdfDoc) return;
+            state.pdfDoc.getPage(pageNum).then(function(page) {
+                const canvas = document.getElementById("pdf-canvas");
+                if (!canvas) return;
+                const ctx = canvas.getContext("2d");
+                const container = document.getElementById("pdf-canvas-container");
+                const availWidth = (container ? container.clientWidth - 28 : 580);
+
+                const unscaled = page.getViewport({ scale: 1.0 });
+                let scale = state.pdfScale || 1.0;
+                if (state.pdfFitWidth && availWidth > 80) {
+                    scale = availWidth / unscaled.width;
+                    state.pdfScale = scale;
+                }
+                const viewport = page.getViewport({ scale: scale });
+                const dpr = window.devicePixelRatio || 1;
+
+                canvas.width = Math.floor(viewport.width * dpr);
+                canvas.height = Math.floor(viewport.height * dpr);
+                canvas.style.width = Math.floor(viewport.width) + "px";
+                canvas.style.height = Math.floor(viewport.height) + "px";
+
+                if (state.pdfRenderTask) {
+                    try { state.pdfRenderTask.cancel(); } catch (_) {}
+                }
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport,
+                    transform: [dpr, 0, 0, dpr, 0, 0]
+                };
+                state.pdfRenderTask = page.render(renderContext);
+                state.pdfRenderTask.promise.then(function() {
+                    state.pdfRenderTask = null;
+                }).catch(function(err) {
+                    if (err && err.name !== "RenderingCancelledException") {
+                        console.warn("Render cancelled / error:", err);
+                    }
+                });
+
+                const pDisp = document.getElementById("pdf-page-display");
+                if (pDisp) pDisp.textContent = pageNum + " / " + state.pdfTotalPages;
+                const zDisp = document.getElementById("pdf-zoom-display");
+                if (zDisp) zDisp.textContent = Math.round(scale * 100) + "%";
+
+                const pBtn = document.getElementById("pdf-btn-prev");
+                const nBtn = document.getElementById("pdf-btn-next");
+                if (pBtn) pBtn.disabled = (pageNum <= 1);
+                if (nBtn) nBtn.disabled = (pageNum >= state.pdfTotalPages);
+            });
+        }
+
+        window.addEventListener("DOMContentLoaded", () => {
+            const prev = document.getElementById("pdf-btn-prev");
+            if (prev) {
+                prev.addEventListener("click", () => {
+                    if (state.pdfDoc && state.pdfPageNum > 1) {
+                        state.pdfPageNum--;
+                        renderPdfJsPage(state.pdfPageNum);
+                    }
+                });
+            }
+            const next = document.getElementById("pdf-btn-next");
+            if (next) {
+                next.addEventListener("click", () => {
+                    if (state.pdfDoc && state.pdfPageNum < state.pdfTotalPages) {
+                        state.pdfPageNum++;
+                        renderPdfJsPage(state.pdfPageNum);
+                    }
+                });
+            }
+            const zIn = document.getElementById("pdf-btn-zoom-in");
+            if (zIn) {
+                zIn.addEventListener("click", () => {
+                    state.pdfFitWidth = false;
+                    state.pdfScale = Math.min(2.5, (state.pdfScale || 1.0) + 0.15);
+                    renderPdfJsPage(state.pdfPageNum);
+                });
+            }
+            const zOut = document.getElementById("pdf-btn-zoom-out");
+            if (zOut) {
+                zOut.addEventListener("click", () => {
+                    state.pdfFitWidth = false;
+                    state.pdfScale = Math.max(0.4, (state.pdfScale || 1.0) - 0.15);
+                    renderPdfJsPage(state.pdfPageNum);
+                });
+            }
+            const zFit = document.getElementById("pdf-btn-zoom-fit");
+            if (zFit) {
+                zFit.addEventListener("click", () => {
+                    state.pdfFitWidth = true;
+                    renderPdfJsPage(state.pdfPageNum);
+                });
+            }
+        });
 
         // Blindagem contra inspeção e extração de chaves e URL no Console / DevTools do navegador
         try {

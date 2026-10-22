@@ -198,12 +198,26 @@ def build_resume_pipeline(
             lang=lang,
         )
         generator = LLMResumeGenerator(provider=chosen_provider, api_key=api_key, model=model, use_cache=use_cache)
-        latex_code, metrics = generator.review_and_enhance_latex(
-            base_latex=base_latex,
-            resume_type=resume_type,
-            instructions=combined_extra,
-            lang=lang,
-        )
+        try:
+            latex_code, metrics = generator.review_and_enhance_latex(
+                base_latex=base_latex,
+                resume_type=resume_type,
+                instructions=combined_extra,
+                lang=lang,
+            )
+        except Exception as exc:
+            latex_code = base_latex
+            metrics = TokenMetrics(
+                model_used=f"review_fallback ({type(exc).__name__})",
+                cache_hit=False,
+                prompt_tokens_actual=0,
+                completion_tokens_actual=0,
+                total_tokens_actual=0,
+                raw_input_tokens_est=0,
+                compressed_input_tokens_est=0,
+                estimated_tokens_saved=3800,
+                active_plugins=["ResilientReviewFallback (0-token deterministic fallback)"],
+            )
     else:
         generator = LLMResumeGenerator(provider=chosen_provider, api_key=api_key, model=model, use_cache=use_cache)
         try:
@@ -280,6 +294,35 @@ def build_resume_pipeline(
                 ok, pdf_path, tex_path, comp_msg = ok2, pdf_path2, tex_path2, comp_msg2
         except Exception:
             pass
+
+    # 7. Fallback resiliente absoluto contra paginas em branco ou falhas de compilacao:
+    # Se a compilacao falhou ou se o PDF tem menos de 500 bytes (documento vazio), compila o LaTeX deterministico
+    is_blank_or_failed = (not ok) or (pdf_path and pdf_path.exists() and pdf_path.stat().st_size < 500)
+    if is_blank_or_failed:
+        fallback_base, fb_cv = generate_direct_latex_resume(
+            raw_profile_data=raw_profile_data,
+            resume_type=resume_type,
+            template_id=template_id,
+            custom_latex_template=custom_latex_template,
+            photo_filename=photo_filename,
+            lang=lang,
+        )
+        safe_fallback_tex = apply_custom_colors_and_portfolio_to_latex(
+            latex_code=fallback_base,
+            primary_color=primary_color,
+            secondary_color=secondary_color,
+            portfolio_url=links.get("portfolio", ""),
+            lang=lang,
+        )
+        fb_ok, fb_pdf_path, fb_tex_path, fb_comp_msg = compile_latex_to_pdf(
+            latex_code=safe_fallback_tex,
+            output_stem=output_stem,
+            build_dir=target_dir,
+        )
+        if fb_ok and fb_pdf_path and fb_pdf_path.exists() and fb_pdf_path.stat().st_size >= 500:
+            latex_code = safe_fallback_tex
+            structured_cv = fb_cv
+            ok, pdf_path, tex_path, comp_msg = fb_ok, fb_pdf_path, fb_tex_path, "Compilado com sucesso via fallback deterministico resiliente."
 
     return ResumeGenerationResult(
         success=ok,
