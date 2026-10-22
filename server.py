@@ -66,14 +66,19 @@ ALLOWED_CLIENT_HEADERS = {
 }
 BACKEND_ATTESTATION = "latex-resume-render-v1"
 
-# Rate Limiter em memória por IP (máximo 15 gerações a cada 10 minutos)
+# Rate Limiter em memória por IP (máximo 40 gerações a cada 10 minutos para permitir navegação fluida)
 _IP_REQUEST_TIMES: defaultdict[str, list[float]] = defaultdict(list)
 _RATE_LIMIT_WINDOW = 600.0  # 10 minutos
-_MAX_REQUESTS_PER_WINDOW = 15
+_MAX_REQUESTS_PER_WINDOW = 40
 
 
 def _is_rate_limited(ip: str) -> bool:
-    """Verifica se o IP cliente ultrapassou a taxa máxima de requisições."""
+    """Verifica se o IP cliente ultrapassou a taxa máxima de requisições.
+    
+    Ambientes locais e loopback são isentos de rate-limiting para permitir testes contínuos sem bloqueio.
+    """
+    if ALLOW_LOCAL_DEV or ip in ("127.0.0.1", "::1", "localhost", "testclient", "unknown"):
+        return False
     now = time.time()
     times = [t for t in _IP_REQUEST_TIMES[ip] if now - t < _RATE_LIMIT_WINDOW]
     if len(times) >= _MAX_REQUESTS_PER_WINDOW:

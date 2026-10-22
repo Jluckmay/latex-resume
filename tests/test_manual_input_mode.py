@@ -254,3 +254,32 @@ def test_ui_elements_for_manual_and_import_mode():
     assert 'man_proj = st.text_area' in app_py
     assert 'data_source_mode="manual" if is_manual_mode else "import"' in app_py
 
+
+def test_server_rate_limiter_allows_multiple_generations_and_exempts_local_dev():
+    """Garante que requisições locais não sofram rate limit e que a cota seja de no mínimo 40 requisições."""
+    from server import _MAX_REQUESTS_PER_WINDOW, _is_rate_limited
+    assert _MAX_REQUESTS_PER_WINDOW >= 40
+    # Loopback e local dev nunca devem ser bloqueados
+    assert _is_rate_limited("127.0.0.1") is False
+    assert _is_rate_limited("localhost") is False
+    assert _is_rate_limited("::1") is False
+
+
+def test_multiple_generation_memory_cleanup_and_dom_isolation():
+    """Valida garantias contra vazamento de memória e interferência de extensões em múltiplas gerações."""
+    html = Path("index.html").read_text(encoding="utf-8")
+    # Blob URL com revogação explícita
+    assert "URL.revokeObjectURL(state.activePdfBlobUrl)" in html
+    assert "URL.revokeObjectURL(state.activeTexBlobUrl)" in html
+    # Substituição limpa do iframe no DOM para isolamento de frames de extensões
+    assert "replaceChild(newIframe, oldIframe)" in html
+    # Proteção contra requisições concorrentes ou duplo-clique
+    assert "state.isGenerating" in html
+    # Badge informativo de status do motor de IA / Fallback
+    assert 'id="m-model-badge"' in html
+    assert 'id="m-model-name"' in html
+    # Atributos de supressão de observadores de formulário de extensões nos campos manuais
+    assert 'id="inp-man-summary" class="form-control" rows="3" placeholder="Ex: Especialista em tecnologia com sólida trajetória..." oninput="renderLivePreview()" autocomplete="off" data-lpignore="true"' in html
+    assert 'id="inp-man-education" class="form-control" rows="3" placeholder="Bacharelado em Ciência da Computação | USP | 2018 - 2022 | Foco em IA&#10;Mestrado em Engenharia | UNICAMP | 2022 - 2024" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true"' in html
+
+

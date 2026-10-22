@@ -39,6 +39,15 @@
                 }
             }, true);
 
+            try {
+                window.onunhandledrejection = function(event) {
+                    if (isExtensionNoise(event.reason)) {
+                        event.preventDefault();
+                        return true;
+                    }
+                };
+            } catch (_) {}
+
             // Intercepta erros de execução e falhas de recurso de extensões
             window.addEventListener("error", function(event) {
                 var target = event.target;
@@ -898,44 +907,44 @@
                 <div id="container-data-manual" style="display:none;">
                     <div class="form-group">
                         <label id="ui-man-summary-lbl">Resumo Profissional / Perfil</label>
-                        <textarea id="inp-man-summary" class="form-control" rows="3" placeholder="Ex: Especialista em tecnologia com sólida trajetória..." oninput="renderLivePreview()"></textarea>
+                        <textarea id="inp-man-summary" class="form-control" rows="3" placeholder="Ex: Especialista em tecnologia com sólida trajetória..." oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false"></textarea>
                     </div>
                     <div class="grid-2">
                         <div class="form-group">
                             <label id="ui-man-edu-lbl">Formação Acadêmica (Grau | Instituição | Período | Detalhes)</label>
-                            <textarea id="inp-man-education" class="form-control" rows="3" placeholder="Bacharelado em Ciência da Computação | USP | 2018 - 2022 | Foco em IA&#10;Mestrado em Engenharia | UNICAMP | 2022 - 2024" oninput="renderLivePreview()"></textarea>
+                            <textarea id="inp-man-education" class="form-control" rows="3" placeholder="Bacharelado em Ciência da Computação | USP | 2018 - 2022 | Foco em IA&#10;Mestrado em Engenharia | UNICAMP | 2022 - 2024" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false"></textarea>
                         </div>
                         <div class="form-group">
                             <label id="ui-man-exp-lbl">Experiência Profissional (Cargo | Empresa | Período | Local | Descrição)</label>
-                            <textarea id="inp-man-experience" class="form-control" rows="3" placeholder="Engenheiro de Software Sênior | Tech Corp | 2022 - Atual | SP | Arquitetura de nuvem e microsserviços." oninput="renderLivePreview()"></textarea>
+                            <textarea id="inp-man-experience" class="form-control" rows="3" placeholder="Engenheiro de Software Sênior | Tech Corp | 2022 - Atual | SP | Arquitetura de nuvem e microsserviços." oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false"></textarea>
                         </div>
                         <div class="form-group">
                             <label id="ui-man-skills-lbl">Habilidades & Competências (Categoria: Tecnologias / Itens)</label>
-                            <textarea id="inp-man-skills" class="form-control" rows="3" placeholder="Linguagens: Python, Go, TypeScript&#10;Cloud & DevOps: Docker, Kubernetes, AWS" oninput="renderLivePreview()"></textarea>
+                            <textarea id="inp-man-skills" class="form-control" rows="3" placeholder="Linguagens: Python, Go, TypeScript&#10;Cloud & DevOps: Docker, Kubernetes, AWS" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false"></textarea>
                         </div>
                         <div class="form-group">
                             <label id="ui-man-proj-lbl">Projetos Relevantes (Nome | Tech | Link | Descrição)</label>
-                            <textarea id="inp-man-projects" class="form-control" rows="3" placeholder="LaTeX Resume Enclave | Python, Flask | https://github.com/usuario/latex-resume | Plataforma zero-storage." oninput="renderLivePreview()"></textarea>
+                            <textarea id="inp-man-projects" class="form-control" rows="3" placeholder="LaTeX Resume Enclave | Python, Flask | https://github.com/usuario/latex-resume | Plataforma zero-storage." oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false"></textarea>
                         </div>
                         <div class="form-group">
                             <label id="ui-man-lang-lbl">Idiomas (Idioma e Nível, separados por vírgula)</label>
-                            <input type="text" id="inp-man-languages" class="form-control" placeholder="Português (Nativo), Inglês (Fluente), Espanhol (Intermediário)" oninput="renderLivePreview()">
+                            <input type="text" id="inp-man-languages" class="form-control" placeholder="Português (Nativo), Inglês (Fluente), Espanhol (Intermediário)" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
                         </div>
                         <div class="form-group">
                             <label id="ui-man-awards-lbl">Prêmios & Certificações (Título | Ano | Detalhes)</label>
-                            <textarea id="inp-man-awards" class="form-control" rows="2" placeholder="AWS Certified Solutions Architect | 2023 | Amazon Web Services" oninput="renderLivePreview()"></textarea>
+                            <textarea id="inp-man-awards" class="form-control" rows="2" placeholder="AWS Certified Solutions Architect | 2023 | Amazon Web Services" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false"></textarea>
                         </div>
                     </div>
                     <div class="form-group">
                         <label id="ui-man-pubs-lbl">Publicações & Artigos (Título | Periódico/Conferência | Ano | Autores | DOI)</label>
-                        <textarea id="inp-man-publications" class="form-control" rows="2" placeholder="Neural Parsing of Technical Resumes | IEEE | 2023 | Silva, L. | 10.1109/CVPR.2023.1001" oninput="renderLivePreview()"></textarea>
+                        <textarea id="inp-man-publications" class="form-control" rows="2" placeholder="Neural Parsing of Technical Resumes | IEEE | 2023 | Silva, L. | 10.1109/CVPR.2023.1001" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false"></textarea>
                     </div>
                     <div style="background-color:var(--bg-subtle);border:1px solid var(--border);border-radius:8px;padding:0.75rem;margin-top:0.75rem;">
                         <span style="font-size:0.82rem;font-weight:600;color:var(--text-main);" id="ui-man-links-title">🔗 Links Opcionais e Foto de Perfil:</span>
                         <div class="grid-2" style="margin-top:0.5rem;">
                             <div class="form-group" style="margin-bottom:0.5rem;">
                                 <label id="ui-man-port-lbl">Portfólio / Website (URL)</label>
-                                <input type="text" id="inp-man-portfolio" class="form-control" placeholder="https://meuportfolio.dev" oninput="renderLivePreview()">
+                                <input type="text" id="inp-man-portfolio" class="form-control" placeholder="https://meuportfolio.dev" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
                             </div>
                             <div class="form-group" style="margin-bottom:0.5rem;">
                                 <label id="ui-man-photo-lbl">Foto de Perfil (PNG / JPG)</label>
@@ -943,11 +952,11 @@
                             </div>
                             <div class="form-group" style="margin-bottom:0;">
                                 <label>GitHub</label>
-                                <input type="text" id="inp-man-github" class="form-control" placeholder="usuario ou URL" oninput="renderLivePreview()">
+                                <input type="text" id="inp-man-github" class="form-control" placeholder="usuario ou URL" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
                             </div>
                             <div class="form-group" style="margin-bottom:0;">
                                 <label>LinkedIn</label>
-                                <input type="text" id="inp-man-linkedin" class="form-control" placeholder="nick ou URL" oninput="renderLivePreview()">
+                                <input type="text" id="inp-man-linkedin" class="form-control" placeholder="nick ou URL" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
                             </div>
                         </div>
                     </div>
@@ -1058,6 +1067,11 @@
                 </div>
 
                 <div id="result-content" class="hidden">
+                    <div id="m-model-badge" style="font-size:0.8rem;font-weight:600;padding:0.45rem 0.75rem;border-radius:6px;margin-bottom:0.75rem;background:var(--bg-subtle);border:1px solid var(--border);color:var(--text-muted);display:flex;align-items:center;justify-content:space-between;gap:0.5rem;flex-wrap:wrap;">
+                        <span id="m-model-name">🤖 Motor: —</span>
+                        <span id="m-model-status" style="font-size:0.75rem;"></span>
+                    </div>
+
                     <div class="metrics-grid">
                         <div class="metric-box">
                             <div class="metric-label" id="m-lbl-total">Tokens API</div>
@@ -1082,7 +1096,7 @@
                         <a id="dl-tex-link" class="btn-secondary" style="flex:1;" download="curriculo.tex">⬇️ Baixar Código (.TEX)</a>
                     </div>
 
-                    <iframe id="pdf-iframe" style="width:100%;height:620px;border:1px solid var(--border);border-radius:10px;background:#fff;"></iframe>
+                    <iframe id="pdf-iframe" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" title="PDF Preview" style="width:100%;height:620px;border:1px solid var(--border);border-radius:10px;background:#fff;"></iframe>
 
                     <details class="collapsible" style="margin-top:0.9rem;">
                         <summary id="ui-tex-code-summary">🔍 Ver Código-Fonte LaTeX Gerado</summary>
@@ -2409,6 +2423,10 @@
         }
 
         async function generateResume() {
+            if (state.isGenerating) {
+                return;
+            }
+            state.isGenerating = true;
             const btn = document.getElementById("btn-generate");
             const btnTxt = document.getElementById("ui-gen-btn-txt");
             const t = I18N[state.uiLang];
@@ -2598,16 +2616,71 @@
                 document.getElementById("m-val-saved").textContent = "~" + (tm.estimated_tokens_saved ?? 0);
                 document.getElementById("m-val-pct").textContent = (tm.estimated_savings_pct ?? 0) + "%";
 
+                // Atualização do status do motor/modelo de processamento
+                const mu = tm.model_used || "direct_extractor_engine";
+                const isFallback = mu.includes("fallback") || mu === "direct_extractor_engine";
+                const badgeEl = document.getElementById("m-model-badge");
+                const nameEl = document.getElementById("m-model-name");
+                const statusEl = document.getElementById("m-model-status");
+                if (badgeEl && nameEl && statusEl) {
+                    if (isFallback) {
+                        if (providerVal === "none") {
+                            nameEl.textContent = (state.uiLang === "en-us") ? "⚡ Engine: Deterministic Direct (0 Tokens / Offline)" : "⚡ Motor: Direto Determinístico (0 Tokens / Offline)";
+                            statusEl.textContent = (state.uiLang === "en-us") ? "✅ Clean 0-Token Build" : "✅ Compilação 0 Tokens Limpa";
+                            badgeEl.style.borderColor = "var(--border)";
+                            badgeEl.style.color = "var(--text-muted)";
+                        } else {
+                            nameEl.textContent = (state.uiLang === "en-us") ? `⚠️ Engine: Direct Fallback (${mu})` : `⚠️ Motor: Fallback Direto (${mu})`;
+                            statusEl.textContent = (state.uiLang === "en-us") ? "💡 Key missing/quota exceeded; compiled offline" : "💡 Chave ausente/cota excedida; compilado offline";
+                            badgeEl.style.borderColor = "#f59e0b";
+                            badgeEl.style.color = "#d97706";
+                        }
+                    } else {
+                        nameEl.textContent = `🤖 AI Model: ${mu}`;
+                        statusEl.textContent = (state.uiLang === "en-us") ? "✨ AI Review Applied" : "✨ Revisão por IA Concluída";
+                        badgeEl.style.borderColor = "#10b981";
+                        badgeEl.style.color = "#059669";
+                    }
+                }
+
                 document.getElementById("tex-code-output").textContent = data.latex_code || "";
 
+                if (state.activeTexBlobUrl) {
+                    try { URL.revokeObjectURL(state.activeTexBlobUrl); } catch (_) {}
+                }
                 const texBlob = new Blob([data.latex_code || ""], { type: "text/plain;charset=utf-8" });
-                document.getElementById("dl-tex-link").href = URL.createObjectURL(texBlob);
+                state.activeTexBlobUrl = URL.createObjectURL(texBlob);
+                document.getElementById("dl-tex-link").href = state.activeTexBlobUrl;
 
                 if (data.pdf_base64) {
-                    const pdfDataUri = "data:application/pdf;base64," + data.pdf_base64;
-                    document.getElementById("pdf-iframe").src = pdfDataUri;
-                    document.getElementById("dl-pdf-link").href = pdfDataUri;
-                    document.getElementById("dl-pdf-link").classList.remove("hidden");
+                    const binaryStr = window.atob(data.pdf_base64);
+                    const bytes = new Uint8Array(binaryStr.length);
+                    for (let i = 0; i < binaryStr.length; i++) {
+                        bytes[i] = binaryStr.charCodeAt(i);
+                    }
+                    const pdfBlob = new Blob([bytes], { type: "application/pdf" });
+                    if (state.activePdfBlobUrl) {
+                        try { URL.revokeObjectURL(state.activePdfBlobUrl); } catch (_) {}
+                    }
+                    state.activePdfBlobUrl = URL.createObjectURL(pdfBlob);
+
+                    const oldIframe = document.getElementById("pdf-iframe");
+                    if (oldIframe && oldIframe.parentNode) {
+                        const newIframe = document.createElement("iframe");
+                        newIframe.id = "pdf-iframe";
+                        newIframe.style.cssText = oldIframe.style.cssText || "width:100%;height:620px;border:1px solid var(--border);border-radius:10px;background:#fff;";
+                        newIframe.setAttribute("data-lpignore", "true");
+                        newIframe.setAttribute("data-1p-ignore", "true");
+                        newIframe.setAttribute("data-bwignore", "true");
+                        newIframe.setAttribute("title", "PDF Preview");
+                        newIframe.src = state.activePdfBlobUrl;
+                        oldIframe.parentNode.replaceChild(newIframe, oldIframe);
+                    }
+                    const dlPdf = document.getElementById("dl-pdf-link");
+                    if (dlPdf) {
+                        dlPdf.href = state.activePdfBlobUrl;
+                        dlPdf.classList.remove("hidden");
+                    }
                 }
             } catch (err) {
                 let errMsg = err.message || "Erro desconhecido / Unknown error";
@@ -2627,6 +2700,7 @@
                     }
                 }
             } finally {
+                state.isGenerating = false;
                 if (wakeTimer) clearTimeout(wakeTimer);
                 btn.disabled = false;
                 btnTxt.textContent = I18N[state.uiLang].genBtn;
