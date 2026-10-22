@@ -398,6 +398,56 @@ def render_template_preview_html(
         </div>
         """
 
+    if template_id in ("nico_krieger", "modelo_nico_krieger"):
+        return f"""
+        <div style="background:#ffffff;color:#1e293b;border-radius:10px;border:1px solid #cbd5e1;
+                    box-shadow:0 6px 18px rgba(15,23,42,0.08);overflow:hidden;font-family:'Segoe UI',sans-serif;
+                    font-size:10.5px;line-height:1.3;min-height:255px;">
+            <div style="background:#212529;color:#ffffff;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <div style="font-size:15px;font-weight:900;letter-spacing:0.5px;">LUCAS SILVA</div>
+                    <div style="font-size:9.5px;color:#e2e8f0;margin-top:2px;">{role_txt}</div>
+                    <div style="font-size:8px;color:#94a3b8;margin-top:2px;">Especialista em microsserviços e sistemas distribuídos de alta disponibilidade.</div>
+                </div>
+                {photo_circle}
+            </div>
+            <div style="display:flex;min-height:180px;">
+                <div style="width:34%;background:#f8f9fa;border-right:1px solid #e2e8f0;padding:10px 10px;font-size:8.5px;color:#334155;">
+                    <div style="font-weight:800;font-size:9px;color:{p_col};border-bottom:1px solid {p_col};padding-bottom:2px;margin-bottom:4px;">CONTATO</div>
+                    <div style="line-height:1.45;margin-bottom:8px;">
+                        ✉️ lucas@email.com<br>
+                        📱 +55 11 99999-8888<br>
+                        📍 São Paulo, SP<br>
+                        🌐 portfolio.dev<br>
+                        🔗 in/lucassilva<br>
+                        🐙 lucassilva
+                    </div>
+                    <div style="font-weight:800;font-size:9px;color:{p_col};border-bottom:1px solid {p_col};padding-bottom:2px;margin-bottom:4px;">HABILIDADES</div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span>Python</span><span style="color:{p_col};">● ● ● ● ●</span></div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span>Docker</span><span style="color:{p_col};">● ● ● ● ○</span></div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>AWS</span><span style="color:{p_col};">● ● ● ○ ○</span></div>
+                    <div style="font-weight:800;font-size:9px;color:{p_col};border-bottom:1px solid {p_col};padding-bottom:2px;margin-bottom:4px;">IDIOMAS</div>
+                    <div style="display:flex;justify-content:space-between;"><span>Português</span><span style="color:{p_col};">● ● ● ● ●</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span>Inglês</span><span style="color:{p_col};">● ● ● ● ○</span></div>
+                </div>
+                <div style="width:66%;padding:10px 12px;font-size:9px;">
+                    <div style="font-weight:800;font-size:9.5px;color:{p_col};border-bottom:1px solid #cbd5e1;padding-bottom:2px;margin-bottom:4px;">EXPERIÊNCIA PROFISSIONAL</div>
+                    <div style="display:flex;justify-content:space-between;font-weight:700;color:#0f172a;">
+                        <span>Lead Software Architect</span><span style="color:#64748b;font-size:8px;">2021–Presente</span>
+                    </div>
+                    <div style="color:{p_col};font-weight:600;font-size:8.5px;margin-bottom:2px;">Tech Innovations Inc.</div>
+                    <div style="color:#334155;font-size:8.5px;margin-bottom:6px;">
+                        • Liderança técnica de microsserviços atendendo 5M de requisições diárias.<br>
+                        • Redução de latência em 40% com cache Redis e mensageria distribuída.
+                    </div>
+                    <div style="font-weight:800;font-size:9.5px;color:{p_col};border-bottom:1px solid #cbd5e1;padding-bottom:2px;margin-bottom:4px;">FORMAÇÃO ACADÊMICA</div>
+                    <div style="font-weight:700;color:#0f172a;">Bacharelado em Ciência da Computação</div>
+                    <div style="color:#64748b;font-size:8px;">Universidade de São Paulo (USP) · 2017–2021</div>
+                </div>
+            </div>
+        </div>
+        """
+
     if template_id == "google_standard":
         return f"""
         <div style="background:#ffffff;color:#1f1f1f;border-radius:10px;border:1px solid #cbd5e1;

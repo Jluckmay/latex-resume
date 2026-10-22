@@ -105,24 +105,38 @@ TEMPLATES_I18N: Dict[str, Dict[str, Dict[str, str]]] = {
             ),
         },
         "overleaf_russell_ti": {
-            "name": "Overleaf: Currículo T.I. — Russell CV (rgfqqnnynrmv)",
+            "name": "Modelo Russell",
             "description": (
                 "Modelo Overleaf Russell CV (https://www.overleaf.com/read/rgfqqnnynrmv#d5b171) com foto lateral "
                 "no cabeçalho, ícones FontAwesome 5, títulos com destaque nas 3 primeiras letras e níveis de idiomas em círculos."
             ),
         },
         "overleaf_awesome_cv": {
-            "name": "Overleaf: Jason Richards' Résumé — Awesome-CV (chbxgnfyyvfc)",
+            "name": "Awesome CV",
             "description": (
                 "Modelo Overleaf Jason Richards' Résumé (https://www.overleaf.com/articles/jason-richards-resume/chbxgnfyyvfc) "
                 "baseado no clássico Awesome-CV com cabeçalho centralizado, destaque de 3 letras nas seções e rodapé executivo."
             ),
         },
         "overleaf_single_page_keywords": {
-            "name": "Overleaf: Currículo Página Única com Keywords (wmcxcgmtkxzk)",
+            "name": "Single Page + Keywords",
             "description": (
                 "Modelo Overleaf de página única em duas colunas (https://www.overleaf.com/latex/templates/sample-single-page-resume-with-keywords/wmcxcgmtkxzk) "
                 "com fonte Raleway, ícones circulares TikZ, Resumo e Keywords de stack por experiência."
+            ),
+        },
+        "nico_krieger": {
+            "name": "Modelo Nico Krieger",
+            "description": (
+                "Nico Krieger resume template featuring a full-width dark top header, "
+                "highlight sidebar with 5-dot skill ratings and languages, and clean main column."
+            ),
+        },
+        "nico_krieger": {
+            "name": "Modelo Nico Krieger",
+            "description": (
+                "Modelo de página única com cabeçalho escuro de largura total, "
+                "barra lateral destacada para contatos, habilidades avaliadas em 5 pontos e idiomas, e coluna principal clara."
             ),
         },
         "google_standard": {
@@ -170,24 +184,31 @@ TEMPLATES_I18N: Dict[str, Dict[str, Dict[str, str]]] = {
             ),
         },
         "overleaf_russell_ti": {
-            "name": "Overleaf: IT & Academic CV — Russell CV (rgfqqnnynrmv)",
+            "name": "Modelo Russell",
             "description": (
                 "Overleaf Russell CV template (https://www.overleaf.com/read/rgfqqnnynrmv#d5b171) featuring left header photo, "
                 "FontAwesome 5 icons, 3-letter colored section titles, skill tables, and 5-dot language proficiency bars."
             ),
         },
         "overleaf_awesome_cv": {
-            "name": "Overleaf: Jason Richards' Résumé — Awesome-CV (chbxgnfyyvfc)",
+            "name": "Awesome CV",
             "description": (
                 "Overleaf Jason Richards' Résumé template (https://www.overleaf.com/articles/jason-richards-resume/chbxgnfyyvfc) "
                 "built on Awesome-CV with centered header, Roboto + Source Sans Pro typography, and 3-column executive footer."
             ),
         },
         "overleaf_single_page_keywords": {
-            "name": "Overleaf: Single-Page Resume with Keywords (wmcxcgmtkxzk)",
+            "name": "Single Page + Keywords",
             "description": (
                 "Overleaf two-column single-page template (https://www.overleaf.com/latex/templates/sample-single-page-resume-with-keywords/wmcxcgmtkxzk) "
                 "by Primož Godec & Salman Maqbool with Raleway font, TikZ circled icons, Summary, and per-job stack Keywords."
+            ),
+        },
+        "nico_krieger": {
+            "name": "Modelo Nico Krieger",
+            "description": (
+                "Nico Krieger resume template featuring a full-width dark top header, "
+                "highlight sidebar with 5-dot skill ratings and languages, and clean main column."
             ),
         },
         "google_standard": {

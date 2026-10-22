@@ -74,17 +74,18 @@ Para executar o gerador e compilar os currículos em PDF, o ambiente deve atende
      - Seções estruturadas para: **Resumo Profissional**, **Formação Acadêmica**, **Experiência Profissional**, **Competências Técnicas & Palavras-chave**, **Projetos de Destaque**, **Idiomas & Fluência**, **Prêmios & Reconhecimentos** e **Publicações**.
      - Suporta sintaxe intuitiva linha por linha separada por barras verticais (`|`) ou objetos JSON, com higienização tipográfica automática para LaTeX.
      - Preserva campos opcionais de links (GitHub, LinkedIn, Portfólio, ORCID, Lattes e Foto) para enriquecer o cabeçalho do currículo.
-4. **9 Modelos LaTeX Integrados (incluindo Overleaf, Padrão Google e Otimizado para IA & ATS) + Suporte a Template `.tex` Customizado**:
+4. **10 Modelos LaTeX Integrados (incluindo Padrão Google, Otimizado para IA & ATS, Modelo Russell, Awesome CV, Single Page + Keywords e Modelo Nico Krieger) + Suporte a Template `.tex` Customizado**:
+   - `ai_ats_max`: **Otimizado para IA & ATS (Máxima Legibilidade por LLMs)** — Desenvolvido especificamente para triagem automatizada por LLMs (Gemini, Claude, GPT) e sistemas ATS neurais (Workday, Greenhouse, Lever). Fluxo textual 100% linear em coluna única, metadados semânticos explícitos (tags textuais ASCII: Location, Email, Phone, LinkedIn, GitHub, Portfolio), matriz de competências e palavras-chave (Core Competencies & Keywords) dedicada para match semântico e compatibilidade Unicode nativa (`glyphtounicode`).
+   - `google_standard`: **Padrão Google (Big Tech / Software Engineer)** — Baseado nas diretrizes de recrutamento Big Tech (Google SWE / Gayle Laakmann McDowell). Página única densa, margens de 0.5 polegadas, estrutura XYZ de realizações ("Conquistou [X] medido por [Y], realizando [Z]"), divisórias horizontais limpas e formatação clean sem espaços ociosos.
+   - `overleaf_russell_ti`: **Modelo Russell (Currículo T.I.)** — Baseado no template Russell CV ([ver no Overleaf](https://www.overleaf.com/read/rgfqqnnynrmv#d5b171)). Cabeçalho com foto à esquerda, ícones FontAwesome 5, títulos com destaque nas 3 primeiras letras, tabela de skills e barra de proficiência de idiomas (5 pontos).
+   - `overleaf_awesome_cv`: **Awesome CV (Jason Richards)** — Baseado no modelo Jason Richards Résumé ([ver no Overleaf](https://www.overleaf.com/articles/jason-richards-resume/chbxgnfyyvfc)) derivado do Awesome-CV. Tipografia Roboto + Source Sans Pro, cabeçalho centralizado, títulos com destaque colorido nas 3 primeiras letras e rodapé executivo de 3 colunas.
+   - `overleaf_single_page_keywords`: **Single Page + Keywords** — Baseado no modelo de Primož Godec e Salman Maqbool ([ver no Overleaf](https://www.overleaf.com/latex/templates/sample-single-page-resume-with-keywords/wmcxcgmtkxzk)). Fonte Raleway, cabeçalho em 2 colunas, ícones circulares em TikZ + FontAwesome 5, seção Summary em largura total e corpo em 2 colunas com linha de `Keywords` por cargo.
+   - `nico_krieger`: **Modelo Nico Krieger (`my-resume.cls`)** — Baseado no template de Dr. Nico Krieger ([ver no Overleaf](https://www.overleaf.com/latex/templates/my-resume/rqzfybxqvpny) e no [GitHub](https://github.com/GiantMolecularCloud/my-resume)). Cabeçalho escuro de largura total com nome, cargo/tagline e foto opcional; barra lateral destacada (`highlightbar`) para contatos, habilidades avaliadas em 5 pontos (`\skilldots`) e idiomas; e coluna principal para experiência, formação, projetos e publicações.
    - `modern_pro`: Moderno Executivo (Profissional & Tech)
    - `academic_classic`: Acadêmico Clássico (Pesquisador / CNPq / Pós-Graduação)
    - `tech_sidebar`: Tech & Engenharia Duas Colunas (Barra Lateral)
    - `minimal_ats`: Minimalista ATS-Friendly (Alta Densidade)
-   - `overleaf_russell_ti`: **Overleaf — Currículo T.I. (`russell.cls`)** ([ver no Overleaf](https://www.overleaf.com/read/rgfqqnnynrmv#d5b171)) — Cabeçalho com foto à esquerda, ícones FontAwesome 5, títulos com destaque nas 3 primeiras letras, tabela de skills e barra de proficiência de idiomas (5 pontos).
-   - `overleaf_awesome_cv`: **Overleaf — Jason Richards Awesome-CV** ([ver no Overleaf](https://www.overleaf.com/articles/jason-richards-resume/chbxgnfyyvfc)) — Tipografia Roboto + Source Sans Pro, cabeçalho centralizado, títulos com destaque colorido nas 3 primeiras letras e rodapé executivo de 3 colunas.
-   - `overleaf_single_page_keywords`: **Overleaf — Single-Page Resume with Keywords (`my_cv.cls`)** ([ver no Overleaf](https://www.overleaf.com/latex/templates/sample-single-page-resume-with-keywords/wmcxcgmtkxzk)) — Fonte Raleway, cabeçalho em 2 colunas, ícones circulares em TikZ + FontAwesome 5, seção Summary em largura total e corpo em 2 colunas com linha de `Keywords` por cargo.
-   - `google_standard`: **Padrão Google (Big Tech / Software Engineer)** — Baseado nas diretrizes de recrutamento Big Tech (Google SWE / Gayle Laakmann McDowell). Página única densa, margens de 0.5 polegadas, estrutura XYZ de realizações ("Conquistou [X] medido por [Y], realizando [Z]"), divisórias horizontais limpas e formatação clean sem espaços ociosos.
-   - `ai_ats_max`: **Otimizado para IA & ATS (Máxima Legibilidade por LLMs)** — Desenvolvido especificamente para triagem automatizada por LLMs (Gemini, Claude, GPT) e sistemas ATS neurais (Workday, Greenhouse, Lever). Fluxo textual 100% linear em coluna única, metadados semânticos explícitos (tags textuais ASCII: Location, Email, Phone, LinkedIn, GitHub, Portfolio), matriz de competências e palavras-chave (Core Competencies & Keywords) dedicada para match semântico e compatibilidade Unicode nativa (`glyphtounicode`).
-    - **Template Customizado (`.tex`)**: envie qualquer arquivo `.tex` próprio e o modelo preencherá a estrutura mantendo o preâmbulo original.
+   - **Template Customizado (`.tex`)**: envie qualquer arquivo `.tex` próprio e o modelo preencherá a estrutura mantendo o preâmbulo original.
 5. **Suporte Multi-Provedor com Chaves Próprias Opcionais e Criptografia em Navegador (Zero-Storage)**:
    - **6 Provedores de IA Suportados**: escolha entre **NVIDIA NIM** (padrão de servidor ou chave própria), **Google Gemini**, **Anthropic Claude**, **OpenAI** e **DeepSeek**, com modelos de última geração e fallback automático.
    - **Criptografia Efêmera no Navegador (`SECKEY_V1`)**: ao inserir uma chave própria na interface web, ela é criptografada e ofuscada em tempo real via **Web Crypto API (AES-256-GCM)** com vetor de inicialização aleatório e derivação dinâmica baseada em timestamp antes de transitar na rede.
@@ -138,7 +139,7 @@ latex-resume/
 │   ├── llm_client.py           # Cliente orquestrador multi-provedor (NVIDIA, Gemini, Claude, OpenAI, DeepSeek)
 │   ├── nvidia_client.py        # Adaptador de compatibilidade NVIDIA NIM
 │   ├── pipeline.py             # Pipeline completo de síntese e compilação
-│   ├── templates.py            # 9 modelos LaTeX integrados e suporte a templates customizados
+│   ├── templates.py            # 10 modelos LaTeX integrados e suporte a templates customizados
 │   ├── token_plugins.py        # Plugins de economia de tokens (Caveman, TOON, ShortKey, Cache)
 │   ├── ui_theme.py             # Temas visuais e CSS responsivo para Streamlit
 │   ├── py.typed                # Marcador PEP 561 de tipagem estática
@@ -376,12 +377,13 @@ O projeto permite que os usuários utilizem a chave padrão do servidor ou utili
    - **Importar Informações**: informe links ou envie arquivos de perfis online (GitHub, LinkedIn, ORCID, Lattes, Portfólio Web, Foto).
    - **Inserir Manualmente**: preencha diretamente seus dados estruturados (resumo, formação, experiência, competências, projetos, idiomas, prêmios e publicações).
 2. **Escolha do Provedor de IA e Modelo**: Selecione o provedor desejado (NVIDIA Padrão, NVIDIA Própria, Google Gemini, Anthropic Claude, OpenAI ou DeepSeek) e o modelo otimizado correspondente. Se desejar, informe sua chave própria com total segurança criptográfica.
-3. **Escolha do Modelo LaTeX**: Selecione um dos 9 templates disponíveis:
+3. **Escolha do Modelo LaTeX**: Selecione um dos 10 templates disponíveis:
+   - **`ai_ats_max`**: Otimizado para triagem por IA (Claude/Gemini/GPT) e robôs ATS neurais (Padrão da Interface).
    - **`google_standard`**: Padrão Google SWE (bullet points XYZ de impacto, alta densidade).
-   - **`ai_ats_max`**: Otimizado para triagem por IA (Claude/Gemini/GPT) e robôs ATS neurais.
-   - **`overleaf_russell_ti`**: Modelo Overleaf de TI com ícones e barra de habilidades.
-   - **`overleaf_awesome_cv`**: Modelo Overleaf Jason Richards Awesome-CV.
-   - **`overleaf_single_page_keywords`**: Modelo Overleaf com linha de keywords por cargo.
+   - **`overleaf_russell_ti`**: Modelo Russell com foto lateral, ícones e barra de habilidades.
+   - **`overleaf_awesome_cv`**: Awesome CV com cabeçalho centralizado e rodapé executivo.
+   - **`overleaf_single_page_keywords`**: Single Page + Keywords com linha de stack técnica por cargo.
+   - **`nico_krieger`**: Modelo Nico Krieger com cabeçalho escuro de largura total e barra lateral de habilidades em 5 pontos.
    - **`modern_pro`**, **`academic_classic`**, **`tech_sidebar`**, **`minimal_ats`** ou seu próprio arquivo `.tex`.
 4. **Customização de Cores**: Escolha uma paleta executiva ou insira seus códigos HEX para a Cor Principal e Secundária.
 5. **Gerar**: Clique no botão **"Gerar Currículo (PDF + LaTeX)"**.
@@ -465,16 +467,17 @@ To run the generator and compile resumes into PDF, your environment must meet th
      - Structured sections for: **Professional Summary**, **Education**, **Work Experience**, **Core Competencies & Keywords**, **Featured Projects**, **Languages & Proficiency**, **Awards & Honors**, and **Publications**.
      - Supports intuitive line-by-line pipe-delimited syntax (`|`) or structured JSON with automatic LaTeX typography escaping and sanitization.
      - Preserves optional header profile links (GitHub, LinkedIn, Portfolio, ORCID, Lattes, and photo).
-4. **9 Built-in LaTeX Templates (including Overleaf, Google Standard & AI/ATS-Optimized) + Custom `.tex` Template Support**:
+4. **10 Built-in LaTeX Templates (including Google Standard, AI/ATS-Optimized, Modelo Russell, Awesome CV, Single Page + Keywords, and Modelo Nico Krieger) + Custom `.tex` Template Support**:
+   - `ai_ats_max`: **AI & ATS Max-Readability (LLM & Neural ATS Evaluators)** — Engineered specifically for automated screening by LLMs (Gemini, Claude, GPT) and neural ATS parsers (Workday, Greenhouse, Lever). Strict 100% linear single-column text stream, explicit semantic ASCII metadata tags (Location, Email, Phone, LinkedIn, GitHub, Portfolio), dedicated Core Competencies & Keywords matrix, and native Unicode mapping (`glyphtounicode`).
+   - `google_standard`: **Google Standard (Big Tech / Software Engineer)** — Built upon Big Tech recruitment guidelines (Google SWE / Gayle Laakmann McDowell). Dense single-page layout, 0.5-inch margins, XYZ accomplishment format ("Accomplished [X] as measured by [Y], by doing [Z]"), clean horizontal rules, and zero wasted white space.
+   - `overleaf_russell_ti`: **Modelo Russell (IT Resume)** — Based on the Russell CV template ([view on Overleaf](https://www.overleaf.com/read/rgfqqnnynrmv#d5b171)). Features left header photo, FontAwesome 5 icons, 3-letter colored section titles, skill category tables, and 5-dot language proficiency bars.
+   - `overleaf_awesome_cv`: **Awesome CV (Jason Richards)** — Based on the Jason Richards Résumé ([view on Overleaf](https://www.overleaf.com/articles/jason-richards-resume/chbxgnfyyvfc)) derived from Awesome-CV. Roboto + Source Sans Pro typography, centered header, 3-letter colored section titles, and 3-column executive footer.
+   - `overleaf_single_page_keywords`: **Single Page + Keywords** — Based on Primož Godec and Salman Maqbool's template ([view on Overleaf](https://www.overleaf.com/latex/templates/sample-single-page-resume-with-keywords/wmcxcgmtkxzk)). Raleway font, 2-column header, TikZ circled FontAwesome 5 section icons, full-width Summary, and 2-column body with per-role `Keywords` lines.
+   - `nico_krieger`: **Modelo Nico Krieger (`my-resume.cls`)** — Based on Dr. Nico Krieger's design ([view on Overleaf](https://www.overleaf.com/latex/templates/my-resume/rqzfybxqvpny) and [GitHub](https://github.com/GiantMolecularCloud/my-resume)). Features a full-width dark top header (name, title, tagline, optional photo), a highlight sidebar for contact info, 5-dot skill ratings (`\skilldots`), languages, and certifications, paired with an elegant main column for experience and education.
    - `modern_pro`: Executive Modern (Professional & Tech)
    - `academic_classic`: Academic Classic (Researcher / Post-Grad / Faculty)
    - `tech_sidebar`: Tech & Engineering Two-Column (Sidebar)
    - `minimal_ats`: Minimalist ATS-Friendly (High Density)
-   - `overleaf_russell_ti`: **Overleaf — IT Resume (`russell.cls`)** ([view on Overleaf](https://www.overleaf.com/read/rgfqqnnynrmv#d5b171)) — Left header photo, FontAwesome 5 icons, 3-letter colored section titles, skill category tables, and 5-dot language proficiency bars.
-   - `overleaf_awesome_cv`: **Overleaf — Jason Richards Awesome-CV** ([view on Overleaf](https://www.overleaf.com/articles/jason-richards-resume/chbxgnfyyvfc)) — Roboto + Source Sans Pro typography, centered header, 3-letter colored section titles, and 3-column executive footer.
-   - `overleaf_single_page_keywords`: **Overleaf — Single-Page Resume with Keywords (`my_cv.cls`)** ([view on Overleaf](https://www.overleaf.com/latex/templates/sample-single-page-resume-with-keywords/wmcxcgmtkxzk)) — Raleway font, 2-column header, TikZ circled FontAwesome 5 section icons, full-width Summary, and 2-column body with per-role `Keywords` lines.
-   - `google_standard`: **Google Standard (Big Tech / Software Engineer)** — Built upon Big Tech recruitment guidelines (Google SWE / Gayle Laakmann McDowell). Dense single-page layout, 0.5-inch margins, XYZ accomplishment format ("Accomplished [X] as measured by [Y], by doing [Z]"), clean horizontal rules, and zero wasted white space.
-   - `ai_ats_max`: **AI & ATS Max-Readability (LLM & Neural ATS Evaluators)** — Engineered specifically for automated screening by LLMs (Gemini, Claude, GPT) and neural ATS parsers (Workday, Greenhouse, Lever). Strict 100% linear single-column text stream, explicit semantic ASCII metadata tags (Location, Email, Phone, LinkedIn, GitHub, Portfolio), dedicated Core Competencies & Keywords matrix, and native Unicode mapping (`glyphtounicode`).
    - **Custom Template (`.tex`)**: upload or paste your own `.tex` template and the engine populates the document body while preserving your custom preamble and macros.
 5. **Multi-Provider AI Engine with Optional Custom API Keys & Zero-Storage In-Browser Encryption**:
    - **6 Supported AI Providers**: choose between **NVIDIA NIM** (secure server default or custom key), **Google Gemini**, **Anthropic Claude**, **OpenAI**, and **DeepSeek**, featuring state-of-the-art models and automated fallback resilience.
@@ -529,7 +532,7 @@ latex-resume/
 │   ├── llm_client.py           # Multi-provider LLM coordinator (NVIDIA, Gemini, Claude, OpenAI, DeepSeek)
 │   ├── nvidia_client.py        # NVIDIA NIM backward-compatibility adapter
 │   ├── pipeline.py             # Full end-to-end synthesis and compilation pipeline
-│   ├── templates.py            # 9 built-in LaTeX templates and custom template processor
+│   ├── templates.py            # 10 built-in LaTeX templates and custom template processor
 │   ├── token_plugins.py        # Token-saving plugins (Caveman, TOON, ShortKey, Cache)
 │   ├── ui_theme.py             # Dynamic themes, responsive CSS, and color palettes for Streamlit
 │   ├── py.typed                # PEP 561 static typing compliance marker
@@ -767,12 +770,13 @@ Users can choose between the secure server-provided default or **provide their o
    - **Import Information**: provide profile URLs or upload files (GitHub, LinkedIn, ORCID, Lattes, Portfolio Website, Photo).
    - **Manual Entry**: fill in your summary, education, experience, skills, projects, languages, awards, and publications directly.
 2. **Choose AI Provider & Model**: Select your preferred provider (Server Default NVIDIA, Custom NVIDIA, Google Gemini, Anthropic Claude, OpenAI, or DeepSeek) and corresponding model. Optionally enter your own API key with complete cryptographic security.
-3. **Choose a LaTeX Template**: Select from the 9 available built-in templates:
+3. **Choose a LaTeX Template**: Select from the 10 available built-in templates:
+   - **`ai_ats_max`**: Maximum readability for AI screeners (Claude/Gemini/GPT) and neural ATS filters (Interface Default).
    - **`google_standard`**: Google Software Engineer recruitment standard (high-density XYZ accomplishment bullet points).
-   - **`ai_ats_max`**: Maximum readability for AI screeners (Claude/Gemini/GPT) and neural ATS filters.
-   - **`overleaf_russell_ti`**: Overleaf IT resume with circular icons and skill rating bars.
-   - **`overleaf_awesome_cv`**: Overleaf Jason Richards Awesome-CV template.
-   - **`overleaf_single_page_keywords`**: Overleaf single-page resume with per-position keywords.
+   - **`overleaf_russell_ti`**: Modelo Russell with circular icons and skill rating bars.
+   - **`overleaf_awesome_cv`**: Awesome CV with centered header and executive footer.
+   - **`overleaf_single_page_keywords`**: Single Page + Keywords with per-position stack keywords.
+   - **`nico_krieger`**: Modelo Nico Krieger with dark top header and 5-dot skill ratings.
    - **`modern_pro`**, **`academic_classic`**, **`tech_sidebar`**, **`minimal_ats`** or your own uploaded `.tex` file.
 4. **Color Customization**: Choose a curated executive palette or input custom HEX colors for primary and secondary accents.
 5. **Generate**: Click **"Generate Resume (PDF + LaTeX)"**.
@@ -784,3 +788,16 @@ For end-to-end security, the Render backend strictly permits incoming connection
 
 Any unauthorized request from other origins, third-party sites, or scrapers is immediately rejected with HTTP `403 Forbidden`.
 
+#### 6. LaTeX Template Credits & Open-Source References
+
+This project gratefully acknowledges and attributes the original designers and authors across the Overleaf and LaTeX open-source community:
+
+| Template | Original Author / Project | Overleaf / GitHub Reference | License / Origin |
+| :--- | :--- | :--- | :--- |
+| **Modelo Russell** | Russell | [Overleaf `rgfqqnnynrmv`](https://www.overleaf.com/read/rgfqqnnynrmv#d5b171) | Overleaf Community |
+| **Awesome CV** | Jason Richards & Claud D. Park (posquit0) | [Overleaf `chbxgnfyyvfc`](https://www.overleaf.com/articles/jason-richards-resume/chbxgnfyyvfc) · [GitHub `posquit0/Awesome-CV`](https://github.com/posquit0/Awesome-CV) | LaTeX Project Public License / MIT |
+| **Single Page + Keywords** | Primož Godec & Salman Maqbool | [Overleaf `wmcxcgmtkxzk`](https://www.overleaf.com/latex/templates/sample-single-page-resume-with-keywords/wmcxcgmtkxzk) | Overleaf Community |
+| **Modelo Nico Krieger** | Dr. Nico Krieger | [Overleaf `rqzfybxqvpny`](https://www.overleaf.com/latex/templates/my-resume/rqzfybxqvpny) · [GitHub `GiantMolecularCloud/my-resume`](https://github.com/GiantMolecularCloud/my-resume) | GNU General Public License v3.0 |
+| **Google Standard (SWE)** | Gayle Laakmann McDowell / Big Tech | Official SWE recruitment guidelines (Google / Cracking the Coding Interview) | Open Industry Standard |
+| **AI & ATS Max-Readability** | LaTeX Resume Core Team | Deterministic LLM parser and neural ATS layout engineering | MIT |
+| **Executive Modern / Academic / Tech / Minimalist** | LaTeX Resume Core Team | Native single and two-column corporate & academia resume layouts | MIT |

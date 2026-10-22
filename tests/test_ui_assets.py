@@ -150,6 +150,7 @@ def test_all_template_previews_use_lucas_silva():
         "overleaf_russell_ti",
         "overleaf_awesome_cv",
         "overleaf_single_page_keywords",
+        "nico_krieger",
         "google_standard",
         "ai_ats_max",
     ]

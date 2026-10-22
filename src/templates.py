@@ -58,7 +58,7 @@ BUILTIN_TEMPLATES: Dict[str, Dict[str, str]] = {
     },
     "overleaf_russell_ti": {
         "id": "overleaf_russell_ti",
-        "name": "Overleaf: Currículo T.I. — Russell CV (rgfqqnnynrmv)",
+        "name": "Modelo Russell (Currículo T.I.) / Russell Model",
         "recommended_for": "profissional",
         "url": "https://www.overleaf.com/read/rgfqqnnynrmv#d5b171",
         "description": (
@@ -68,7 +68,7 @@ BUILTIN_TEMPLATES: Dict[str, Dict[str, str]] = {
     },
     "overleaf_awesome_cv": {
         "id": "overleaf_awesome_cv",
-        "name": "Overleaf: Jason Richards' Résumé — Awesome-CV (chbxgnfyyvfc)",
+        "name": "Awesome CV (Jason Richards) / Awesome CV",
         "recommended_for": "profissional",
         "url": "https://www.overleaf.com/articles/jason-richards-resume/chbxgnfyyvfc",
         "description": (
@@ -78,12 +78,22 @@ BUILTIN_TEMPLATES: Dict[str, Dict[str, str]] = {
     },
     "overleaf_single_page_keywords": {
         "id": "overleaf_single_page_keywords",
-        "name": "Overleaf: Single-Page Resume with Keywords (wmcxcgmtkxzk)",
+        "name": "Single Page + Keywords / Single Page + Keywords",
         "recommended_for": "profissional",
         "url": "https://www.overleaf.com/latex/templates/sample-single-page-resume-with-keywords/wmcxcgmtkxzk",
         "description": (
             "Modelo Overleaf de página única em duas colunas (Primož Godec & Salman Maqbool) com fonte Raleway, "
             "ícones circulares TikZ, seção de Resumo e palavras-chave (Keywords) de stack por experiência."
+        ),
+    },
+    "nico_krieger": {
+        "id": "nico_krieger",
+        "name": "Modelo Nico Krieger (Duas Colunas & Header Escuro) / Nico Krieger",
+        "recommended_for": "profissional",
+        "url": "https://www.overleaf.com/latex/templates/my-resume/rqzfybxqvpny",
+        "description": (
+            "Modelo baseado no my-resume de Nico Krieger com cabeçalho escuro de largura total, "
+            "barra lateral destacada para contatos, habilidades avaliadas em 5 pontos e idiomas, e coluna principal para realizações."
         ),
     },
     "google_standard": {
@@ -290,13 +300,15 @@ def render_builtin_template(
         return _render_tech_sidebar(cv, links, resume_type, photo_filename, norm_lang)
     if template_id == "minimal_ats":
         return _render_minimal_ats(cv, links, resume_type, photo_filename, norm_lang)
-    if template_id == "overleaf_russell_ti":
+    if template_id in ("overleaf_russell_ti", "russell_ti", "modelo_russell", "russell"):
         return _render_overleaf_russell_ti(cv, links, resume_type, photo_filename, norm_lang)
-    if template_id == "overleaf_awesome_cv":
+    if template_id in ("overleaf_awesome_cv", "awesome_cv", "awesome"):
         return _render_overleaf_awesome_cv(cv, links, resume_type, photo_filename, norm_lang)
-    if template_id == "overleaf_single_page_keywords":
+    if template_id in ("overleaf_single_page_keywords", "single_page_keywords", "keywords"):
         return _render_overleaf_single_page_keywords(cv, links, resume_type, photo_filename, norm_lang)
-    if template_id == "google_standard":
+    if template_id in ("nico_krieger", "modelo_nico_krieger", "krieger"):
+        return _render_nico_krieger(cv, links, resume_type, photo_filename, norm_lang)
+    if template_id in ("google_standard", "google"):
         return _render_google_standard(cv, links, resume_type, photo_filename, norm_lang)
     if template_id == "ai_ats_max":
         return _render_ai_ats_max(cv, links, resume_type, photo_filename, norm_lang)
@@ -1920,5 +1932,324 @@ def _render_ai_ats_max(
 \begin{{document}}
 {header_tex}
 {body_tex}
+\end{{document}}
+"""
+
+
+def _render_nico_krieger(
+    cv: Dict[str, Any],
+    links: Dict[str, str],
+    resume_type: str,
+    photo_filename: str | None,
+    lang: str = "pt-br",
+) -> str:
+    """Renderiza o modelo 'Modelo Nico Krieger' (https://www.overleaf.com/latex/templates/my-resume/rqzfybxqvpny)."""
+    t = LATEX_I18N[normalize_lang(lang)]
+    is_en = normalize_lang(lang) == "en-us"
+    raw_name = cv.get("name") or t["default_candidate"]
+    default_tl = t["default_researcher"] if resume_type == "academico" else t["default_tech_title"]
+    role = escape_latex(cv.get("title") or default_tl)
+
+    # 1. Header (Name, Title, Tagline, optional Photo)
+    tagline_raw = cv.get("summary") or ""
+    tagline_short = escape_latex(tagline_raw[:180] + ("..." if len(tagline_raw) > 180 else "")) if tagline_raw else ""
+
+    if photo_filename:
+        header_tex = rf"""\begin{{tcolorbox}}[
+    enhanced,
+    colback=headerbg,
+    colframe=headerbg,
+    arc=0mm,
+    left=12mm,
+    right=12mm,
+    top=8mm,
+    bottom=8mm,
+    boxrule=0mm,
+    width=\paperwidth
+]
+\begin{{minipage}}[c]{{0.78\linewidth}}
+    {{\Huge\bfseries\color{{white}} {escape_latex(raw_name)}}}\\[3pt]
+    {{\large\color{{white!90}} {role}}}\\[3pt]
+    {{\small\color{{white!75}} {tagline_short}}}
+\end{{minipage}}%
+\hfill
+\begin{{minipage}}[c]{{0.18\linewidth}}
+    \raggedleft
+    \includegraphics[width=2.4cm,height=2.4cm,keepaspectratio]{{{photo_filename}}}
+\end{{minipage}}
+\end{{tcolorbox}}"""
+    else:
+        header_tex = rf"""\begin{{tcolorbox}}[
+    enhanced,
+    colback=headerbg,
+    colframe=headerbg,
+    arc=0mm,
+    left=12mm,
+    right=12mm,
+    top=8mm,
+    bottom=8mm,
+    boxrule=0mm,
+    width=\paperwidth
+]
+\begin{{minipage}}[c]{{\linewidth}}
+    {{\Huge\bfseries\color{{white}} {escape_latex(raw_name)}}}\\[3pt]
+    {{\large\color{{white!90}} {role}}}\\[3pt]
+    {{\small\color{{white!75}} {tagline_short}}}
+\end{{minipage}}
+\end{{tcolorbox}}"""
+
+    # 2. Contacts (Strictly: location -> portfolio -> linkedin -> github -> orcid -> lattes)
+    sidebar_contacts: List[str] = []
+    if cv.get("email"):
+        em = cv["email"].strip()
+        sidebar_contacts.append(rf"\faIcon{{envelope}}\ \href{{{escape_url('mailto:' + em)}}}{{{escape_latex(em)}}}")
+    if cv.get("phone"):
+        sidebar_contacts.append(rf"\faIcon{{phone}}\ {escape_latex(cv['phone'])}")
+    if cv.get("location"):
+        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
+        sidebar_contacts.append(rf"\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}")
+    if links.get("portfolio"):
+        port_disp = escape_latex(simplify_url_display(links["portfolio"]))
+        sidebar_contacts.append(rf"\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}")
+    if links.get("linkedin"):
+        li_disp = escape_latex(_get_platform_display(links, "linkedin"))
+        sidebar_contacts.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}")
+    if links.get("github"):
+        gh_disp = escape_latex(_get_platform_display(links, "github"))
+        sidebar_contacts.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}")
+    if links.get("orcid"):
+        orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
+        sidebar_contacts.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}")
+    if links.get("lattes"):
+        lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
+        sidebar_contacts.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}")
+
+    contact_lbl = "CONTACT" if is_en else "CONTATO"
+    contact_body = r"\\[4pt]" + "\n    ".join(sidebar_contacts) if sidebar_contacts else ""
+    contact_block = rf"""{{\large\bfseries\color{{accent}} {contact_lbl}}}\\[-2pt]
+\rule{{\linewidth}}{{0.8pt}}\\[5pt]
+\small
+{contact_body}"""
+
+    # 3. Skills with 5-dot rating
+    skill_lbl = "SKILLS" if is_en else "HABILIDADES"
+    skill_lines: List[str] = [rf"{{\large\bfseries\color{{accent}} {skill_lbl}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\\[5pt]"]
+    skills = cv.get("skills") or []
+    if skills:
+        for sk in skills:
+            if isinstance(sk, dict):
+                cat = escape_latex(sk.get("category") or t["default_skill_cat"])
+                raw_items = str(sk.get("items") or "")
+                parts = [p.strip() for p in raw_items.split(",") if p.strip()]
+                if parts:
+                    skill_lines.append(rf"{{\small\bfseries\color{{darktext}} {cat}}}\\[2pt]")
+                    for idx, p in enumerate(parts[:5]):
+                        rating = 5 if idx == 0 else (4 if idx < 3 else 3)
+                        skill_lines.append(rf"{{\small {escape_latex(p)}}} \hfill \skilldots{{{rating}}}\\[3pt]")
+                    skill_lines.append(r"\vspace{3pt}")
+            elif isinstance(sk, str) and sk.strip():
+                parts = [p.strip() for p in sk.split(",") if p.strip()]
+                for idx, p in enumerate(parts[:6]):
+                    rating = 5 if idx == 0 else (4 if idx < 3 else 3)
+                    skill_lines.append(rf"{{\small\textbf{{{escape_latex(p)}}}}} \hfill \skilldots{{{rating}}}\\[3pt]")
+        skill_block = "\n".join(skill_lines)
+    else:
+        skill_block = ""
+
+    # 4. Languages with 5-dot rating
+    lang_lbl = "LANGUAGES" if is_en else "IDIOMAS"
+    lang_lines: List[str] = [rf"{{\large\bfseries\color{{accent}} {lang_lbl}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\\[5pt]"]
+    languages = cv.get("languages") or []
+    if languages:
+        for lg in languages:
+            lg_str = str(lg).strip()
+            if not lg_str:
+                continue
+            lower_lg = lg_str.lower()
+            if any(k in lower_lg for k in ("nativo", "native", "fluente", "fluent", "avançado", "advanced", "5")):
+                rating = 5
+            elif any(k in lower_lg for k in ("intermediário", "intermediate", "pleno", "4")):
+                rating = 4
+            else:
+                rating = 3
+            clean_name = re.sub(r"\s*[\(\[].*?[\)\]]", "", lg_str).strip() or lg_str
+            lang_lines.append(rf"{{\small\textbf{{{escape_latex(clean_name)}}}}} \hfill \skilldots{{{rating}}}\\[3pt]")
+        lang_block = "\n".join(lang_lines)
+    else:
+        lang_block = ""
+
+    # 5. Certifications & Awards in Sidebar
+    clean_awards = sanitize_awards(cv.get("awards"))
+    aw_lbl = r"CERTIFICATIONS \& AWARDS" if is_en else r"CERTIFICAÇÕES \& PRÊMIOS"
+    if clean_awards:
+        aw_lines = [rf"{{\large\bfseries\color{{accent}} {aw_lbl}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\\[5pt]"]
+        for aw in clean_awards[:4]:
+            aw_lines.append(rf"{{\small $\cdot$ {escape_latex(aw)}}}\\[3pt]")
+        awards_block = "\n".join(aw_lines)
+    else:
+        awards_block = ""
+
+    sidebar_sections = [s for s in (contact_block, skill_block, lang_block, awards_block) if s]
+    sidebar_content = "\n\n\\vspace{10pt}\n\n".join(sidebar_sections)
+
+    # 6. Main Column: Experience, Education, Projects, Publications
+    main_sections: List[str] = []
+
+    # Experience
+    exps = cv.get("experience") or []
+    if exps:
+        exp_title = "PROFESSIONAL EXPERIENCE" if is_en else "EXPERIÊNCIA PROFISSIONAL"
+        xp_lines = [rf"{{\large\bfseries\color{{accent}} {exp_title}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\\[6pt]"]
+        for xp in exps:
+            role_xp = escape_latex(xp.get("role"))
+            org_xp = escape_latex(xp.get("organization"))
+            per_xp = escape_latex(xp.get("period"))
+            bullets = [escape_latex(b) for b in (xp.get("bullets") or []) if str(b).strip()]
+            date_tex = rf"{{\small\color{{graytext}}\faIcon{{calendar-alt}}\ {per_xp}}}" if per_xp else ""
+            xp_lines.append(rf"\textbf{{\large {role_xp}}} \hfill {date_tex}\\[1pt]")
+            if org_xp:
+                xp_lines.append(rf"{{\color{{accent}}\textbf{{{org_xp}}}}}\\[3pt]")
+            if bullets:
+                xp_lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt]")
+                for b in bullets:
+                    xp_lines.append(rf"    \item {b}")
+                xp_lines.append(r"\end{itemize}")
+            xp_lines.append(r"\vspace{6pt}")
+        main_sections.append("\n".join(xp_lines))
+
+    # Education
+    edus = cv.get("education") or []
+    if edus:
+        edu_title = "EDUCATION" if is_en else "FORMAÇÃO ACADÊMICA"
+        ed_lines = [rf"{{\large\bfseries\color{{accent}} {edu_title}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\\[6pt]"]
+        for ed in edus:
+            deg = escape_latex(ed.get("degree"))
+            inst = escape_latex(ed.get("institution"))
+            per_ed = escape_latex(ed.get("period"))
+            det = escape_latex(ed.get("details"))
+            date_tex = rf"{{\small\color{{graytext}}\faIcon{{calendar-alt}}\ {per_ed}}}" if per_ed else ""
+            ed_lines.append(rf"\textbf{{\large {deg}}} \hfill {date_tex}\\[1pt]")
+            if inst:
+                ed_lines.append(rf"{{\color{{accent}}\textbf{{{inst}}}}}\\[2pt]")
+            if det:
+                ed_lines.append(rf"{{\small {det}}}\\[4pt]")
+            else:
+                ed_lines.append(r"\vspace{4pt}")
+        main_sections.append("\n".join(ed_lines))
+
+    # Projects
+    projs = cv.get("projects") or []
+    if projs:
+        proj_title = "TECHNICAL PROJECTS" if is_en else "PROJETOS TÉCNICOS"
+        pj_lines = [rf"{{\large\bfseries\color{{accent}} {proj_title}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\\[6pt]"]
+        for pj in projs:
+            nm = escape_latex(pj.get("name"))
+            tech = escape_latex(pj.get("tech"))
+            url = (pj.get("url") or "").strip()
+            desc = escape_latex(pj.get("description"))
+            if url and url.startswith("http"):
+                nm_head = rf"\textbf{{\large \href{{{escape_url(url)}}}{{{nm}\ \small\faIcon{{external-link-alt}}}}}}"
+            else:
+                nm_head = rf"\textbf{{\large {nm}}}"
+            pj_lines.append(rf"{nm_head}\\[1pt]")
+            if tech:
+                pj_lines.append(rf"{{\small\color{{graytext}}\textbf{{Stack:}} {tech}}}\\[2pt]")
+            if desc:
+                pj_lines.append(rf"{{\small {desc}}}\\[4pt]")
+            else:
+                pj_lines.append(r"\vspace{4pt}")
+        main_sections.append("\n".join(pj_lines))
+
+    # Publications
+    pubs = cv.get("publications") or []
+    if pubs:
+        pub_title = "PUBLICATIONS" if is_en else "PUBLICAÇÕES"
+        pb_lines = [rf"{{\large\bfseries\color{{accent}} {pub_title}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\\[6pt]"]
+        for pb in pubs:
+            title_pb = escape_latex(pb.get("title"))
+            auth_pb = escape_latex(pb.get("authors"))
+            venue_pb = escape_latex(pb.get("venue"))
+            yr_pb = escape_latex(pb.get("year"))
+            doi_pb = (pb.get("doi") or "").strip()
+            pb_lines.append(rf"\textbf{{{title_pb}}}\\[1pt]")
+            meta_parts = [p for p in (auth_pb, f"{venue_pb} ({yr_pb})" if (venue_pb and yr_pb) else (venue_pb or yr_pb)) if p]
+            if meta_parts:
+                pb_lines.append(rf"{{\small {', '.join(meta_parts)}}}\\[1pt]")
+            if doi_pb:
+                clean_doi = doi_pb.replace("https://doi.org/", "").replace("http://dx.doi.org/", "").strip()
+                doi_url = f"https://doi.org/{clean_doi}"
+                pb_lines.append(rf"{{\small \href{{{escape_url(doi_url)}}}{{\faIcon{{link}}\ DOI: {escape_latex(clean_doi)}}}}}\\[4pt]")
+            else:
+                pb_lines.append(r"\vspace{4pt}")
+        main_sections.append("\n".join(pb_lines))
+
+    main_content = "\n\n\\vspace{8pt}\n\n".join(main_sections)
+
+    return rf"""% Template Nico Krieger (my-resume) - Full-Width Dark Header & Two-Column Highlight Sidebar
+\documentclass[10pt,a4paper]{{article}}
+\usepackage[utf8]{{inputenc}}
+\usepackage[T1]{{fontenc}}
+\usepackage[{t['babel']}]{{babel}}
+\usepackage[margin=0cm,noheadfoot]{{geometry}}
+\usepackage{{xcolor}}
+\usepackage{{tikz}}
+\usepackage[skins]{{tcolorbox}}
+\usepackage{{fontawesome5}}
+\usepackage{{enumitem}}
+\usepackage{{parskip}}
+\usepackage[hidelinks]{{hyperref}}
+
+\definecolor{{headerbg}}{{HTML}}{{212529}}
+\definecolor{{sidebg}}{{HTML}}{{F8F9FA}}
+\definecolor{{accent}}{{HTML}}{{DC3545}}
+\definecolor{{darktext}}{{HTML}}{{212529}}
+\definecolor{{graytext}}{{HTML}}{{6C757D}}
+\definecolor{{lightgray}}{{HTML}}{{DEE2E6}}
+
+\renewcommand{{\familydefault}}{{\sfdefault}}
+\pagestyle{{empty}}
+\setlength{{\parindent}}{{0pt}}
+
+\newcommand{{\skilldots}}[1]{{%
+  \begin{{tikzpicture}}[baseline=-0.35ex]%
+    \foreach \x in {{1,...,5}}{{%
+      \ifnum\x>#1\relax%
+        \fill[lightgray] (\x*0.28cm,0) circle (2.2pt);%
+      \else%
+        \fill[accent] (\x*0.28cm,0) circle (2.2pt);%
+      \fi%
+    }}%
+  \end{{tikzpicture}}%
+}}
+
+\begin{{document}}
+
+{header_tex}
+
+\vspace{{-1.5mm}}
+\noindent
+\begin{{minipage}}[t]{{0.33\paperwidth}}
+\begin{{tcolorbox}}[
+    enhanced,
+    colback=sidebg,
+    colframe=sidebg,
+    arc=0mm,
+    boxrule=0mm,
+    left=8mm,
+    right=8mm,
+    top=6mm,
+    bottom=8mm
+]
+{sidebar_content}
+\end{{tcolorbox}}
+\end{{minipage}}%
+\hspace{{0.02\paperwidth}}%
+\begin{{minipage}}[t]{{0.61\paperwidth}}
+\vspace{{6mm}}
+\begin{{minipage}}{{0.96\linewidth}}
+{main_content}
+\end{{minipage}}
+\end{{minipage}}
+
 \end{{document}}
 """
