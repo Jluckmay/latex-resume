@@ -827,58 +827,131 @@
                 </div>
             </div>
 
-            <!-- Step 3: Fontes de Dados (GitHub, ORCID, LinkedIn, Lattes, Portfólio, Foto) -->
+            <!-- Step 3: Informações do Currículo (Importação ou Manual) -->
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">
                         <span class="step-num">3</span>
-                        <span id="ui-step3-title">Perfis Online, Página de Portfólio e Foto</span>
-                    </div>
-                </div>
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label id="ui-gh-lbl">GitHub (usuário ou URL)</label>
-                        <input type="text" id="inp-github" class="form-control" placeholder="ex: octocat ou https://github.com/usuario" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
-                    </div>
-                    <div class="form-group">
-                        <label id="ui-orcid-lbl">ORCID (ID ou URL)</label>
-                        <input type="text" id="inp-orcid" class="form-control" placeholder="ex: 0000-0002-1825-0097" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
-                    </div>
-                    <div class="form-group">
-                        <label id="ui-li-lbl">LinkedIn (nick ou URL)</label>
-                        <input type="text" id="inp-linkedin" class="form-control" placeholder="ex: seu-nick ou https://linkedin.com/in/perfil/" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
-                    </div>
-                    <div class="form-group">
-                        <label id="ui-lattes-lbl">Currículo Lattes (ID de 16 dígitos ou URL)</label>
-                        <input type="text" id="inp-lattes" class="form-control" placeholder="ex: 0000000000000000 ou http://lattes.cnpq.br/0000000000000000" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
-                    </div>
-                    <div class="form-group">
-                        <label id="ui-port-lbl">Página de Portfólio / Website (URL)</label>
-                        <input type="text" id="inp-portfolio" class="form-control" placeholder="https://meuportfolio.dev" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
-                    </div>
-                    <div class="form-group">
-                        <label id="ui-photo-lbl">Foto de Perfil (PNG / JPG / WebP)</label>
-                        <input type="file" id="inp-photo" accept="image/*" class="form-control" onchange="onPhotoSelected(event)">
+                        <span id="ui-step3-title">Informações do Currículo</span>
                     </div>
                 </div>
 
-                <details class="collapsible">
-                    <summary id="ui-extra-files-summary">📎 Anexar XML/ZIP do Lattes, PDF do LinkedIn ou Notas Extras</summary>
-                    <div class="grid-2" style="margin-top:0.75rem;">
+                <!-- Seletor do Modo de Entrada -->
+                <div style="display:flex;gap:0.75rem;margin-bottom:1.25rem;">
+                    <button type="button" class="btn btn-outline active" id="btn-mode-import" onclick="setDataMode('import')" style="flex:1;padding:0.65rem 0.75rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:0.5rem;cursor:pointer;border-radius:8px;">
+                        <span id="ui-mode-import-btn">📥 Importar Informações (APIs & Arquivos)</span>
+                    </button>
+                    <button type="button" class="btn btn-outline" id="btn-mode-manual" onclick="setDataMode('manual')" style="flex:1;padding:0.65rem 0.75rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:0.5rem;cursor:pointer;border-radius:8px;">
+                        <span id="ui-mode-manual-btn">✍️ Inserir Manualmente</span>
+                    </button>
+                </div>
+
+                <!-- Container 1: Modo Importação (APIs & Arquivos) -->
+                <div id="container-data-import">
+                    <div class="grid-2">
                         <div class="form-group">
-                            <label id="ui-lattes-file-lbl">Arquivo Lattes (XML, ZIP ou PDF)</label>
-                            <input type="file" id="inp-lattes-file" accept=".xml,.zip,.pdf,.html" class="form-control">
+                            <label id="ui-gh-lbl">GitHub (usuário ou URL)</label>
+                            <input type="text" id="inp-github" class="form-control" placeholder="ex: octocat ou https://github.com/usuario" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
                         </div>
                         <div class="form-group">
-                            <label id="ui-li-pdf-lbl">PDF Salvo do LinkedIn</label>
-                            <input type="file" id="inp-linkedin-pdf" accept=".pdf" class="form-control">
+                            <label id="ui-orcid-lbl">ORCID (ID ou URL)</label>
+                            <input type="text" id="inp-orcid" class="form-control" placeholder="ex: 0000-0002-1825-0097" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
+                        </div>
+                        <div class="form-group">
+                            <label id="ui-li-lbl">LinkedIn (nick ou URL)</label>
+                            <input type="text" id="inp-linkedin" class="form-control" placeholder="ex: seu-nick ou https://linkedin.com/in/perfil/" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
+                        </div>
+                        <div class="form-group">
+                            <label id="ui-lattes-lbl">Currículo Lattes (ID de 16 dígitos ou URL)</label>
+                            <input type="text" id="inp-lattes" class="form-control" placeholder="ex: 0000000000000000 ou http://lattes.cnpq.br/0000000000000000" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
+                        </div>
+                        <div class="form-group">
+                            <label id="ui-port-lbl">Página de Portfólio / Website (URL)</label>
+                            <input type="text" id="inp-portfolio" class="form-control" placeholder="https://meuportfolio.dev" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
+                        </div>
+                        <div class="form-group">
+                            <label id="ui-photo-lbl">Foto de Perfil (PNG / JPG / WebP)</label>
+                            <input type="file" id="inp-photo" accept="image/*" class="form-control" onchange="onPhotoSelected(event)">
                         </div>
                     </div>
-                    <div class="form-group" style="margin-bottom:0;">
-                        <label id="ui-extra-txt-lbl">Informações Complementares / Descrição da Vaga ou Edital</label>
-                        <textarea id="inp-extra" class="form-control" placeholder="Cole experiências extras, certificações ou resumo adicional..."></textarea>
+
+                    <details class="collapsible">
+                        <summary id="ui-extra-files-summary">📎 Anexar XML/ZIP do Lattes, PDF do LinkedIn ou Notas Extras</summary>
+                        <div class="grid-2" style="margin-top:0.75rem;">
+                            <div class="form-group">
+                                <label id="ui-lattes-file-lbl">Arquivo Lattes (XML, ZIP ou PDF)</label>
+                                <input type="file" id="inp-lattes-file" accept=".xml,.zip,.pdf,.html" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label id="ui-li-pdf-lbl">PDF Salvo do LinkedIn</label>
+                                <input type="file" id="inp-linkedin-pdf" accept=".pdf" class="form-control">
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label id="ui-extra-txt-lbl">Informações Complementares / Descrição da Vaga ou Edital</label>
+                            <textarea id="inp-extra" class="form-control" placeholder="Cole experiências extras, certificações ou resumo adicional..."></textarea>
+                        </div>
+                    </details>
+                </div>
+
+                <!-- Container 2: Modo Manual (Preenchimento Direto Estruturado) -->
+                <div id="container-data-manual" style="display:none;">
+                    <div class="form-group">
+                        <label id="ui-man-summary-lbl">Resumo Profissional / Perfil</label>
+                        <textarea id="inp-man-summary" class="form-control" rows="3" placeholder="Ex: Especialista em tecnologia com sólida trajetória..." oninput="renderLivePreview()"></textarea>
                     </div>
-                </details>
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label id="ui-man-edu-lbl">Formação Acadêmica (Grau | Instituição | Período | Detalhes)</label>
+                            <textarea id="inp-man-education" class="form-control" rows="3" placeholder="Bacharelado em Ciência da Computação | USP | 2018 - 2022 | Foco em IA&#10;Mestrado em Engenharia | UNICAMP | 2022 - 2024" oninput="renderLivePreview()"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label id="ui-man-exp-lbl">Experiência Profissional (Cargo | Empresa | Período | Local | Descrição)</label>
+                            <textarea id="inp-man-experience" class="form-control" rows="3" placeholder="Engenheiro de Software Sênior | Tech Corp | 2022 - Atual | SP | Arquitetura de nuvem e microsserviços." oninput="renderLivePreview()"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label id="ui-man-skills-lbl">Habilidades & Competências (Categoria: Tecnologias / Itens)</label>
+                            <textarea id="inp-man-skills" class="form-control" rows="3" placeholder="Linguagens: Python, Go, TypeScript&#10;Cloud & DevOps: Docker, Kubernetes, AWS" oninput="renderLivePreview()"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label id="ui-man-proj-lbl">Projetos Relevantes (Nome | Tech | Link | Descrição)</label>
+                            <textarea id="inp-man-projects" class="form-control" rows="3" placeholder="LaTeX Resume Enclave | Python, Flask | https://github.com/usuario/latex-resume | Plataforma zero-storage." oninput="renderLivePreview()"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label id="ui-man-lang-lbl">Idiomas (Idioma e Nível, separados por vírgula)</label>
+                            <input type="text" id="inp-man-languages" class="form-control" placeholder="Português (Nativo), Inglês (Fluente), Espanhol (Intermediário)" oninput="renderLivePreview()">
+                        </div>
+                        <div class="form-group">
+                            <label id="ui-man-awards-lbl">Prêmios & Certificações (Título | Ano | Detalhes)</label>
+                            <textarea id="inp-man-awards" class="form-control" rows="2" placeholder="AWS Certified Solutions Architect | 2023 | Amazon Web Services" oninput="renderLivePreview()"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label id="ui-man-pubs-lbl">Publicações & Artigos (Título | Periódico/Conferência | Ano | Autores | DOI)</label>
+                        <textarea id="inp-man-publications" class="form-control" rows="2" placeholder="Neural Parsing of Technical Resumes | IEEE | 2023 | Silva, L. | 10.1109/CVPR.2023.1001" oninput="renderLivePreview()"></textarea>
+                    </div>
+                    <div style="background-color:var(--bg-subtle);border:1px solid var(--border);border-radius:8px;padding:0.75rem;margin-top:0.75rem;">
+                        <span style="font-size:0.82rem;font-weight:600;color:var(--text-main);" id="ui-man-links-title">🔗 Links Opcionais e Foto de Perfil:</span>
+                        <div class="grid-2" style="margin-top:0.5rem;">
+                            <div class="form-group" style="margin-bottom:0.5rem;">
+                                <label id="ui-man-port-lbl">Portfólio / Website (URL)</label>
+                                <input type="text" id="inp-man-portfolio" class="form-control" placeholder="https://meuportfolio.dev" oninput="renderLivePreview()">
+                            </div>
+                            <div class="form-group" style="margin-bottom:0.5rem;">
+                                <label id="ui-man-photo-lbl">Foto de Perfil (PNG / JPG)</label>
+                                <input type="file" id="inp-man-photo" accept="image/*" class="form-control" onchange="onPhotoSelected(event)">
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label>GitHub</label>
+                                <input type="text" id="inp-man-github" class="form-control" placeholder="usuario ou URL" oninput="renderLivePreview()">
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label>LinkedIn</label>
+                                <input type="text" id="inp-man-linkedin" class="form-control" placeholder="nick ou URL" oninput="renderLivePreview()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Step 4: Dados Pessoais & Motor de IA Multi-Provedor -->
@@ -1188,7 +1261,18 @@
                 paletteLbl: "Paleta Predefinida",
                 pcolLbl: "Cor Principal",
                 scolLbl: "Cor Secundária",
-                step3: "Perfis Online, Página de Portfólio e Foto",
+                step3: "Informações do Currículo (Importação ou Manual)",
+                modeImportBtn: "📥 Importar Informações (APIs & Arquivos)",
+                modeManualBtn: "✍️ Inserir Manualmente",
+                manSummaryLbl: "Resumo Profissional / Perfil",
+                manEduLbl: "Formação Acadêmica (Grau | Instituição | Período | Detalhes)",
+                manExpLbl: "Experiência Profissional (Cargo | Empresa | Período | Local | Descrição)",
+                manSkillsLbl: "Habilidades & Competências (Categoria: Tecnologias / Itens)",
+                manProjLbl: "Projetos Relevantes (Nome | Tech | Link | Descrição)",
+                manLangLbl: "Idiomas (Idioma e Nível, separados por vírgula)",
+                manAwardsLbl: "Prêmios & Certificações (Título | Ano | Detalhes)",
+                manPubsLbl: "Publicações & Artigos (Título | Periódico/Conferência | Ano | Autores | DOI)",
+                manLinksTitle: "🔗 Links Opcionais e Foto de Perfil:",
                 ghLbl: "GitHub (usuário ou URL)",
                 orcidLbl: "ORCID (ID ou URL)",
                 liLbl: "LinkedIn (nick ou URL)",
@@ -1265,7 +1349,18 @@
                 paletteLbl: "Color Palette Preset",
                 pcolLbl: "Primary Color",
                 scolLbl: "Secondary Color",
-                step3: "Online Profiles, Portfolio Website & Photo",
+                step3: "Resume Information (Import or Manual)",
+                modeImportBtn: "📥 Import Information (APIs & Files)",
+                modeManualBtn: "✍️ Manual Entry",
+                manSummaryLbl: "Professional Summary / Bio",
+                manEduLbl: "Education (Degree | Institution | Period | Details)",
+                manExpLbl: "Work Experience (Role | Company | Period | Location | Description)",
+                manSkillsLbl: "Skills & Competencies (Category: Technologies / Items)",
+                manProjLbl: "Relevant Projects (Name | Technologies | URL | Description)",
+                manLangLbl: "Languages (Language and Proficiency, comma separated)",
+                manAwardsLbl: "Awards & Certifications (Title | Year | Details)",
+                manPubsLbl: "Publications & Articles (Title | Venue | Year | Authors | DOI)",
+                manLinksTitle: "🔗 Optional Profile Links and Photo:",
                 ghLbl: "GitHub (username or URL)",
                 orcidLbl: "ORCID (ID or URL)",
                 liLbl: "LinkedIn (username or URL)",
@@ -1314,6 +1409,7 @@
             resumeType: "profissional",
             templateSource: "builtin",
             templateId: "ai_ats_max",
+            dataMode: "import",
             photoDataUrl: null
         };
 
@@ -1345,6 +1441,19 @@
             state.uiLang = state.uiLang === "pt-br" ? "en-us" : "pt-br";
             document.getElementById("resume-lang-select").value = state.uiLang;
             applyTranslations();
+            renderLivePreview();
+        }
+
+        function setDataMode(mode) {
+            state.dataMode = mode;
+            const btnImp = document.getElementById("btn-mode-import");
+            const btnMan = document.getElementById("btn-mode-manual");
+            const cImp = document.getElementById("container-data-import");
+            const cMan = document.getElementById("container-data-manual");
+            if (btnImp) btnImp.classList.toggle("active", mode === "import");
+            if (btnMan) btnMan.classList.toggle("active", mode === "manual");
+            if (cImp) cImp.style.display = mode === "import" ? "block" : "none";
+            if (cMan) cMan.style.display = mode === "manual" ? "block" : "none";
             renderLivePreview();
         }
 
@@ -1402,6 +1511,17 @@
             document.getElementById("ui-lattes-file-lbl").textContent = t.lattesFileLbl;
             document.getElementById("ui-li-pdf-lbl").textContent = t.liPdfLbl;
             document.getElementById("ui-extra-txt-lbl").textContent = t.extraTxtLbl;
+            if (document.getElementById("ui-mode-import-btn")) document.getElementById("ui-mode-import-btn").textContent = t.modeImportBtn;
+            if (document.getElementById("ui-mode-manual-btn")) document.getElementById("ui-mode-manual-btn").textContent = t.modeManualBtn;
+            if (document.getElementById("ui-man-summary-lbl")) document.getElementById("ui-man-summary-lbl").textContent = t.manSummaryLbl;
+            if (document.getElementById("ui-man-edu-lbl")) document.getElementById("ui-man-edu-lbl").textContent = t.manEduLbl;
+            if (document.getElementById("ui-man-exp-lbl")) document.getElementById("ui-man-exp-lbl").textContent = t.manExpLbl;
+            if (document.getElementById("ui-man-skills-lbl")) document.getElementById("ui-man-skills-lbl").textContent = t.manSkillsLbl;
+            if (document.getElementById("ui-man-proj-lbl")) document.getElementById("ui-man-proj-lbl").textContent = t.manProjLbl;
+            if (document.getElementById("ui-man-lang-lbl")) document.getElementById("ui-man-lang-lbl").textContent = t.manLangLbl;
+            if (document.getElementById("ui-man-awards-lbl")) document.getElementById("ui-man-awards-lbl").textContent = t.manAwardsLbl;
+            if (document.getElementById("ui-man-pubs-lbl")) document.getElementById("ui-man-pubs-lbl").textContent = t.manPubsLbl;
+            if (document.getElementById("ui-man-links-title")) document.getElementById("ui-man-links-title").textContent = t.manLinksTitle;
             document.getElementById("ui-step4-title").textContent = t.step4;
             document.getElementById("ui-name-lbl").textContent = t.nameLbl;
             document.getElementById("ui-role-lbl").textContent = t.roleLbl;
@@ -1710,7 +1830,9 @@
             const nameVal = document.getElementById("inp-name").value.trim() || "Lucas Silva";
             const roleVal = document.getElementById("inp-role").value.trim() || (isEn ? "Senior AI & Software Architect" : "Arquiteto de Software & IA Sênior");
             const locVal = document.getElementById("inp-location").value.trim() || "São Paulo, BR";
-            const portRaw = (document.getElementById("inp-portfolio")?.value || "").trim();
+            const portRaw = (state.dataMode === "manual"
+                ? (document.getElementById("inp-man-portfolio")?.value || document.getElementById("inp-portfolio")?.value || "")
+                : (document.getElementById("inp-portfolio")?.value || "")).trim();
 
             function simplifyUrl(u) {
                 if (!u) return "";
@@ -1721,8 +1843,12 @@
             }
             const portDisp = simplifyUrl(portRaw) || "portfolio.dev";
 
-            const ghVal = (document.getElementById("inp-github")?.value || "").trim();
-            const liVal = (document.getElementById("inp-linkedin")?.value || "").trim();
+            const ghVal = (state.dataMode === "manual"
+                ? (document.getElementById("inp-man-github")?.value || document.getElementById("inp-github")?.value || "")
+                : (document.getElementById("inp-github")?.value || "")).trim();
+            const liVal = (state.dataMode === "manual"
+                ? (document.getElementById("inp-man-linkedin")?.value || document.getElementById("inp-linkedin")?.value || "")
+                : (document.getElementById("inp-linkedin")?.value || "")).trim();
             const orcidVal = (document.getElementById("inp-orcid")?.value || "").trim();
             const lattesVal = (document.getElementById("inp-lattes")?.value || "").trim();
 
@@ -2325,7 +2451,24 @@
                 }
 
                 // Leitura assíncrona segura de arquivos binários e código LaTeX customizado
-                const photoData = await readFileAsBase64(document.getElementById("inp-photo").files[0]);
+                const activePhotoFile = state.dataMode === "manual"
+                    ? (document.getElementById("inp-man-photo")?.files[0] || document.getElementById("inp-photo")?.files[0])
+                    : document.getElementById("inp-photo")?.files[0];
+                const photoData = await readFileAsBase64(activePhotoFile);
+
+                let manualData = null;
+                if (state.dataMode === "manual") {
+                    manualData = {
+                        summary: (document.getElementById("inp-man-summary")?.value || "").trim(),
+                        education: (document.getElementById("inp-man-education")?.value || "").trim(),
+                        experience: (document.getElementById("inp-man-experience")?.value || "").trim(),
+                        skills: (document.getElementById("inp-man-skills")?.value || "").trim(),
+                        projects: (document.getElementById("inp-man-projects")?.value || "").trim(),
+                        languages: (document.getElementById("inp-man-languages")?.value || "").trim(),
+                        awards: (document.getElementById("inp-man-awards")?.value || "").trim(),
+                        publications: (document.getElementById("inp-man-publications")?.value || "").trim(),
+                    };
+                }
                 const lattesData = await readFileAsBase64(document.getElementById("inp-lattes-file").files[0]);
                 const liPdfData = await readFileAsBase64(document.getElementById("inp-linkedin-pdf").files[0]);
                 let customTexData = null;
@@ -2346,11 +2489,13 @@
                     lang: document.getElementById("resume-lang-select").value,
                     primary_color: document.getElementById("primary-color").value,
                     secondary_color: document.getElementById("secondary-color").value,
-                    github: document.getElementById("inp-github").value,
+                    github: (state.dataMode === "manual" ? (document.getElementById("inp-man-github")?.value || document.getElementById("inp-github")?.value) : document.getElementById("inp-github")?.value) || "",
                     orcid: document.getElementById("inp-orcid").value,
-                    linkedin: document.getElementById("inp-linkedin").value,
+                    linkedin: (state.dataMode === "manual" ? (document.getElementById("inp-man-linkedin")?.value || document.getElementById("inp-linkedin")?.value) : document.getElementById("inp-linkedin")?.value) || "",
                     lattes: document.getElementById("inp-lattes").value,
-                    portfolio: document.getElementById("inp-portfolio").value,
+                    portfolio: (state.dataMode === "manual" ? (document.getElementById("inp-man-portfolio")?.value || document.getElementById("inp-portfolio")?.value) : document.getElementById("inp-portfolio")?.value) || "",
+                    data_source_mode: state.dataMode,
+                    manual_data: manualData,
                     name: document.getElementById("inp-name").value,
                     role: document.getElementById("inp-role").value,
                     email: document.getElementById("inp-email").value,

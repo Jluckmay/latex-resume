@@ -1,0 +1,256 @@
+"""Testes automatizados para a seleção entre importação de informações e inserção manual em todas as interfaces e pipelines."""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any, Dict
+
+import pytest
+
+from src.direct_builder import (
+    build_structured_cv_deterministically,
+    generate_direct_latex_resume,
+    parse_manual_resume_inputs,
+)
+from src.pipeline import build_resume_pipeline
+
+
+def test_parse_manual_resume_inputs_with_structured_dicts():
+    """Valida a normalização de dados manuais quando fornecidos como dicionários e listas."""
+    raw_manual = {
+        "name": "Ana Clara Santos",
+        "title": "Engenheira de Machine Learning Sênior",
+        "email": "ana.clara@tech.ai",
+        "phone": "+55 (11) 98765-4321",
+        "location": "Campinas, SP, Brasil",
+        "summary": "Especialista em LLMs, visão computacional e deploy de modelos escaláveis em Kubernetes.",
+        "education": [
+            {
+                "degree": "Doutorado em Ciência da Computação",
+                "institution": "UNICAMP",
+                "period": "2020 - 2024",
+                "details": "Tese: Otimização de Inferência em Redes Neurais Profundas",
+            },
+            {
+                "degree": "Bacharelado em Engenharia de Computação",
+                "institution": "USP",
+                "period": "2015 - 2019",
+                "details": "",
+            },
+        ],
+        "experience": [
+            {
+                "role": "Lead ML Engineer",
+                "organization": "AI Solutions Corp",
+                "period": "2022 - Atual",
+                "location": "São Paulo, SP",
+                "description": "Liderança técnica na arquitetura de microsserviços de inferência com Triton e PyTorch.",
+            }
+        ],
+        "skills": [
+            {"category": "Machine Learning", "items": "PyTorch, TensorFlow, Triton, vLLM"},
+            {"category": "Cloud & DevOps", "items": "AWS, GCP, Docker, Kubernetes, Terraform"},
+        ],
+        "projects": [
+            {
+                "name": "Neural ATS Parser",
+                "tech": "Python, FastAPI, Transformers",
+                "url": "https://github.com/anaclara/neural-ats",
+                "description": "Parser neural com 99% de acurácia em extração de entidades técnicas.",
+            }
+        ],
+        "languages": ["Português (Nativo)", "Inglês (Fluente)", "Francês (Básico)"],
+        "awards": [
+            {"title": "Melhor Artigo em IA Aplicada", "year": "2023", "details": "Conferência Brasileira de IA"}
+        ],
+        "publications": [
+            {
+                "title": "Efficient Inference in Transformers",
+                "venue": "IEEE Access",
+                "year": "2023",
+                "authors": "Santos, A. C.; Pereira, F.",
+                "doi": "10.1109/ACCESS.2023.1000",
+            }
+        ],
+    }
+
+    parsed = parse_manual_resume_inputs(raw_manual)
+    assert parsed["name"] == "Ana Clara Santos"
+    assert parsed["title"] == "Engenheira de Machine Learning Sênior"
+    assert len(parsed["education"]) == 2
+    assert parsed["education"][0]["degree"] == "Doutorado em Ciência da Computação"
+    assert len(parsed["experience"]) == 1
+    assert parsed["experience"][0]["organization"] == "AI Solutions Corp"
+    assert len(parsed["skills"]) == 2
+    assert len(parsed["projects"]) == 1
+    assert len(parsed["languages"]) == 3
+    assert len(parsed["awards"]) == 1
+    assert len(parsed["publications"]) == 1
+
+
+def test_parse_manual_resume_inputs_with_raw_text_areas():
+    """Valida a capacidade de processar entradas de texto livre com pipes e quebras de linha vindas dos textareas."""
+    raw_manual_text = {
+        "name": "Carlos Eduardo",
+        "title": "Arquiteto Cloud & DevOps",
+        "summary": "Profissional certificado AWS com vasta experiência em infraestrutura resiliente.",
+        "education": "Mestrado em Engenharia | USP | 2020 - 2022 | Computação em Nuvem\nGraduação em Redes | FATEC | 2016 - 2019",
+        "experience": "Arquiteto Cloud Sênior | CloudOps Inc | 2021 - Atual | Remoto | Modernização de pipelines CI/CD.\nEngenheiro DevOps | InfraTech | 2019 - 2021 | Curitiba | Automação Ansible e Terraform.",
+        "skills": "Linguagens: Go, Python, Bash\nCloud & Containers: AWS, Docker, Kubernetes, Helm\nBancos de Dados: PostgreSQL, Redis",
+        "projects": "DevOps Pipeline Toolkit | Go, Docker | https://github.com/carlos/toolkit | Ferramentas CLI para automação de deploy.",
+        "languages": "Português (Nativo), Inglês (Avançado), Espanhol (Intermediário)",
+        "awards": "AWS Solutions Architect Professional | 2022 | Amazon Web Services\nCertified Kubernetes Administrator (CKA) | 2023 | Linux Foundation",
+        "publications": "Resilient Microservices in Hybrid Clouds | Cloud Summit | 2022 | Eduardo, C. | 10.1000/cloud.2022",
+    }
+
+    parsed = parse_manual_resume_inputs(raw_manual_text)
+    assert parsed["name"] == "Carlos Eduardo"
+    assert len(parsed["education"]) == 2
+    assert parsed["education"][0]["degree"] == "Mestrado em Engenharia"
+    assert parsed["education"][0]["institution"] == "USP"
+    assert len(parsed["experience"]) == 2
+    assert parsed["experience"][0]["role"] == "Arquiteto Cloud Sênior"
+    assert len(parsed["skills"]) == 3
+    assert parsed["skills"][0]["category"] == "Linguagens"
+    assert len(parsed["projects"]) == 1
+    assert len(parsed["languages"]) == 3
+    assert len(parsed["awards"]) == 2
+    assert len(parsed["publications"]) == 1
+
+
+def test_build_structured_cv_with_manual_data_overrides():
+    """Valida que dados manuais fornecidos têm precedência absoluta na montagem do currículo determinístico."""
+    raw_profile = {
+        "user_meta": {"name": "Nome Meta Antigo", "role": "Cargo Meta Antigo"},
+        "manual_data": {
+            "name": "Juliana Martins",
+            "title": "Diretora de Engenharia",
+            "summary": "Líder técnica executiva focada em transformação digital e produtos de alta escala.",
+            "education": [
+                {"degree": "MBA em Gestão Estratégica", "institution": "FGV", "period": "2021", "details": ""}
+            ],
+            "experience": [
+                {
+                    "role": "VP de Engenharia",
+                    "organization": "Fintech Alpha",
+                    "period": "2020 - Atual",
+                    "location": "São Paulo",
+                    "description": "Liderança de 120 engenheiros e crescimento de 300% em transações.",
+                }
+            ],
+            "skills": [{"category": "Liderança", "items": "Gestão de Pessoas, OKRs, Orçamento, Estratégia"}],
+            "languages": ["Português (Nativo)", "Inglês (Fluente)"],
+        },
+    }
+
+    cv = build_structured_cv_deterministically(raw_profile, resume_type="profissional", lang="pt-br")
+    assert cv["name"] == "Juliana Martins"
+    assert cv["title"] == "Diretora de Engenharia"
+    assert "transformação digital" in cv["summary"]
+    assert len(cv["education"]) == 1
+    assert cv["education"][0]["institution"] == "FGV"
+    assert cv["experience"][0]["organization"] == "Fintech Alpha"
+    assert cv["skills"][0]["category"] == "Liderança"
+
+
+def test_pipeline_manual_data_zero_token_generation(tmp_path):
+    """Executa o pipeline completo no modo manual e sem IA (0 tokens), gerando LaTeX e PDF válidos."""
+    manual_info = {
+        "name": "Mariana Ribeiro",
+        "title": "Arquiteta de Soluções",
+        "email": "mariana.ribeiro@exemplo.com",
+        "phone": "+55 11 91234-5678",
+        "location": "Belo Horizonte, MG, Brasil",
+        "summary": "Arquiteta de software com vasta experiência em sistemas distribuídos e microsserviços.",
+        "education": "Engenharia de Software | PUC Minas | 2017 - 2021 | Ênfase em Sistemas Críticos",
+        "experience": "Arquiteta Sênior | Tech Corp | 2022 - Atual | BH | Arquitetura de mensageria Kafka.",
+        "skills": "Backend: Java, Spring Boot, Go\nMensageria: Apache Kafka, RabbitMQ\nCloud: AWS, Kubernetes",
+        "projects": "Event Stream Platform | Go, Kafka | https://github.com/mariana/events | Broker resiliente",
+        "languages": "Português (Nativo), Inglês (Fluente)",
+    }
+
+    res = build_resume_pipeline(
+        resume_type="profissional",
+        template_id="ai_ats_max",
+        data_source_mode="manual",
+        manual_data=manual_info,
+        provider="none",
+        use_ai=False,
+        build_dir=tmp_path,
+        lang="pt-br",
+    )
+
+    assert res.success is True
+    assert res.structured_cv["name"] == "Mariana Ribeiro"
+    assert res.structured_cv["title"] == "Arquiteta de Soluções"
+    assert "Tech Corp" in res.latex_code
+    assert "PUC Minas" in res.latex_code
+    assert res.token_metrics["total_tokens_actual"] == 0
+
+
+def test_server_api_generate_with_manual_data(client):
+    """Testa o endpoint /api/generate recebendo requisição com modo manual."""
+    manual_data = {
+        "name": "Roberto Albuquerque",
+        "role": "Pesquisador em Computação Quântica",
+        "email": "roberto@quantum.org",
+        "location": "Rio de Janeiro, RJ, Brasil",
+        "summary": "Pesquisador dedicado ao desenvolvimento de algoritmos para computação quântica ruidosa (NISQ).",
+        "education": "Doutorado em Física | UFRJ | 2019 - 2023 | Algoritmos Quânticos VQE",
+        "experience": "Pesquisador Pós-Doc | Laboratório Nacional | 2023 - Atual | RJ | Simulação quântica com Qiskit.",
+        "skills": "Quântica: Qiskit, Cirq, PennyLane\nProgramação: Python, C++, Julia",
+        "languages": "Português (Nativo), Inglês (Avançado)",
+    }
+
+    payload = {
+        "provider": "none",
+        "resume_type": "academico",
+        "template_id": "academic_classic",
+        "lang": "pt-br",
+        "data_source_mode": "manual",
+        "manual_data": manual_data,
+        "name": manual_data["name"],
+        "role": manual_data["role"],
+        "email": manual_data["email"],
+        "location": manual_data["location"],
+    }
+
+    resp = client.post("/api/generate", json=payload, headers={"Origin": "https://jluckmay.github.io"})
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["success"] is True
+    assert data["structured_cv"]["name"] == "Roberto Albuquerque"
+    assert "Qiskit" in data["latex_code"]
+
+
+def test_ui_elements_for_manual_and_import_mode():
+    """Valida se as interfaces index.html e app.py possuem os seletores e campos de importação vs manual."""
+    html = Path("index.html").read_text(encoding="utf-8")
+    assert 'id="btn-mode-import"' in html
+    assert 'id="btn-mode-manual"' in html
+    assert 'id="container-data-import"' in html
+    assert 'id="container-data-manual"' in html
+    assert 'id="inp-man-summary"' in html
+    assert 'id="inp-man-education"' in html
+    assert 'id="inp-man-experience"' in html
+    assert 'id="inp-man-skills"' in html
+    assert 'id="inp-man-projects"' in html
+    assert 'id="inp-man-languages"' in html
+    assert 'id="inp-man-awards"' in html
+    assert 'id="inp-man-publications"' in html
+    assert 'function setDataMode(mode)' in html
+    assert 'data_source_mode: state.dataMode' in html
+
+    app_py = Path("app.py").read_text(encoding="utf-8")
+    assert 'txt["data_mode_label"]' in app_py
+    assert 'txt["mode_import_label"]' in app_py
+    assert 'txt["mode_manual_label"]' in app_py
+    assert 'is_manual_mode = (data_mode == txt["mode_manual_label"])' in app_py
+    assert 'man_summary = st.text_area' in app_py
+    assert 'man_edu = st.text_area' in app_py
+    assert 'man_exp = st.text_area' in app_py
+    assert 'man_skills = st.text_area' in app_py
+    assert 'man_proj = st.text_area' in app_py
+    assert 'data_source_mode="manual" if is_manual_mode else "import"' in app_py
+

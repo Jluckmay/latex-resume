@@ -1834,7 +1834,7 @@ def _render_ai_ats_max(
             inst_txt = f" --- {inst}" if inst else ""
             ed_lines.append(rf"\noindent\textbf{{{deg}}}{inst_txt} \hfill \textbf{{{per}}}")
             if det:
-                ed_lines.append(rf"\\ {{\small {det}}}\par\vspace{{4pt}}")
+                ed_lines.append(rf"\par{{\small {det}}}\par\vspace{{4pt}}")
             else:
                 ed_lines.append(r"\par\vspace{4pt}")
         blocks.append("\n\n".join(ed_lines))

@@ -300,7 +300,7 @@ def api_generate() -> Response | tuple[Response, int]:
         else:
             payload_data = {}
 
-        if is_encrypted_transport:
+        if is_encrypted_transport or (request.is_json and payload_data):
             provider = (payload_data.get("provider") or DEFAULT_PROVIDER).strip().lower()
             resume_type = payload_data.get("resume_type", "profissional")
             template_id = payload_data.get("template_id", "ai_ats_max")
@@ -359,6 +359,8 @@ def api_generate() -> Response | tuple[Response, int]:
             req_phone = payload_data.get("phone", "")
             req_location = payload_data.get("location", "")
             req_extra = payload_data.get("extra", "")
+            req_data_source_mode = payload_data.get("data_source_mode", "import")
+            req_manual_data = payload_data.get("manual_data")
             req_api_key = payload_data.get("api_key", "").strip() or None
         else:
             # Fallback para multipart/form-data legada (compatibilidade com CLI e testes)
@@ -408,6 +410,25 @@ def api_generate() -> Response | tuple[Response, int]:
             req_phone = form.get("phone", "")
             req_location = form.get("location", "")
             req_extra = form.get("extra", "")
+            req_data_source_mode = form.get("data_source_mode", "import")
+            raw_man = form.get("manual_data")
+            req_manual_data = None
+            if raw_man:
+                try:
+                    req_manual_data = json.loads(raw_man) if isinstance(raw_man, str) else raw_man
+                except Exception:
+                    req_manual_data = {"summary": raw_man}
+            if not req_manual_data and any(form.get(k) for k in ("manual_summary", "manual_education", "manual_experience", "manual_skills", "manual_projects", "manual_languages", "manual_awards", "manual_publications")):
+                req_manual_data = {
+                    "summary": form.get("manual_summary", ""),
+                    "education": form.get("manual_education", ""),
+                    "experience": form.get("manual_experience", ""),
+                    "skills": form.get("manual_skills", ""),
+                    "projects": form.get("manual_projects", ""),
+                    "languages": form.get("manual_languages", ""),
+                    "awards": form.get("manual_awards", ""),
+                    "publications": form.get("manual_publications", ""),
+                }
             req_api_key = form.get("api_key", "").strip() or None
 
         # Compilação em diretório efêmero isolado por requisição com política estrita de Zero-Storage
@@ -444,6 +465,8 @@ def api_generate() -> Response | tuple[Response, int]:
                 lang=lang,
                 use_ai=use_ai,
                 ai_mode=ai_mode,
+                data_source_mode=req_data_source_mode,
+                manual_data=req_manual_data,
             )
 
             pdf_b64 = ""

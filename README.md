@@ -60,13 +60,20 @@ Para executar o gerador e compilar os currículos em PDF, o ambiente deve atende
 2. **Preview Visual em Tempo Real dos Modelos LaTeX e Customização de Cores**:
    - **Preview Interativo**: exibe uma prévia visual fiel do layout do modelo LaTeX escolhido (`modern_pro`, `academic_classic`, `tech_sidebar`, `minimal_ats`, `overleaf_russell_ti`, `overleaf_awesome_cv`, `overleaf_single_page_keywords`, `google_standard`, `ai_ats_max`) que reflete instantaneamente as cores e o idioma selecionados antes mesmo de compilar o PDF.
    - **Paletas e Seletor de Cores (`HEX`)**: escolha entre 6 paletas executivas/acadêmicas predefinidas (*Grafite ATS (Padrão)*, *Azul Oceano*, *Azul Marinho Acadêmico*, *Verde Esmeralda Tech*, *Índigo Real*, *Bordô Clássico*) ou defina manualmente a **Cor Principal** e a **Cor Secundária** aplicadas ao código LaTeX (`\definecolor`).
-3. **Coleta Multi-Fonte Automática (incluindo Página de Portfólio)**:
-   - **Portfólio Pessoal (`URL`)**: extrai título, descrição, seções (`h1`/`h2`/`h3`), bio e projetos diretamente da página web de portfólio do usuário e adiciona o link clicável **Portfólio** no cabeçalho do PDF.
-   - **GitHub**: extrai bio, localização, linguagens principais e repositórios de maior destaque via API REST pública.
-   - **ORCID**: extrai biografia, formação (`educations`), vínculos (`employments`) e artigos publicados (`works` com DOI) via API Pública v3.0.
-   - **Lattes**: parser nativo para o arquivo oficial `XML`/`ZIP` exportado do CNPq (`CURRICULO-VITAE`), além de suporte a PDF, HTML, URL ou texto complementar.
-   - **LinkedIn**: suporte a URL do perfil, upload do PDF oficial exportado pelo LinkedIn (*Salvar como PDF*) e texto complementar.
-   - **Foto de Perfil**: normalização automática de imagem (`PNG`/`JPG`/`WebP`) via Pillow para inclusão no LaTeX (`\includegraphics`).
+3. **Modo Duplo de Entrada de Dados: Importação Automática & Inserção Manual Estruturada**:
+   - **Alternância Flexível na Interface**: escolha facilmente entre **Importar Informações** ou **Inserir Manualmente** tanto na aplicação Web quanto no Streamlit.
+   - **Modo Importação (Perfis Online & Arquivos)**:
+     - **Portfólio Pessoal (`URL`)**: extrai título, descrição, seções (`h1`/`h2`/`h3`), bio e projetos diretamente da página web de portfólio do usuário e adiciona o link clicável simplificado no cabeçalho do PDF.
+     - **GitHub**: extrai bio, localização, linguagens principais e repositórios de maior destaque via API REST pública (aceita URL completa ou username).
+     - **ORCID**: extrai biografia, formação (`educations`), vínculos (`employments`) e artigos publicados (`works` com DOI) via API Pública v3.0 (aceita ID ou URL).
+     - **Lattes**: parser nativo para o arquivo oficial `XML`/`ZIP` exportado do CNPq (`CURRICULO-VITAE`), além de suporte a PDF, HTML, URL ou ID de 16 dígitos / texto complementar.
+     - **LinkedIn**: suporte a URL do perfil ou username, upload do PDF oficial exportado pelo LinkedIn (*Salvar como PDF*) e texto complementar.
+     - **Foto de Perfil**: normalização automática de imagem (`PNG`/`JPG`/`WebP`) via Pillow para inclusão no LaTeX (`\includegraphics`).
+   - **Modo Inserção Manual (Preenchimento Direto)**:
+     - Permite que candidatos sem perfis públicos ou que prefiram controle editorial completo insiram seus dados diretamente em campos dedicados.
+     - Seções estruturadas para: **Resumo Profissional**, **Formação Acadêmica**, **Experiência Profissional**, **Competências Técnicas & Palavras-chave**, **Projetos de Destaque**, **Idiomas & Fluência**, **Prêmios & Reconhecimentos** e **Publicações**.
+     - Suporta sintaxe intuitiva linha por linha separada por barras verticais (`|`) ou objetos JSON, com higienização tipográfica automática para LaTeX.
+     - Preserva campos opcionais de links (GitHub, LinkedIn, Portfólio, ORCID, Lattes e Foto) para enriquecer o cabeçalho do currículo.
 4. **9 Modelos LaTeX Integrados (incluindo Overleaf, Padrão Google e Otimizado para IA & ATS) + Suporte a Template `.tex` Customizado**:
    - `modern_pro`: Moderno Executivo (Profissional & Tech)
    - `academic_classic`: Acadêmico Clássico (Pesquisador / CNPq / Pós-Graduação)
@@ -136,11 +143,12 @@ latex-resume/
 │   ├── ui_theme.py             # Temas visuais e CSS responsivo para Streamlit
 │   ├── py.typed                # Marcador PEP 561 de tipagem estática
 │   └── README.md               # Documentação detalhada da arquitetura de módulos
-├── tests/                      # Suíte de testes automatizados com Pytest (69+ testes)
+├── tests/                      # Suíte de testes automatizados com Pytest (108+ testes)
 │   ├── conftest.py             # Configurações globais e fixtures compartilhadas do Pytest
 │   ├── test_awards_and_orcid.py# Testes de higienização de prêmios/certificações e ORCID
 │   ├── test_direct_builder.py  # Testes do modo direto offline e revisão cirúrgica de LaTeX
 │   ├── test_encrypted_comm.py  # Testes de criptografia de ponta a ponta e blindagem contra extração de chaves
+│   ├── test_manual_input_mode.py # Testes do modo duplo de entrada (importação vs manual estruturado)
 │   ├── test_ui_assets.py       # Testes de integridade de ícones, favicons e responsividade
 │   ├── test_zero_storage.py    # Testes de política estrita de Zero-Storage e destruição de memória
 │   └── README.md               # Guia de execução e invariantes de segurança testados
@@ -364,7 +372,9 @@ O projeto permite que os usuários utilizem a chave padrão do servidor ou utili
 3. **Zeroização Imediata (Zero-Storage):** Após o disparo da requisição via TLS 1.3 puro com pinning de certificado, o buffer de memória é imediatamente sobrescrito com bytes nulos (`0x00`) no bloco `finally`, e as variáveis de ambiente (`NVIDIA_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`) são expurgadas com `os.environ.pop` para impedir que processos-filhos (como o `pdflatex`) tenham acesso a qualquer credencial.
 
 #### 4. Passo a Passo para Geração do Currículo
-1. **Dados Pessoais e Links**: Preencha nome, cargo, e-mail, telefone, localização e informe os links dos seus perfis (GitHub, LinkedIn, ORCID, Portfólio Web, Lattes).
+1. **Dados Pessoais e Modo de Entrada**: Preencha nome, cargo, e-mail, telefone, localização (com link clicável para o Google Maps) e escolha entre:
+   - **Importar Informações**: informe links ou envie arquivos de perfis online (GitHub, LinkedIn, ORCID, Lattes, Portfólio Web, Foto).
+   - **Inserir Manualmente**: preencha diretamente seus dados estruturados (resumo, formação, experiência, competências, projetos, idiomas, prêmios e publicações).
 2. **Escolha do Provedor de IA e Modelo**: Selecione o provedor desejado (NVIDIA Padrão, NVIDIA Própria, Google Gemini, Anthropic Claude, OpenAI ou DeepSeek) e o modelo otimizado correspondente. Se desejar, informe sua chave própria com total segurança criptográfica.
 3. **Escolha do Modelo LaTeX**: Selecione um dos 9 templates disponíveis:
    - **`google_standard`**: Padrão Google SWE (bullet points XYZ de impacto, alta densidade).
@@ -441,13 +451,20 @@ To run the generator and compile resumes into PDF, your environment must meet th
 2. **Real-Time Visual LaTeX Template Preview & Color Customization**:
    - **Interactive Template Preview**: renders a live visual preview of your chosen LaTeX template (`modern_pro`, `academic_classic`, `tech_sidebar`, `minimal_ats`, `overleaf_russell_ti`, `overleaf_awesome_cv`, `overleaf_single_page_keywords`, `google_standard`, `ai_ats_max`) that updates immediately as you tweak colors or switch languages prior to compiling the PDF.
    - **Curated Palettes & `HEX` Color Pickers**: choose from 6 executive/academic presets (*Minimalist Charcoal (ATS Default)*, *Ocean Blue*, *Academic Navy*, *Emerald Tech*, *Royal Indigo*, *Classic Burgundy*) or pick custom **Primary** and **Secondary** colors injected directly into LaTeX (`\definecolor`).
-3. **Automated Multi-Source Profile Extraction (including Portfolio Websites)**:
-   - **Personal Portfolio (`URL`)**: scrapes title, meta description, section headings (`h1`/`h2`/`h3`), bio, and project highlights from your portfolio website and injects a clickable **Portfolio** link in the resume header.
-   - **GitHub**: fetches bio, location, top programming languages, and top repositories via the public GitHub REST API.
-   - **ORCID**: fetches biography, education history (`educations`), employment affiliations (`employments`), and published works (`works` with DOIs) via the ORCID Public API v3.0.
-   - **Lattes**: native parser for official CNPq `XML`/`ZIP` exports (`CURRICULO-VITAE`), plus PDF, HTML, URL, or pasted text support.
-   - **LinkedIn**: supports profile URLs, official LinkedIn exported PDFs (*Save to PDF*), and supplementary text.
-   - **Profile Photo**: automatic image normalization (`PNG`/`JPG`/`WebP`) via Pillow for seamless LaTeX inclusion (`\includegraphics`).
+3. **Dual Data Input Modes: Automated Multi-Source Profile Import & Structured Manual Entry**:
+   - **Flexible UI Mode Switcher**: easily toggle between **Import Information** and **Enter Manually** in both the Web interface and Streamlit app.
+   - **Import Mode (Online Profiles & Files)**:
+     - **Personal Portfolio (`URL`)**: scrapes title, meta description, section headings (`h1`/`h2`/`h3`), bio, and project highlights from your portfolio website and injects a clean clickable link in the resume header.
+     - **GitHub**: fetches bio, location, top programming languages, and top repositories via the public GitHub REST API (supports full URL or username).
+     - **ORCID**: fetches biography, education history (`educations`), employment affiliations (`employments`), and published works (`works` with DOIs) via the ORCID Public API v3.0 (supports numeric ID or URL).
+     - **Lattes**: native parser for official CNPq `XML`/`ZIP` exports (`CURRICULO-VITAE`), plus PDF, HTML, URL or 16-digit ID / supplementary text.
+     - **LinkedIn**: supports profile URLs or usernames, official LinkedIn exported PDFs (*Save to PDF*), and supplementary text.
+     - **Profile Photo**: automatic image normalization (`PNG`/`JPG`/`WebP`) via Pillow for seamless LaTeX inclusion (`\includegraphics`).
+   - **Manual Entry Mode (Direct Structured Inputs)**:
+     - Allows candidates without external profiles or who prefer full editorial control to type or paste data directly into dedicated sections.
+     - Structured sections for: **Professional Summary**, **Education**, **Work Experience**, **Core Competencies & Keywords**, **Featured Projects**, **Languages & Proficiency**, **Awards & Honors**, and **Publications**.
+     - Supports intuitive line-by-line pipe-delimited syntax (`|`) or structured JSON with automatic LaTeX typography escaping and sanitization.
+     - Preserves optional header profile links (GitHub, LinkedIn, Portfolio, ORCID, Lattes, and photo).
 4. **9 Built-in LaTeX Templates (including Overleaf, Google Standard & AI/ATS-Optimized) + Custom `.tex` Template Support**:
    - `modern_pro`: Executive Modern (Professional & Tech)
    - `academic_classic`: Academic Classic (Researcher / Post-Grad / Faculty)
@@ -517,11 +534,12 @@ latex-resume/
 │   ├── ui_theme.py             # Dynamic themes, responsive CSS, and color palettes for Streamlit
 │   ├── py.typed                # PEP 561 static typing compliance marker
 │   └── README.md               # Comprehensive module architecture documentation
-├── tests/                      # Automated test suite (Pytest - 69+ tests)
+├── tests/                      # Automated test suite (Pytest - 108+ tests)
 │   ├── conftest.py             # Global Pytest configuration and shared test fixtures
 │   ├── test_awards_and_orcid.py# Awards sanitization, section omission and ORCID placement tests
 │   ├── test_direct_builder.py  # Zero-token offline generator and surgical review tests
 │   ├── test_encrypted_comm.py  # End-to-end encryption & anti-key-leakage verification tests
+│   ├── test_manual_input_mode.py # Dual input mode (automated import vs structured manual entry) tests
 │   ├── test_ui_assets.py       # Icon integrity, favicon endpoints, and responsive CSS tests
 │   ├── test_zero_storage.py    # Strict Zero-Storage & memory destruction tests
 │   └── README.md               # Test suite documentation & verified security invariants
@@ -745,7 +763,9 @@ Users can choose between the secure server-provided default or **provide their o
 3. **Immediate Memory Zeroing (Zero-Storage):** Following the pinned TLS 1.3 HTTPS dispatch, the memory buffer is immediately overwritten with null bytes (`0x00`) in `finally:` blocks. Environment variables (`NVIDIA_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`) are scrubbed with `os.environ.pop` to prevent child processes (such as `pdflatex`) from accessing any credentials.
 
 #### 4. Step-by-Step Resume Generation Workflow
-1. **Personal Information & Profile Links**: Input your name, target role, contact info, and provide profile URLs (GitHub, LinkedIn, ORCID, Portfolio Website, Lattes).
+1. **Personal Information & Input Mode**: Input your name, target role, contact info, location (with clickable Google Maps integration), and select your data input mode:
+   - **Import Information**: provide profile URLs or upload files (GitHub, LinkedIn, ORCID, Lattes, Portfolio Website, Photo).
+   - **Manual Entry**: fill in your summary, education, experience, skills, projects, languages, awards, and publications directly.
 2. **Choose AI Provider & Model**: Select your preferred provider (Server Default NVIDIA, Custom NVIDIA, Google Gemini, Anthropic Claude, OpenAI, or DeepSeek) and corresponding model. Optionally enter your own API key with complete cryptographic security.
 3. **Choose a LaTeX Template**: Select from the 9 available built-in templates:
    - **`google_standard`**: Google Software Engineer recruitment standard (high-density XYZ accomplishment bullet points).

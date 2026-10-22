@@ -72,6 +72,8 @@ def build_resume_pipeline(
     lang: str = "pt-br",
     use_ai: bool = True,
     ai_mode: str = "auto",
+    data_source_mode: str = "import",
+    manual_data: Dict[str, Any] | None = None,
 ) -> ResumeGenerationResult:
     """Executa todo o fluxo de coleta, síntese IA com economia de tokens, customização de cores e compilação LaTeX."""
     if custom_latex_template:
@@ -148,6 +150,8 @@ def build_resume_pipeline(
         "linkedin": li_data,
         "portfolio": portfolio_data,
         "extra_notes": combined_extra,
+        "data_source_mode": data_source_mode,
+        "manual_data": manual_data or {},
     }
 
     # 2. Preparação de foto (se enviada)

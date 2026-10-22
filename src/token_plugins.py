@@ -249,6 +249,49 @@ class TOONContextPrunerPlugin:
         if extra:
             lines.append("EXTRA|" + cls._clean_whitespace(extra, 1200))
 
+        # 6. Dados manuais estruturados
+        man = raw_data.get("manual_data") or {}
+        if man and isinstance(man, dict):
+            if man.get("summary"):
+                lines.append("MAN_SUM|" + cls._trunc(str(man["summary"]), 300))
+            if isinstance(man.get("education"), list):
+                for e in man["education"][:5]:
+                    lines.append(f"MAN_EDU|{e.get('degree','')}|{e.get('institution','')}|{e.get('period','')}|{cls._trunc(e.get('details',''), 80)}")
+            elif isinstance(man.get("education"), str) and man["education"].strip():
+                lines.append("MAN_EDU_TXT|" + cls._clean_whitespace(man["education"], 400))
+
+            if isinstance(man.get("experience"), list):
+                for x in man["experience"][:5]:
+                    lines.append(f"MAN_EXP|{x.get('role','')}|{x.get('organization','')}|{x.get('period','')}|{x.get('location','')}|{cls._trunc(x.get('description',''), 120)}")
+            elif isinstance(man.get("experience"), str) and man["experience"].strip():
+                lines.append("MAN_EXP_TXT|" + cls._clean_whitespace(man["experience"], 500))
+
+            if isinstance(man.get("skills"), list):
+                for s in man["skills"][:5]:
+                    lines.append(f"MAN_SKILL|{s.get('category','')}:{s.get('items','')}")
+            elif isinstance(man.get("skills"), str) and man["skills"].strip():
+                lines.append("MAN_SKILL_TXT|" + cls._clean_whitespace(man["skills"], 300))
+
+            if isinstance(man.get("projects"), list):
+                for p in man["projects"][:5]:
+                    lines.append(f"MAN_PROJ|{p.get('name','')}|{p.get('tech','')}|{p.get('url','')}|{cls._trunc(p.get('description',''), 100)}")
+            elif isinstance(man.get("projects"), str) and man["projects"].strip():
+                lines.append("MAN_PROJ_TXT|" + cls._clean_whitespace(man["projects"], 400))
+
+            if man.get("languages"):
+                langs = man["languages"] if isinstance(man["languages"], list) else [man["languages"]]
+                lines.append("MAN_LANG|" + ";".join(str(l) for l in langs[:5]))
+
+            if man.get("awards"):
+                awards = man["awards"] if isinstance(man["awards"], list) else [man["awards"]]
+                lines.append("MAN_AWARD|" + ";".join(str(a) for a in awards[:5]))
+
+            if isinstance(man.get("publications"), list):
+                for pb in man["publications"][:6]:
+                    lines.append(f"MAN_PUB|{pb.get('title','')}|{pb.get('venue','')}|{pb.get('year','')}|{pb.get('authors','')}")
+            elif isinstance(man.get("publications"), str) and man["publications"].strip():
+                lines.append("MAN_PUB_TXT|" + cls._clean_whitespace(man["publications"], 400))
+
         compressed = "\n".join(lines)
         comp_tokens = estimate_tokens(compressed)
         return compressed, raw_tokens, comp_tokens

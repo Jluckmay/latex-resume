@@ -62,6 +62,228 @@ from .templates import (
 
 
 
+def parse_manual_resume_inputs(manual_data: Dict[str, Any] | None) -> Dict[str, Any]:
+    """Normaliza e extrai dados de currículo inseridos manualmente (estruturados ou texto livre)."""
+    if not manual_data or not isinstance(manual_data, dict):
+        return {}
+
+    parsed: Dict[str, Any] = {}
+
+    # 1. Metadados e Resumo
+    for key in ("name", "title", "role", "email", "phone", "location", "summary"):
+        val = manual_data.get(key)
+        if val and isinstance(val, str) and val.strip():
+            parsed[key] = val.strip()
+
+    # 2. Formação Acadêmica (Education)
+    raw_edu = manual_data.get("education")
+    edu_list: List[Dict[str, str]] = []
+    if isinstance(raw_edu, list):
+        for item in raw_edu:
+            if isinstance(item, dict):
+                degree = str(item.get("degree") or item.get("course") or item.get("level") or "").strip()
+                inst = str(item.get("institution") or item.get("org") or "").strip()
+                period = str(item.get("period") or item.get("year") or "").strip()
+                details = str(item.get("details") or item.get("thesis_title") or "").strip()
+                if degree or inst:
+                    edu_list.append({"degree": degree, "institution": inst, "period": period, "details": details})
+            elif isinstance(item, str) and item.strip():
+                parts = [p.strip() for p in item.split("|")]
+                edu_list.append({
+                    "degree": parts[0],
+                    "institution": parts[1] if len(parts) > 1 else "",
+                    "period": parts[2] if len(parts) > 2 else "",
+                    "details": parts[3] if len(parts) > 3 else "",
+                })
+    elif isinstance(raw_edu, str) and raw_edu.strip():
+        for line in raw_edu.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parts = [p.strip() for p in (line.split("|") if "|" in line else line.split(" - "))]
+            edu_list.append({
+                "degree": parts[0],
+                "institution": parts[1] if len(parts) > 1 else "",
+                "period": parts[2] if len(parts) > 2 else "",
+                "details": parts[3] if len(parts) > 3 else "",
+            })
+    if edu_list:
+        parsed["education"] = edu_list
+
+    # 3. Experiência Profissional (Experience)
+    raw_exp = manual_data.get("experience")
+    exp_list: List[Dict[str, str]] = []
+    if isinstance(raw_exp, list):
+        for item in raw_exp:
+            if isinstance(item, dict):
+                role = str(item.get("role") or item.get("title") or "").strip()
+                org = str(item.get("organization") or item.get("company") or "").strip()
+                period = str(item.get("period") or "").strip()
+                loc = str(item.get("location") or "").strip()
+                desc = str(item.get("description") or "").strip()
+                if role or org:
+                    exp_list.append({"role": role, "organization": org, "period": period, "location": loc, "description": desc})
+            elif isinstance(item, str) and item.strip():
+                parts = [p.strip() for p in item.split("|")]
+                exp_list.append({
+                    "role": parts[0],
+                    "organization": parts[1] if len(parts) > 1 else "",
+                    "period": parts[2] if len(parts) > 2 else "",
+                    "location": parts[3] if len(parts) > 3 else "",
+                    "description": parts[4] if len(parts) > 4 else "",
+                })
+    elif isinstance(raw_exp, str) and raw_exp.strip():
+        for line in raw_exp.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parts = [p.strip() for p in (line.split("|") if "|" in line else line.split(" - "))]
+            exp_list.append({
+                "role": parts[0],
+                "organization": parts[1] if len(parts) > 1 else "",
+                "period": parts[2] if len(parts) > 2 else "",
+                "location": parts[3] if len(parts) > 3 else "",
+                "description": parts[4] if len(parts) > 4 else (parts[3] if len(parts) == 4 and not any(c in parts[3] for c in (",", "/")) else ""),
+            })
+    if exp_list:
+        parsed["experience"] = exp_list
+
+    # 4. Habilidades & Competências (Skills)
+    raw_skills = manual_data.get("skills")
+    skill_list: List[Dict[str, Any]] = []
+    if isinstance(raw_skills, list):
+        for item in raw_skills:
+            if isinstance(item, dict):
+                cat = str(item.get("category") or "Competências Principais").strip()
+                items = item.get("items")
+                if isinstance(items, list):
+                    items_str = ", ".join(str(x).strip() for x in items if str(x).strip())
+                else:
+                    items_str = str(items or "").strip()
+                if items_str:
+                    skill_list.append({"category": cat, "items": items_str})
+            elif isinstance(item, str) and item.strip():
+                if ":" in item:
+                    cat, items = item.split(":", 1)
+                    skill_list.append({"category": cat.strip(), "items": items.strip()})
+                else:
+                    skill_list.append({"category": "Competências Principais", "items": item.strip()})
+    elif isinstance(raw_skills, str) and raw_skills.strip():
+        for line in raw_skills.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            if ":" in line:
+                cat, items = line.split(":", 1)
+                skill_list.append({"category": cat.strip(), "items": items.strip()})
+            else:
+                skill_list.append({"category": "Competências Principais", "items": line})
+    if skill_list:
+        parsed["skills"] = skill_list
+
+    # 5. Projetos (Projects)
+    raw_proj = manual_data.get("projects")
+    proj_list: List[Dict[str, str]] = []
+    if isinstance(raw_proj, list):
+        for item in raw_proj:
+            if isinstance(item, dict):
+                name = str(item.get("name") or "").strip()
+                tech = str(item.get("tech") or "").strip()
+                url = str(item.get("url") or "").strip()
+                desc = str(item.get("description") or "").strip()
+                if name:
+                    proj_list.append({"name": name, "tech": tech, "url": url, "description": desc})
+            elif isinstance(item, str) and item.strip():
+                parts = [p.strip() for p in item.split("|")]
+                proj_list.append({
+                    "name": parts[0],
+                    "tech": parts[1] if len(parts) > 1 else "",
+                    "url": parts[2] if len(parts) > 2 else "",
+                    "description": parts[3] if len(parts) > 3 else "",
+                })
+    elif isinstance(raw_proj, str) and raw_proj.strip():
+        for line in raw_proj.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parts = [p.strip() for p in (line.split("|") if "|" in line else line.split(" - "))]
+            proj_list.append({
+                "name": parts[0],
+                "tech": parts[1] if len(parts) > 1 else "",
+                "url": parts[2] if len(parts) > 2 and parts[2].startswith("http") else "",
+                "description": parts[3] if len(parts) > 3 else (parts[2] if len(parts) > 2 and not parts[2].startswith("http") else ""),
+            })
+    if proj_list:
+        parsed["projects"] = proj_list
+
+    # 6. Idiomas (Languages)
+    raw_langs = manual_data.get("languages")
+    lang_list: List[str] = []
+    if isinstance(raw_langs, list):
+        for lg in raw_langs:
+            if isinstance(lg, dict):
+                nm = str(lg.get("name") or "").strip()
+                lvl = str(lg.get("level") or lg.get("proficiency") or "").strip()
+                lang_list.append(f"{nm} ({lvl})" if lvl else nm)
+            elif isinstance(lg, str) and lg.strip():
+                lang_list.append(lg.strip())
+    elif isinstance(raw_langs, str) and raw_langs.strip():
+        items = [it.strip() for it in re.split(r"[\r\n,;]+", raw_langs) if it.strip()]
+        lang_list = [it.strip() for it in items if it.strip()]
+    if lang_list:
+        parsed["languages"] = lang_list
+
+    # 7. Prêmios & Certificações (Awards)
+    raw_awards = manual_data.get("awards")
+    award_list: List[Any] = []
+    if isinstance(raw_awards, list):
+        award_list = [a for a in raw_awards if a]
+    elif isinstance(raw_awards, str) and raw_awards.strip():
+        award_list = [line.strip() for line in raw_awards.splitlines() if line.strip()]
+    if award_list:
+        parsed["awards"] = award_list
+
+    # 8. Publicações (Publications)
+    raw_pubs = manual_data.get("publications")
+    pub_list: List[Dict[str, str]] = []
+    if isinstance(raw_pubs, list):
+        for item in raw_pubs:
+            if isinstance(item, dict):
+                title = str(item.get("title") or "").strip()
+                venue = str(item.get("venue") or "").strip()
+                yr = str(item.get("year") or "").strip()
+                authors = str(item.get("authors") or "").strip()
+                doi = str(item.get("doi") or "").strip()
+                if title:
+                    pub_list.append({"title": title, "venue": venue, "year": yr, "authors": authors, "doi": doi})
+            elif isinstance(item, str) and item.strip():
+                parts = [p.strip() for p in item.split("|")]
+                pub_list.append({
+                    "title": parts[0],
+                    "venue": parts[1] if len(parts) > 1 else "",
+                    "year": parts[2] if len(parts) > 2 else "",
+                    "authors": parts[3] if len(parts) > 3 else "",
+                    "doi": parts[4] if len(parts) > 4 else "",
+                })
+    elif isinstance(raw_pubs, str) and raw_pubs.strip():
+        for line in raw_pubs.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            parts = [p.strip() for p in (line.split("|") if "|" in line else line.split(" - "))]
+            pub_list.append({
+                "title": parts[0],
+                "venue": parts[1] if len(parts) > 1 else "",
+                "year": parts[2] if len(parts) > 2 else "",
+                "authors": parts[3] if len(parts) > 3 else "",
+                "doi": parts[4] if len(parts) > 4 else "",
+            })
+    if pub_list:
+        parsed["publications"] = pub_list
+
+    return parsed
+
+
 def build_structured_cv_deterministically(
 
     raw_profile_data: Dict[str, Any],
@@ -95,6 +317,8 @@ def build_structured_cv_deterministically(
     portfolio = raw_profile_data.get("portfolio") or {}
 
     extra_notes = str(raw_profile_data.get("extra_notes") or "").strip()
+
+    manual = parse_manual_resume_inputs(raw_profile_data.get("manual_data"))
 
 
 
@@ -861,6 +1085,60 @@ def build_structured_cv_deterministically(
     awards = sanitize_awards(raw_awards)
 
 
+
+    # 12. Sobrescrita com dados manuais fornecidos diretamente pelo usuário
+
+    if manual.get("name"):
+
+        name = manual["name"].strip()
+
+    if manual.get("title") or manual.get("role"):
+
+        title = (manual.get("title") or manual.get("role")).strip()
+
+    if manual.get("email"):
+
+        email = manual["email"].strip()
+
+    if manual.get("phone"):
+
+        phone = manual["phone"].strip()
+
+    if manual.get("location"):
+
+        location = manual["location"].strip()
+
+    if manual.get("summary"):
+
+        summary = manual["summary"].strip()
+
+    if manual.get("education"):
+
+        education = list(manual["education"])
+
+    if manual.get("experience"):
+
+        experience = list(manual["experience"])
+
+    if manual.get("projects"):
+
+        projects = list(manual["projects"])
+
+    if manual.get("publications"):
+
+        publications = list(manual["publications"])
+
+    if manual.get("skills"):
+
+        skills = list(manual["skills"])
+
+    if manual.get("languages"):
+
+        languages = list(manual["languages"])
+
+    if manual.get("awards"):
+
+        awards = sanitize_awards(manual["awards"])
 
     # Limitações saudáveis para caber confortavelmente no layout LaTeX
 

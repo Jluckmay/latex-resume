@@ -244,36 +244,118 @@ with col_left:
     # Aplica folha de estilo CSS do tema (Claro / Escuro) com a cor de destaque escolhida
     st.markdown(get_theme_css(active_theme, primary_color), unsafe_allow_html=True)
 
-    # Seção 2: Perfis Online, Portfólio e Foto
+    # Seção 2: Informações do Currículo (Importação ou Manual)
     st.subheader(txt["sec2_title"])
-    p1, p2 = st.columns(2)
-    with p1:
-        github_input = st.text_input(txt["github_label"], placeholder=txt["github_ph"])
-        orcid_input = st.text_input(txt["orcid_label"], placeholder=txt["orcid_ph"])
-        portfolio_url = st.text_input(txt["portfolio_label"], placeholder=txt["portfolio_ph"])
-    with p2:
-        linkedin_url = st.text_input(txt["linkedin_label"], placeholder=txt["linkedin_ph"])
-        lattes_url = st.text_input(txt["lattes_label"], placeholder=txt["lattes_ph"])
-        photo_upload = st.file_uploader(
-            txt["photo_label"],
-            type=["png", "jpg", "jpeg", "webp"],
-        )
+    data_mode = st.radio(
+        txt["data_mode_label"],
+        options=[txt["mode_import_label"], txt["mode_manual_label"]],
+        horizontal=True,
+    )
+    is_manual_mode = (data_mode == txt["mode_manual_label"])
+    manual_data_dict: dict = {}
 
-    with st.expander(txt["expander_extra"]):
-        st.caption(txt["expander_caption"])
-        lattes_file = st.file_uploader(
-            txt["lattes_file_label"],
-            type=["xml", "zip", "pdf", "html"],
+    if not is_manual_mode:
+        p1, p2 = st.columns(2)
+        with p1:
+            github_input = st.text_input(txt["github_label"], placeholder=txt["github_ph"])
+            orcid_input = st.text_input(txt["orcid_label"], placeholder=txt["orcid_ph"])
+            portfolio_url = st.text_input(txt["portfolio_label"], placeholder=txt["portfolio_ph"])
+        with p2:
+            linkedin_url = st.text_input(txt["linkedin_label"], placeholder=txt["linkedin_ph"])
+            lattes_url = st.text_input(txt["lattes_label"], placeholder=txt["lattes_ph"])
+            photo_upload = st.file_uploader(
+                txt["photo_label"],
+                type=["png", "jpg", "jpeg", "webp"],
+            )
+
+        with st.expander(txt["expander_extra"]):
+            st.caption(txt["expander_caption"])
+            lattes_file = st.file_uploader(
+                txt["lattes_file_label"],
+                type=["xml", "zip", "pdf", "html"],
+            )
+            linkedin_pdf = st.file_uploader(
+                txt["linkedin_pdf_label"],
+                type=["pdf"],
+            )
+            extra_profile_text = st.text_area(
+                txt["extra_text_label"],
+                height=100,
+                placeholder=txt["extra_text_ph"],
+            )
+    else:
+        man_summary = st.text_area(
+            txt["manual_summary_label"],
+            height=80,
+            placeholder=txt["manual_summary_ph"],
         )
-        linkedin_pdf = st.file_uploader(
-            txt["linkedin_pdf_label"],
-            type=["pdf"],
-        )
-        extra_profile_text = st.text_area(
-            txt["extra_text_label"],
-            height=100,
-            placeholder=txt["extra_text_ph"],
-        )
+        c_m1, c_m2 = st.columns(2)
+        with c_m1:
+            man_edu = st.text_area(
+                txt["manual_edu_label"],
+                height=100,
+                placeholder=txt["manual_edu_ph"],
+            )
+            man_skills = st.text_area(
+                txt["manual_skills_label"],
+                height=100,
+                placeholder=txt["manual_skills_ph"],
+            )
+            man_languages = st.text_input(
+                txt["manual_languages_label"],
+                placeholder=txt["manual_languages_ph"],
+            )
+            man_awards = st.text_area(
+                txt["manual_awards_label"],
+                height=70,
+                placeholder=txt["manual_awards_ph"],
+            )
+        with c_m2:
+            man_exp = st.text_area(
+                txt["manual_exp_label"],
+                height=100,
+                placeholder=txt["manual_exp_ph"],
+            )
+            man_proj = st.text_area(
+                txt["manual_projects_label"],
+                height=100,
+                placeholder=txt["manual_projects_ph"],
+            )
+            man_pubs = st.text_area(
+                txt["manual_pubs_label"],
+                height=70,
+                placeholder=txt["manual_pubs_ph"],
+            )
+
+        st.caption(txt["optional_links_title"])
+        ol1, ol2 = st.columns(2)
+        with ol1:
+            portfolio_url = st.text_input(txt["portfolio_label"], placeholder=txt["portfolio_ph"], key="man_port")
+            github_input = st.text_input(txt["github_label"], placeholder=txt["github_ph"], key="man_gh")
+            orcid_input = st.text_input(txt["orcid_label"], placeholder=txt["orcid_ph"], key="man_orcid")
+        with ol2:
+            linkedin_url = st.text_input(txt["linkedin_label"], placeholder=txt["linkedin_ph"], key="man_li")
+            lattes_url = st.text_input(txt["lattes_label"], placeholder=txt["lattes_ph"], key="man_lattes")
+            photo_upload = st.file_uploader(
+                txt["photo_label"],
+                type=["png", "jpg", "jpeg", "webp"],
+                key="man_photo",
+            )
+
+        lattes_file = None
+        linkedin_pdf = None
+        extra_profile_text = ""
+
+        manual_data_dict = {
+            "summary": man_summary,
+            "education": man_edu,
+            "experience": man_exp,
+            "skills": man_skills,
+            "projects": man_proj,
+            "languages": man_languages,
+            "awards": man_awards,
+            "publications": man_pubs,
+        }
 
     # Seção 3: Dados Pessoais de Cabeçalho
     st.subheader(txt["sec3_title"])
@@ -338,6 +420,8 @@ with col_right:
                     lang=resume_lang,
                     use_ai=(selected_provider != "none"),
                     ai_mode=ai_mode,
+                    data_source_mode="manual" if is_manual_mode else "import",
+                    manual_data=manual_data_dict if is_manual_mode else None,
                 )
 
                 # Armazena os documentos estritamente na memória volátil da sessão (RAM)
