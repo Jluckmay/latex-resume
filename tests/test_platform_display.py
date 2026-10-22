@@ -217,8 +217,13 @@ def test_location_maps_and_portfolio_between_location_and_linkedin():
 
         assert loc_pos != -1, f"Location link not found in {tpl_id}"
         assert port_pos != -1, f"Portfolio display not found in {tpl_id}"
-        # Portfolio must appear after location in contact block
-        assert loc_pos < port_pos, f"Portfolio should appear after location in {tpl_id} (loc: {loc_pos}, port: {port_pos})"
+        if tpl_id in ("overleaf_russell_ti", "russell_ti"):
+            # No Modelo Russell, linkedin e localização foram trocados de lugar: linkedin | portfolio | localização
+            assert li_pos < port_pos, f"LinkedIn should appear before portfolio in {tpl_id} (li: {li_pos}, port: {port_pos})"
+            assert port_pos < loc_pos, f"Portfolio should appear before location in {tpl_id} (port: {port_pos}, loc: {loc_pos})"
+        else:
+            # Portfolio must appear after location in contact block
+            assert loc_pos < port_pos, f"Portfolio should appear after location in {tpl_id} (loc: {loc_pos}, port: {port_pos})"
 
         # 4. Project and publication links must be clickable \href
         assert "\\href{https://github.com/carlosdev/sistema}" in tex, f"Clickable project link missing in {tpl_id}"

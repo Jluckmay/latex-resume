@@ -1043,15 +1043,15 @@ def _render_overleaf_russell_ti(
         row2_links.append(rf"\href{{mailto:{escape_url(em)}}}{{\faIcon[regular]{{envelope}}\ {escape_latex(em)}}}")
     if cv.get("phone"):
         row2_links.append(rf"{{\faIcon{{whatsapp}}\ {escape_latex(cv['phone'])}}}")
-    if cv.get("location"):
-        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
-        row2_links.append(rf"\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}")
-    if links.get("portfolio"):
-        port_disp = escape_latex(simplify_url_display(links["portfolio"]))
-        row2_links.append(rf"\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}")
     if links.get("linkedin"):
         li_disp = escape_latex(_get_platform_display(links, "linkedin"))
         row2_links.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}")
+    if links.get("portfolio"):
+        port_disp = escape_latex(simplify_url_display(links["portfolio"]))
+        row2_links.append(rf"\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}")
+    if cv.get("location"):
+        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
+        row2_links.append(rf"\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}")
 
     r1_str = " \\quad | \\quad ".join(row1_links)
     r2_str = " \\quad | \\quad ".join(row2_links)
