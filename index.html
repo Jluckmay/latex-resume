@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.googleapis.com https:; font-src 'self' https://fonts.gstatic.com https://*.gstatic.com https: data: blob:; script-src 'self' 'unsafe-inline'; connect-src 'self' http://127.0.0.1:5000 http://localhost:5000 https://*.onrender.com; frame-src blob: data:; img-src 'self' data: blob:;">
+    <meta http-equiv="Permissions-Policy" content="unload=()">
     <meta name="backend-enclave" content="protected-aes-transport">
     <script>
         // Supressão imediata no topo do <head> de ruídos de extensões (Passkeys, Google Password Manager, Autofill, 1Password, Bitwarden)
@@ -704,7 +705,7 @@
         <div class="nav-controls">
             <span class="pill-badge" id="ui-latex-badge" onclick="openBackendModal()" style="cursor:pointer;" title="Clique para verificar ou configurar a conexão com o backend">⏳ Conectando backend...</span>
             <button type="button" class="btn-toggle" id="btn-backend-settings" onclick="openBackendModal()" title="Configurações do Servidor Backend">⚙️ <span id="ui-backend-lbl">Backend</span></button>
-            <select id="resume-lang-select" class="btn-toggle" title="Resume Output Language">
+            <select id="resume-lang-select" class="btn-toggle" title="Resume Output Language" aria-label="Idioma de Saída do Currículo (Resume Output Language)">
                 <option value="pt-br">📝 PDF: Português (pt-BR)</option>
                 <option value="en-us">📝 PDF: English (en-US)</option>
             </select>
@@ -792,12 +793,12 @@
                 <!-- Custom .tex Upload/Paste -->
                 <div id="custom-tpl-container" class="hidden" style="margin-top:0.75rem;">
                     <div class="form-group">
-                        <label id="ui-upload-tex-lbl">Arquivo de Template LaTeX (.tex)</label>
-                        <input type="file" id="custom-tex-file" accept=".tex" class="form-control">
+                        <label for="custom-tex-file" id="ui-upload-tex-lbl">Arquivo de Template LaTeX (.tex)</label>
+                        <input type="file" id="custom-tex-file" accept=".tex" class="form-control" aria-label="Arquivo de Template LaTeX (.tex)">
                     </div>
                     <div class="form-group">
-                        <label id="ui-paste-tex-lbl">Ou cole seu código LaTeX abaixo</label>
-                        <textarea id="custom-tex-code" class="form-control" placeholder="\documentclass{article}\n\begin{document}\n...\n\end{document}"></textarea>
+                        <label for="custom-tex-code" id="ui-paste-tex-lbl">Ou cole seu código LaTeX abaixo</label>
+                        <textarea id="custom-tex-code" class="form-control" placeholder="\documentclass{article}\n\begin{document}\n...\n\end{document}" aria-label="Código fonte do template LaTeX"></textarea>
                     </div>
                 </div>
             </div>
@@ -812,8 +813,8 @@
                 </div>
                 <div class="grid-3">
                     <div class="form-group">
-                        <label id="ui-palette-lbl">Paleta Predefinida</label>
-                        <select id="color-preset-select" class="form-control" onchange="applyColorPreset()">
+                        <label for="color-preset-select" id="ui-palette-lbl">Paleta Predefinida</label>
+                        <select id="color-preset-select" class="form-control" onchange="applyColorPreset()" aria-label="Paleta Predefinida de Cores">
                             <option value="charcoal_minimal" selected>🖤 Grafite ATS (#18181B)</option>
                             <option value="ocean_blue">🌊 Azul Oceano (#0F4C81)</option>
                             <option value="academic_navy">🎓 Azul Acadêmico (#1B365D)</option>
@@ -824,16 +825,16 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label id="ui-pcol-lbl">Cor Principal</label>
+                        <label for="primary-color" id="ui-pcol-lbl">Cor Principal</label>
                         <div class="color-input-wrap">
-                            <input type="color" id="primary-color" value="#18181B" oninput="onColorChange()">
+                            <input type="color" id="primary-color" value="#18181B" oninput="onColorChange()" aria-label="Cor Principal">
                             <span class="color-hex-text" id="primary-hex-lbl">#18181B</span>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label id="ui-scol-lbl">Cor Secundária</label>
+                        <label for="secondary-color" id="ui-scol-lbl">Cor Secundária</label>
                         <div class="color-input-wrap">
-                            <input type="color" id="secondary-color" value="#3F3F46" oninput="onColorChange()">
+                            <input type="color" id="secondary-color" value="#3F3F46" oninput="onColorChange()" aria-label="Cor Secundária">
                             <span class="color-hex-text" id="secondary-hex-lbl">#3F3F46</span>
                         </div>
                     </div>
@@ -863,28 +864,28 @@
                 <div id="container-data-import">
                     <div class="grid-2">
                         <div class="form-group">
-                            <label id="ui-gh-lbl">GitHub (usuário ou URL)</label>
-                            <input type="text" id="inp-github" class="form-control" placeholder="ex: octocat ou https://github.com/usuario" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
+                            <label for="inp-github" id="ui-gh-lbl">GitHub (usuário ou URL)</label>
+                            <input type="text" id="inp-github" class="form-control" placeholder="ex: octocat ou https://github.com/usuario" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="GitHub (usuário ou URL)">
                         </div>
                         <div class="form-group">
-                            <label id="ui-orcid-lbl">ORCID (ID ou URL)</label>
-                            <input type="text" id="inp-orcid" class="form-control" placeholder="ex: 0000-0002-1825-0097" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
+                            <label for="inp-orcid" id="ui-orcid-lbl">ORCID (ID ou URL)</label>
+                            <input type="text" id="inp-orcid" class="form-control" placeholder="ex: 0000-0002-1825-0097" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="ORCID (ID ou URL)">
                         </div>
                         <div class="form-group">
-                            <label id="ui-li-lbl">LinkedIn (nick ou URL)</label>
-                            <input type="text" id="inp-linkedin" class="form-control" placeholder="ex: seu-nick ou https://linkedin.com/in/perfil/" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
+                            <label for="inp-linkedin" id="ui-li-lbl">LinkedIn (nick ou URL)</label>
+                            <input type="text" id="inp-linkedin" class="form-control" placeholder="ex: seu-nick ou https://linkedin.com/in/perfil/" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="LinkedIn (nick ou URL)">
                         </div>
                         <div class="form-group">
-                            <label id="ui-lattes-lbl">Currículo Lattes (ID de 16 dígitos ou URL)</label>
-                            <input type="text" id="inp-lattes" class="form-control" placeholder="ex: 0000000000000000 ou http://lattes.cnpq.br/0000000000000000" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
+                            <label for="inp-lattes" id="ui-lattes-lbl">Currículo Lattes (ID de 16 dígitos ou URL)</label>
+                            <input type="text" id="inp-lattes" class="form-control" placeholder="ex: 0000000000000000 ou http://lattes.cnpq.br/0000000000000000" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Currículo Lattes (ID de 16 dígitos ou URL)">
                         </div>
                         <div class="form-group">
-                            <label id="ui-port-lbl">Página de Portfólio / Website (URL)</label>
-                            <input type="text" id="inp-portfolio" class="form-control" placeholder="https://meuportfolio.dev" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
+                            <label for="inp-portfolio" id="ui-port-lbl">Página de Portfólio / Website (URL)</label>
+                            <input type="text" id="inp-portfolio" class="form-control" placeholder="https://meuportfolio.dev" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Página de Portfólio / Website (URL)">
                         </div>
                         <div class="form-group">
-                            <label id="ui-photo-lbl">Foto de Perfil (PNG / JPG / WebP)</label>
-                            <input type="file" id="inp-photo" accept="image/*" class="form-control" onchange="onPhotoSelected(event)">
+                            <label for="inp-photo" id="ui-photo-lbl">Foto de Perfil (PNG / JPG / WebP)</label>
+                            <input type="file" id="inp-photo" accept="image/*" class="form-control" onchange="onPhotoSelected(event)" aria-label="Foto de Perfil">
                         </div>
                     </div>
 
@@ -892,17 +893,17 @@
                         <summary id="ui-extra-files-summary">📎 Anexar XML/ZIP do Lattes, PDF do LinkedIn ou Notas Extras</summary>
                         <div class="grid-2" style="margin-top:0.75rem;">
                             <div class="form-group">
-                                <label id="ui-lattes-file-lbl">Arquivo Lattes (XML, ZIP ou PDF)</label>
-                                <input type="file" id="inp-lattes-file" accept=".xml,.zip,.pdf,.html" class="form-control">
+                                <label for="inp-lattes-file" id="ui-lattes-file-lbl">Arquivo Lattes (XML, ZIP ou PDF)</label>
+                                <input type="file" id="inp-lattes-file" accept=".xml,.zip,.pdf,.html" class="form-control" aria-label="Arquivo Lattes">
                             </div>
                             <div class="form-group">
-                                <label id="ui-li-pdf-lbl">PDF Salvo do LinkedIn</label>
-                                <input type="file" id="inp-linkedin-pdf" accept=".pdf" class="form-control">
+                                <label for="inp-linkedin-pdf" id="ui-li-pdf-lbl">PDF Salvo do LinkedIn</label>
+                                <input type="file" id="inp-linkedin-pdf" accept=".pdf" class="form-control" aria-label="PDF Salvo do LinkedIn">
                             </div>
                         </div>
                         <div class="form-group" style="margin-bottom:0;">
-                            <label id="ui-extra-txt-lbl">Informações Complementares / Descrição da Vaga ou Edital</label>
-                            <textarea id="inp-extra" class="form-control" placeholder="Cole experiências extras, certificações ou resumo adicional..."></textarea>
+                            <label for="inp-extra" id="ui-extra-txt-lbl">Informações Complementares / Descrição da Vaga ou Edital</label>
+                            <textarea id="inp-extra" class="form-control" placeholder="Cole experiências extras, certificações ou resumo adicional..." aria-label="Informações Complementares ou Descrição da Vaga"></textarea>
                         </div>
                     </details>
                 </div>
@@ -910,57 +911,57 @@
                 <!-- Container 2: Modo Manual (Preenchimento Direto Estruturado) -->
                 <div id="container-data-manual" style="display:none;">
                     <div class="form-group">
-                        <label id="ui-man-summary-lbl">Resumo Profissional / Perfil</label>
-                        <textarea id="inp-man-summary" class="form-control" rows="3" placeholder="Ex: Especialista em tecnologia com sólida trajetória..." oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false"></textarea>
+                        <label for="inp-man-summary" id="ui-man-summary-lbl">Resumo Profissional / Perfil</label>
+                        <textarea id="inp-man-summary" class="form-control" rows="3" placeholder="Ex: Especialista em tecnologia com sólida trajetória..." oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Resumo Profissional / Perfil"></textarea>
                     </div>
                     <div class="grid-2">
                         <div class="form-group">
-                            <label id="ui-man-edu-lbl">Formação Acadêmica (Grau | Instituição | Período | Detalhes)</label>
-                            <textarea id="inp-man-education" class="form-control" rows="3" placeholder="Bacharelado em Ciência da Computação | USP | 2018 - 2022 | Foco em IA&#10;Mestrado em Engenharia | UNICAMP | 2022 - 2024" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false"></textarea>
+                            <label for="inp-man-education" id="ui-man-edu-lbl">Formação Acadêmica (Grau | Instituição | Período | Detalhes)</label>
+                            <textarea id="inp-man-education" class="form-control" rows="3" placeholder="Bacharelado em Ciência da Computação | USP | 2018 - 2022 | Foco em IA&#10;Mestrado em Engenharia | UNICAMP | 2022 - 2024" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Formação Acadêmica"></textarea>
                         </div>
                         <div class="form-group">
-                            <label id="ui-man-exp-lbl">Experiência Profissional (Cargo | Empresa | Período | Local | Descrição)</label>
+                            <label for="inp-man-experience" id="ui-man-exp-lbl">Experiência Profissional (Cargo | Empresa | Período | Local | Descrição)</label>
                             <textarea id="inp-man-experience" class="form-control" rows="3" placeholder="Engenheiro de Software Sênior | Tech Corp | 2022 - Atual | SP | Arquitetura de nuvem e microsserviços." oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false"></textarea>
                         </div>
                         <div class="form-group">
-                            <label id="ui-man-skills-lbl">Habilidades & Competências (Categoria: Tecnologias / Itens)</label>
+                            <label for="inp-man-skills" id="ui-man-skills-lbl">Habilidades & Competências (Categoria: Tecnologias / Itens)</label>
                             <textarea id="inp-man-skills" class="form-control" rows="3" placeholder="Linguagens: Python, Go, TypeScript&#10;Cloud & DevOps: Docker, Kubernetes, AWS" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false"></textarea>
                         </div>
                         <div class="form-group">
-                            <label id="ui-man-proj-lbl">Projetos Relevantes (Nome | Tech | Link | Descrição)</label>
-                            <textarea id="inp-man-projects" class="form-control" rows="3" placeholder="LaTeX Resume Enclave | Python, Flask | https://github.com/usuario/latex-resume | Plataforma zero-storage." oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false"></textarea>
+                            <label for="inp-man-projects" id="ui-man-proj-lbl">Projetos Relevantes (Nome | Tech | Link | Descrição)</label>
+                            <textarea id="inp-man-projects" class="form-control" rows="3" placeholder="LaTeX Resume Enclave | Python, Flask | https://github.com/usuario/latex-resume | Plataforma zero-storage." oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Projetos Relevantes"></textarea>
                         </div>
                         <div class="form-group">
-                            <label id="ui-man-lang-lbl">Idiomas (Idioma e Nível, separados por vírgula)</label>
-                            <input type="text" id="inp-man-languages" class="form-control" placeholder="Português (Nativo), Inglês (Fluente), Espanhol (Intermediário)" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
+                            <label for="inp-man-languages" id="ui-man-lang-lbl">Idiomas (Idioma e Nível, separados por vírgula)</label>
+                            <input type="text" id="inp-man-languages" class="form-control" placeholder="Português (Nativo), Inglês (Fluente), Espanhol (Intermediário)" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Idiomas">
                         </div>
                         <div class="form-group">
-                            <label id="ui-man-awards-lbl">Prêmios & Certificações (Título | Ano | Detalhes)</label>
-                            <textarea id="inp-man-awards" class="form-control" rows="2" placeholder="AWS Certified Solutions Architect | 2023 | Amazon Web Services" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false"></textarea>
+                            <label for="inp-man-awards" id="ui-man-awards-lbl">Prêmios & Certificações (Título | Ano | Detalhes)</label>
+                            <textarea id="inp-man-awards" class="form-control" rows="2" placeholder="AWS Certified Solutions Architect | 2023 | Amazon Web Services" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Prêmios e Certificações"></textarea>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label id="ui-man-pubs-lbl">Publicações & Artigos (Título | Periódico/Conferência | Ano | Autores | DOI)</label>
-                        <textarea id="inp-man-publications" class="form-control" rows="2" placeholder="Neural Parsing of Technical Resumes | IEEE | 2023 | Silva, L. | 10.1109/CVPR.2023.1001" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false"></textarea>
+                        <label for="inp-man-publications" id="ui-man-pubs-lbl">Publicações & Artigos (Título | Periódico/Conferência | Ano | Autores | DOI)</label>
+                        <textarea id="inp-man-publications" class="form-control" rows="2" placeholder="Neural Parsing of Technical Resumes | IEEE | 2023 | Silva, L. | 10.1109/CVPR.2023.1001" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Publicações e Artigos"></textarea>
                     </div>
                     <div style="background-color:var(--bg-subtle);border:1px solid var(--border);border-radius:8px;padding:0.75rem;margin-top:0.75rem;">
                         <span style="font-size:0.82rem;font-weight:600;color:var(--text-main);" id="ui-man-links-title">🔗 Links Opcionais e Foto de Perfil:</span>
                         <div class="grid-2" style="margin-top:0.5rem;">
                             <div class="form-group" style="margin-bottom:0.5rem;">
-                                <label id="ui-man-port-lbl">Portfólio / Website (URL)</label>
-                                <input type="text" id="inp-man-portfolio" class="form-control" placeholder="https://meuportfolio.dev" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
+                                <label for="inp-man-portfolio" id="ui-man-port-lbl">Portfólio / Website (URL)</label>
+                                <input type="text" id="inp-man-portfolio" class="form-control" placeholder="https://meuportfolio.dev" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Portfólio / Website (URL)">
                             </div>
                             <div class="form-group" style="margin-bottom:0.5rem;">
-                                <label id="ui-man-photo-lbl">Foto de Perfil (PNG / JPG)</label>
-                                <input type="file" id="inp-man-photo" accept="image/*" class="form-control" onchange="onPhotoSelected(event)">
+                                <label for="inp-man-photo" id="ui-man-photo-lbl">Foto de Perfil (PNG / JPG)</label>
+                                <input type="file" id="inp-man-photo" accept="image/*" class="form-control" onchange="onPhotoSelected(event)" aria-label="Foto de Perfil">
                             </div>
                             <div class="form-group" style="margin-bottom:0;">
-                                <label>GitHub</label>
-                                <input type="text" id="inp-man-github" class="form-control" placeholder="usuario ou URL" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
+                                <label for="inp-man-github" id="ui-man-gh-lbl">GitHub</label>
+                                <input type="text" id="inp-man-github" class="form-control" placeholder="usuario ou URL" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="GitHub">
                             </div>
                             <div class="form-group" style="margin-bottom:0;">
-                                <label>LinkedIn</label>
-                                <input type="text" id="inp-man-linkedin" class="form-control" placeholder="nick ou URL" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
+                                <label for="inp-man-linkedin" id="ui-man-li-lbl">LinkedIn</label>
+                                <input type="text" id="inp-man-linkedin" class="form-control" placeholder="nick ou URL" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="LinkedIn">
                             </div>
                         </div>
                     </div>
@@ -977,28 +978,28 @@
                 </div>
                 <div class="grid-2">
                     <div class="form-group">
-                        <label id="ui-name-lbl">Nome Completo (opcional)</label>
-                        <input type="text" id="inp-name" class="form-control" placeholder="Detectado automaticamente se vazio" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
+                        <label for="inp-name" id="ui-name-lbl">Nome Completo (opcional)</label>
+                        <input type="text" id="inp-name" class="form-control" placeholder="Detectado automaticamente se vazio" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Nome Completo (opcional)">
                     </div>
                     <div class="form-group">
-                        <label id="ui-role-lbl">Cargo / Título Principal (opcional)</label>
-                        <input type="text" id="inp-role" class="form-control" placeholder="Ex: Engenheiro de IA Sênior / Pesquisador" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
+                        <label for="inp-role" id="ui-role-lbl">Cargo / Título Principal (opcional)</label>
+                        <input type="text" id="inp-role" class="form-control" placeholder="Ex: Engenheiro de IA Sênior / Pesquisador" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Cargo / Título Principal (opcional)">
                     </div>
                     <div class="form-group">
-                        <label id="ui-email-lbl">E-mail</label>
-                        <input type="text" inputmode="email" id="inp-email" class="form-control" placeholder="seu.email@dominio.com" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
+                        <label for="inp-email" id="ui-email-lbl">E-mail</label>
+                        <input type="text" inputmode="email" id="inp-email" class="form-control" placeholder="seu.email@dominio.com" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="E-mail">
                     </div>
                     <div class="form-group">
-                        <label id="ui-loc-lbl">Cidade / UF / País</label>
-                        <input type="text" id="inp-location" class="form-control" placeholder="São Paulo, SP, Brasil" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
+                        <label for="inp-location" id="ui-loc-lbl">Cidade / UF / País</label>
+                        <input type="text" id="inp-location" class="form-control" placeholder="São Paulo, SP, Brasil" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Cidade / UF / País">
                     </div>
                     <div class="form-group">
-                        <label id="ui-phone-lbl">Telefone</label>
-                        <input type="text" id="inp-phone" class="form-control" placeholder="+55 (11) 99999-9999" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
+                        <label for="inp-phone" id="ui-phone-lbl">Telefone</label>
+                        <input type="text" id="inp-phone" class="form-control" placeholder="+55 (11) 99999-9999" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Telefone">
                     </div>
                     <div class="form-group">
-                        <label id="ui-provider-lbl">Provedor de IA</label>
-                        <select id="inp-provider" class="form-control" onchange="onProviderChange()">
+                        <label for="inp-provider" id="ui-provider-lbl">Provedor de IA</label>
+                        <select id="inp-provider" class="form-control" onchange="onProviderChange()" aria-label="Provedor de IA">
                             <option value="default">⚡ NVIDIA NIM (Padrão do Servidor — Sem chave)</option>
                             <option value="none">🚀 Sem IA / Offline (0 Tokens — Extração Direta)</option>
                             <option value="nvidia">🟢 NVIDIA NIM (Chave própria)</option>
@@ -1012,13 +1013,13 @@
 
                 <div class="grid-2">
                     <div class="form-group">
-                        <label id="ui-model-lbl">Modelo de IA</label>
-                        <select id="inp-model" class="form-control"></select>
+                        <label for="inp-model" id="ui-model-lbl">Modelo de IA</label>
+                        <select id="inp-model" class="form-control" aria-label="Modelo de IA"></select>
                     </div>
                     <div class="form-group">
-                        <label id="ui-api-key-lbl">Chave de API do Provedor (Opcional)</label>
+                        <label for="inp-api-key" id="ui-api-key-lbl">Chave de API do Provedor (Opcional)</label>
                         <div style="position:relative;display:flex;align-items:center;">
-                            <input type="text" id="inp-api-key" class="form-control masked-key" style="padding-right:2.4rem;" placeholder="Padrão seguro do servidor ativo" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" autocorrect="off" autocapitalize="off" aria-autocomplete="none">
+                            <input type="text" id="inp-api-key" class="form-control masked-key" style="padding-right:2.4rem;" placeholder="Padrão seguro do servidor ativo" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" autocorrect="off" autocapitalize="off" aria-autocomplete="none" aria-label="Chave de API do Provedor (Opcional)">
                             <button type="button" id="btn-toggle-key" onclick="toggleKeyVisibility()" style="position:absolute;right:8px;background:none;border:none;cursor:pointer;font-size:0.95rem;color:var(--text-muted);" title="Exibir/Ocultar chave">👁️</button>
                         </div>
                     </div>
@@ -1123,8 +1124,8 @@
                     O compilador LaTeX (<code>pdflatex</code>) e a síntese de currículo por IA executam no backend Python. Configure a URL do servidor abaixo:
                 </p>
                 <div class="form-group">
-                    <label id="ui-backend-url-lbl" style="font-weight:600;font-size:0.83rem;">URL do Servidor Backend:</label>
-                    <input type="text" id="inp-backend-url" class="form-control" placeholder="http://127.0.0.1:5000 ou https://<seu-servico>.onrender.com" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false">
+                    <label for="inp-backend-url" id="ui-backend-url-lbl" style="font-weight:600;font-size:0.83rem;">URL do Servidor Backend:</label>
+                    <input type="text" id="inp-backend-url" class="form-control" placeholder="http://127.0.0.1:5000 ou https://<seu-servico>.onrender.com" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="URL do Servidor Backend">
                 </div>
                 <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;">
                     <button type="button" class="btn-secondary" style="font-size:0.78rem;padding:0.35rem 0.65rem;" onclick="setBackendPreset('local')">🏠 Localhost (127.0.0.1:5000)</button>

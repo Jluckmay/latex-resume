@@ -349,3 +349,35 @@ def test_ai_ats_max_is_interface_default():
 
     sig = inspect.signature(build_resume_pipeline)
     assert sig.parameters["template_id"].default == "ai_ats_max"
+
+
+def test_all_form_fields_have_associated_labels_and_accessibility():
+    """Valida se 100% dos campos de formulário possuem labels associados via for/id ou aria-label, e Permissions-Policy unload=()."""
+    from bs4 import BeautifulSoup
+    from pathlib import Path
+
+    html = Path("index.html").read_text(encoding="utf-8")
+    assert 'http-equiv="Permissions-Policy" content="unload=()"' in html
+
+    soup = BeautifulSoup(html, "html.parser")
+    form_elements = soup.find_all(["input", "select", "textarea"])
+    assert len(form_elements) >= 30
+
+    violating = []
+    for el in form_elements:
+        el_id = el.get("id")
+        el_type = el.get("type", "")
+        if el_type == "hidden":
+            continue
+        parent_label = el.find_parent("label")
+        if parent_label:
+            continue
+        if el.get("aria-label") or el.get("aria-labelledby"):
+            continue
+        if el_id:
+            matching_label = soup.find("label", attrs={"for": el_id})
+            if matching_label:
+                continue
+        violating.append((el.name, el_id, el_type))
+
+    assert len(violating) == 0, f"Campos de formulário sem label associado: {violating}"
