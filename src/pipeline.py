@@ -149,6 +149,8 @@ def build_resume_pipeline(
         "orcid_id": orcid_data.get("orcid_id") or orcid_id,
         "scholar_id": scholar_data.get("scholar_id") or scholar_id,
         "lattes_id": lattes_data.get("lattes_id") or lattes_id,
+        "scholar_name": scholar_data.get("name") or user_name.strip() or lattes_data.get("name") or "",
+        "candidate_name": user_name.strip() or scholar_data.get("name") or lattes_data.get("name") or orcid_data.get("name") or gh_data.get("name") or "",
     }
 
     combined_extra = extra_notes.strip()

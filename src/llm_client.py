@@ -290,7 +290,7 @@ class LLMResumeGenerator:
             "PART 2: TEXT & CONTENT ENHANCEMENT\n"
             "1. ACTION VERBS & METRICS: Polish bullet points with high-impact, punchy action verbs and clear accomplishments in the target language.\n"
             "2. EXECUTIVE SUMMARY: If the summary/resumo section is sparse, missing, or contains generic website metadata (e.g. starting with 'Portfólio profissional de...'), synthesize a concise 2-3 sentence executive technical overview highlighting candidate's core expertise, academic background, and technical focus based strictly on their actual data.\n"
-            "3. STRICT TRUTHFULNESS: Keep all institutions, degrees, dates, metrics, and names 100% truthful to source facts. Never invent experiences or credentials.\n\n"
+            "3. STRICT TRUTHFULNESS & ZERO INVENTIONS: Keep all institutions, degrees, dates, metrics, and names 100% truthful to source facts. NEVER invent or hallucinate new projects, external URLs, project links, publications, DOI links, experiences, awards, or credentials not already present in the provided LaTeX code. Only enhance existing entries.\n\n"
             "PART 3: OUTPUT FORMAT\n"
             "Return ONLY the audited, polished LaTeX body from \\begin{document} to \\end{document}. "
             "Zero prose commentary, zero markdown code fences."

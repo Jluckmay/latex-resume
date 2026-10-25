@@ -1268,22 +1268,21 @@ def generate_direct_latex_resume(
     """Gera o código LaTeX completo e compilável sem nenhuma chamada a modelos LLM."""
 
     norm_lang = normalize_lang(lang)
-
-    links = raw_profile_data.get("links") or {}
-
-
+    links = dict(raw_profile_data.get("links") or {})
 
     # Constrói o structured_cv de forma puramente determinística
-
     cv = build_structured_cv_deterministically(
-
         raw_profile_data=raw_profile_data,
-
         resume_type=resume_type,
-
         lang=norm_lang,
-
     )
+
+    candidate_name = cv.get("name") or (raw_profile_data.get("user_meta") or {}).get("name") or ""
+    if candidate_name and not links.get("candidate_name"):
+        links["candidate_name"] = candidate_name
+    scholar_data = raw_profile_data.get("scholar") or {}
+    if isinstance(scholar_data, dict) and scholar_data.get("name") and not links.get("scholar_name"):
+        links["scholar_name"] = scholar_data["name"]
 
 
 
@@ -1368,53 +1367,32 @@ def _fill_custom_template_deterministically(
 
 
     contact_parts = []
-
     if cv.get("email"):
-
         em = cv["email"].strip()
-
-        contact_parts.append(rf"\href{{mailto:{escape_url(em)}}}{{\faIcon{{envelope}}\ {escape_latex(em)}}}")
-
+        contact_parts.append(rf"\mbox{{\href{{mailto:{escape_url(em)}}}{{\faIcon{{envelope}}\ {escape_latex(em)}}}}}")
     if cv.get("phone"):
-
-        contact_parts.append(rf"\faIcon{{phone}}\ {escape_latex(cv['phone'])}")
-
+        contact_parts.append(rf"\mbox{{\faIcon{{phone}}\ {escape_latex(cv['phone'])}}}")
     if cv.get("location"):
-
         maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
-
-        contact_parts.append(rf"\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'])}}}")
-
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'])}}}}}")
     if links.get("portfolio"):
-
         port_disp = escape_latex(simplify_url_display(links["portfolio"]))
-
-        contact_parts.append(rf"\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}")
-
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}}}")
     if links.get("linkedin"):
-
-        li_disp = escape_latex(_get_platform_display(links, "linkedin"))
-
-        contact_parts.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}")
-
+        li_disp = escape_latex(_get_platform_display(links, "linkedin", candidate_name=name))
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}}}")
     if links.get("github"):
-
-        gh_disp = escape_latex(_get_platform_display(links, "github"))
-
-        contact_parts.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}")
-
+        gh_disp = escape_latex(_get_platform_display(links, "github", candidate_name=name))
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}}}")
+    if links.get("scholar"):
+        scholar_disp = escape_latex(_get_platform_display(links, "scholar", candidate_name=name))
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(links['scholar'])}}}{{\faIcon{{google}}\ \textbf{{{scholar_disp}}}}}}}")
     if links.get("orcid"):
-
-        orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
-
-        contact_parts.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}")
-
+        orcid_disp = escape_latex(_get_platform_display(links, "orcid", candidate_name=name))
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}}}")
     if links.get("lattes"):
-
-        lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
-
-        contact_parts.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}")
-
+        lattes_disp = escape_latex(_get_platform_display(links, "lattes", candidate_name=name))
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}}}")
     contact_line = " $\\cdot$ ".join(contact_parts)
 
 

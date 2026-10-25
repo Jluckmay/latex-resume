@@ -2121,52 +2121,8 @@
         }
 
         function initStructuredManualInputs() {
-            const listEdu = document.getElementById("list-struct-education");
-            if (listEdu && listEdu.children.length === 0) {
-                addStructuredEducation({
-                    degree: "Bacharelado em Ciência da Computação",
-                    institution: "USP",
-                    period: "2018 - 2022",
-                    details: "Foco em Inteligência Artificial"
-                });
-            }
-            const listExp = document.getElementById("list-struct-experience");
-            if (listExp && listExp.children.length === 0) {
-                addStructuredExperience({
-                    role: "Engenheiro de Software Sênior",
-                    organization: "Tech Corp",
-                    period: "2022 - Atual",
-                    location: "São Paulo, SP",
-                    description: "Arquitetura de nuvem, microsserviços e alta disponibilidade."
-                });
-            }
-            const listProj = document.getElementById("list-struct-projects");
-            if (listProj && listProj.children.length === 0) {
-                addStructuredProject({
-                    name: "LaTeX Resume Enclave",
-                    tech: "Python, Flask, Docker",
-                    url: "https://github.com/usuario/latex-resume",
-                    description: "Plataforma zero-storage para síntese determinística de currículos."
-                });
-            }
-            const listPub = document.getElementById("list-struct-publications");
-            if (listPub && listPub.children.length === 0) {
-                addStructuredPublication({
-                    title: "Neural Parsing of Technical Resumes",
-                    venue: "IEEE Transactions",
-                    year: "2023",
-                    authors: "Silva, L.; Santos, M.",
-                    doi: "10.1109/CVPR.2023.1001"
-                });
-            }
-            const listAw = document.getElementById("list-struct-awards");
-            if (listAw && listAw.children.length === 0) {
-                addStructuredAward({
-                    title: "AWS Certified Solutions Architect",
-                    year: "2023",
-                    details: "Amazon Web Services"
-                });
-            }
+            // Contêineres de entrada estruturada iniciam limpos, sem dados inventados ou fictícios.
+            // O usuário adiciona itens sob demanda através dos botões de adicionar.
         }
 
         function initAutoPreferences() {
@@ -3309,20 +3265,9 @@
                 } else {
                     const impLangs = (document.getElementById("inp-languages")?.value || "").trim();
                     const impAwards = (document.getElementById("inp-awards")?.value || "").trim();
-                    const sEdu = collectStructuredEducation();
-                    const sExp = collectStructuredExperience();
-                    const sProj = collectStructuredProjects();
-                    const sPubs = collectStructuredPublications();
-                    const sAwards = collectStructuredAwards();
-
                     const suppData = {};
                     if (impLangs) suppData.languages = impLangs;
                     if (impAwards) suppData.awards = impAwards;
-                    else if (sAwards.length > 0) suppData.awards = sAwards;
-                    if (sEdu.length > 0) suppData.education = sEdu;
-                    if (sExp.length > 0) suppData.experience = sExp;
-                    if (sProj.length > 0) suppData.projects = sProj;
-                    if (sPubs.length > 0) suppData.publications = sPubs;
 
                     if (Object.keys(suppData).length > 0) {
                         manualData = suppData;

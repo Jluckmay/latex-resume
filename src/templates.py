@@ -157,13 +157,42 @@ def escape_url(url: str) -> str:
         return ""
     u = url.strip()
     if not u.startswith(("http://", "https://", "mailto:")):
+        if "@" in u and "/" not in u:
+            return u.replace("%", r"\%").replace("#", r"\#").replace("&", r"\&")
         u = "https://" + u
     return u.replace("%", r"\%").replace("#", r"\#").replace("&", r"\&")
 
 
 
-def _get_platform_display(links: Dict[str, str], platform: str) -> str:
-    """Retorna o nick (GitHub/LinkedIn) ou ID (Lattes/ORCID) para exibição ao lado do ícone."""
+def abbreviate_researcher_name(name: str) -> str:
+    """Abrevia o nome do pesquisador no formato acadêmico padrão (ex: 'João Lucas Mayrinck' -> 'J. L. Mayrinck')."""
+    if not name or not str(name).strip():
+        return ""
+    parts = str(name).strip().split()
+    if len(parts) <= 1:
+        return parts[0]
+
+    preps = {"de", "da", "do", "das", "dos", "e", "van", "von", "del", "di"}
+    last = parts[-1]
+    first_parts = parts[:-1]
+
+    initials: List[str] = []
+    for p in first_parts:
+        clean = p.strip()
+        if clean.lower() in preps:
+            continue
+        if clean.endswith("."):
+            initials.append(clean)
+        else:
+            initials.append(f"{clean[0].upper()}.")
+
+    if initials:
+        return f"{' '.join(initials)} {last}"
+    return last
+
+
+def _get_platform_display(links: Dict[str, str], platform: str, candidate_name: str = "") -> str:
+    """Retorna o nick (GitHub/LinkedIn), ID (Lattes/ORCID) ou nome abreviado (Scholar) para exibição ao lado do ícone."""
     if platform == "github":
         if links.get("github_nick"):
             return str(links["github_nick"]).strip()
@@ -201,12 +230,12 @@ def _get_platform_display(links: Dict[str, str], platform: str) -> str:
         return "Lattes"
 
     if platform == "scholar":
-        if links.get("scholar_id"):
-            return str(links["scholar_id"]).strip()
-        val = str(links.get("scholar") or "").strip()
-        if val:
-            _, sid = parse_scholar_input(val)
-            return sid or "Google Scholar"
+        # Utiliza o nome abreviado do pesquisador (ex: 'J. L. Mayrinck') ao invés do ID enigmático do Google Scholar
+        sc_name = str(links.get("scholar_name") or links.get("scholar_author") or candidate_name or links.get("candidate_name") or "").strip()
+        if sc_name:
+            abbr = abbreviate_researcher_name(sc_name)
+            if abbr:
+                return abbr
         return "Google Scholar"
 
     return ""
@@ -222,34 +251,34 @@ def simplify_url_display(url: str) -> str:
     return u or url.strip()
 
 
-def _build_contact_links(links: Dict[str, str], email: str, phone: str, location: str) -> List[str]:
+def _build_contact_links(links: Dict[str, str], email: str, phone: str, location: str, candidate_name: str = "") -> List[str]:
     items: List[str] = []
     if email:
         clean_em = email.strip()
-        items.append(rf"\href{{mailto:{escape_url(clean_em)}}}{{\faIcon{{envelope}}\ {escape_latex(clean_em)}}}")
+        items.append(rf"\mbox{{\href{{mailto:{escape_url(clean_em)}}}{{\faIcon{{envelope}}\ {escape_latex(clean_em)}}}}}")
     if phone:
-        items.append(rf"\faIcon{{phone}}\ {escape_latex(phone)}")
+        items.append(rf"\mbox{{\faIcon{{phone}}\ {escape_latex(phone.strip())}}}")
     if location:
         maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(location.strip())
-        items.append(rf"\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(location.strip())}}}")
+        items.append(rf"\mbox{{\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(location.strip())}}}}}")
     if links.get("portfolio"):
         port_disp = escape_latex(simplify_url_display(links["portfolio"]))
-        items.append(rf"\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}")
+        items.append(rf"\mbox{{\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}}}")
     if links.get("linkedin"):
-        li_disp = escape_latex(_get_platform_display(links, "linkedin"))
-        items.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}")
+        li_disp = escape_latex(_get_platform_display(links, "linkedin", candidate_name=candidate_name))
+        items.append(rf"\mbox{{\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}}}")
     if links.get("github"):
-        gh_disp = escape_latex(_get_platform_display(links, "github"))
-        items.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}")
+        gh_disp = escape_latex(_get_platform_display(links, "github", candidate_name=candidate_name))
+        items.append(rf"\mbox{{\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}}}")
     if links.get("orcid"):
-        orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
-        items.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}")
-    if links.get("lattes"):
-        lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
-        items.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}")
+        orcid_disp = escape_latex(_get_platform_display(links, "orcid", candidate_name=candidate_name))
+        items.append(rf"\mbox{{\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}}}")
     if links.get("scholar"):
-        scholar_disp = escape_latex(_get_platform_display(links, "scholar"))
-        items.append(rf"\href{{{escape_url(links['scholar'])}}}{{\faIcon{{google}}\ \textbf{{{scholar_disp}}}}}")
+        scholar_disp = escape_latex(_get_platform_display(links, "scholar", candidate_name=candidate_name))
+        items.append(rf"\mbox{{\href{{{escape_url(links['scholar'])}}}{{\faIcon{{google}}\ \textbf{{{scholar_disp}}}}}}}")
+    if links.get("lattes"):
+        lattes_disp = escape_latex(_get_platform_display(links, "lattes", candidate_name=candidate_name))
+        items.append(rf"\mbox{{\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}}}")
     return items
 
 
@@ -570,8 +599,14 @@ def _render_modern_pro(
     name = escape_latex(cv.get("name") or t["default_candidate"])
     default_tl = t["default_researcher"] if resume_type == "academico" else t["default_professional"]
     title = escape_latex(cv.get("title") or default_tl)
-    contact_items = _build_contact_links(links, cv.get("email", ""), cv.get("phone", ""), cv.get("location", ""))
-    contact_str = " \\;|\\; ".join(contact_items)
+    contact_items = _build_contact_links(links, cv.get("email", ""), cv.get("phone", ""), cv.get("location", ""), candidate_name=name)
+    if len(contact_items) > 4:
+        mid = (len(contact_items) + 1) // 2
+        r1 = " \\;|\\; ".join(contact_items[:mid])
+        r2 = " \\;|\\; ".join(contact_items[mid:])
+        contact_str = f"{r1}\\\\[3pt]\n    {r2}"
+    else:
+        contact_str = " \\;|\\; ".join(contact_items)
     header = _render_header_with_optional_photo(name, title, contact_str, photo_filename)
     body = _render_sections_body(cv, resume_type, lang)
 
@@ -617,8 +652,14 @@ def _render_academic_classic(
     t = LATEX_I18N[normalize_lang(lang)]
     name = escape_latex(cv.get("name") or t["default_researcher"])
     title = escape_latex(cv.get("title") or t["default_acad_title"])
-    contact_items = _build_contact_links(links, cv.get("email", ""), cv.get("phone", ""), cv.get("location", ""))
-    contact_str = " \\;\\textbullet\\; ".join(contact_items)
+    contact_items = _build_contact_links(links, cv.get("email", ""), cv.get("phone", ""), cv.get("location", ""), candidate_name=name)
+    if len(contact_items) > 4:
+        mid = (len(contact_items) + 1) // 2
+        r1 = " \\;\\textbullet\\; ".join(contact_items[:mid])
+        r2 = " \\;\\textbullet\\; ".join(contact_items[mid:])
+        contact_str = f"{r1}\\\\[3pt]\n    {r2}"
+    else:
+        contact_str = " \\;\\textbullet\\; ".join(contact_items)
     header = _render_header_with_optional_photo(name, title, contact_str, photo_filename, accent_cmd=r"\color{acadnavy}")
     body = _render_sections_body(cv, "academico", lang)
 
@@ -665,7 +706,7 @@ def _render_tech_sidebar(
     t = LATEX_I18N[normalize_lang(lang)]
     name = escape_latex(cv.get("name") or t["default_candidate"])
     title = escape_latex(cv.get("title") or t["default_tech_title"])
-    contact_items = _build_contact_links(links, cv.get("email", ""), cv.get("phone", ""), cv.get("location", ""))
+    contact_items = _build_contact_links(links, cv.get("email", ""), cv.get("phone", ""), cv.get("location", ""), candidate_name=name)
 
     photo_tex = ""
     if photo_filename:
@@ -766,8 +807,14 @@ def _render_minimal_ats(
     t = LATEX_I18N[normalize_lang(lang)]
     name = escape_latex(cv.get("name") or t["default_candidate"])
     title = escape_latex(cv.get("title") or t["default_cv_title"])
-    contact_items = _build_contact_links(links, cv.get("email", ""), cv.get("phone", ""), cv.get("location", ""))
-    contact_str = " | ".join(contact_items)
+    contact_items = _build_contact_links(links, cv.get("email", ""), cv.get("phone", ""), cv.get("location", ""), candidate_name=name)
+    if len(contact_items) > 4:
+        mid = (len(contact_items) + 1) // 2
+        r1 = " | ".join(contact_items[:mid])
+        r2 = " | ".join(contact_items[mid:])
+        contact_str = f"{r1}\\\\[3pt]\n    {r2}"
+    else:
+        contact_str = " | ".join(contact_items)
     header = _render_header_with_optional_photo(name, title, contact_str, photo_filename, accent_cmd="")
     body = _render_sections_body(cv, resume_type, lang)
 
@@ -1054,33 +1101,33 @@ def _render_overleaf_russell_ti(
 
     row1_links: List[str] = []
     if links.get("github"):
-        gh_disp = escape_latex(_get_platform_display(links, "github"))
-        row1_links.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}")
+        gh_disp = escape_latex(_get_platform_display(links, "github", candidate_name=raw_name))
+        row1_links.append(rf"\mbox{{\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}}}")
     if links.get("orcid"):
-        orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
-        row1_links.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}")
+        orcid_disp = escape_latex(_get_platform_display(links, "orcid", candidate_name=raw_name))
+        row1_links.append(rf"\mbox{{\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}}}")
     if links.get("scholar"):
-        sc_disp = escape_latex(_get_platform_display(links, "scholar"))
-        row1_links.append(rf"\href{{{escape_url(links['scholar'])}}}{{\faIcon{{google}}\ \textbf{{{sc_disp}}}}}")
+        sc_disp = escape_latex(_get_platform_display(links, "scholar", candidate_name=raw_name))
+        row1_links.append(rf"\mbox{{\href{{{escape_url(links['scholar'])}}}{{\faIcon{{google}}\ \textbf{{{sc_disp}}}}}}}")
     if links.get("lattes"):
-        lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
-        row1_links.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}")
+        lattes_disp = escape_latex(_get_platform_display(links, "lattes", candidate_name=raw_name))
+        row1_links.append(rf"\mbox{{\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}}}")
 
     row2_links: List[str] = []
     if cv.get("email"):
         em = cv["email"].strip()
-        row2_links.append(rf"\href{{mailto:{escape_url(em)}}}{{\faIcon[regular]{{envelope}}\ {escape_latex(em)}}}")
+        row2_links.append(rf"\mbox{{\href{{mailto:{escape_url(em)}}}{{\faIcon[regular]{{envelope}}\ {escape_latex(em)}}}}}")
     if cv.get("phone"):
-        row2_links.append(rf"{{\faIcon{{whatsapp}}\ {escape_latex(cv['phone'])}}}")
+        row2_links.append(rf"\mbox{{\faIcon{{whatsapp}}\ {escape_latex(cv['phone'])}}}")
     if links.get("linkedin"):
-        li_disp = escape_latex(_get_platform_display(links, "linkedin"))
-        row2_links.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}")
+        li_disp = escape_latex(_get_platform_display(links, "linkedin", candidate_name=raw_name))
+        row2_links.append(rf"\mbox{{\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}}}")
     if links.get("portfolio"):
         port_disp = escape_latex(simplify_url_display(links["portfolio"]))
-        row2_links.append(rf"\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}")
+        row2_links.append(rf"\mbox{{\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}}}")
     if cv.get("location"):
         maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
-        row2_links.append(rf"\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}")
+        row2_links.append(rf"\mbox{{\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}}}")
 
     r1_str = " \\quad | \\quad ".join(row1_links)
     r2_str = " \\quad | \\quad ".join(row2_links)
@@ -1173,33 +1220,39 @@ def _render_overleaf_awesome_cv(
 
     social_items: List[str] = []
     if cv.get("phone"):
-        social_items.append(rf"{{\faIcon{{mobile-alt}}\ {escape_latex(cv['phone'])}}}")
+        social_items.append(rf"\mbox{{\faIcon{{mobile-alt}}\ {escape_latex(cv['phone'])}}}")
     if cv.get("email"):
         em = cv["email"].strip()
-        social_items.append(rf"\href{{mailto:{escape_url(em)}}}{{\faIcon[regular]{{envelope}}\ {escape_latex(em)}}}")
+        social_items.append(rf"\mbox{{\href{{mailto:{escape_url(em)}}}{{\faIcon[regular]{{envelope}}\ {escape_latex(em)}}}}}")
     if cv.get("location"):
         maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
-        social_items.append(rf"\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}")
+        social_items.append(rf"\mbox{{\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}}}")
     if links.get("portfolio"):
         port_disp = escape_latex(simplify_url_display(links["portfolio"]))
-        social_items.append(rf"\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}")
+        social_items.append(rf"\mbox{{\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}}}")
     if links.get("linkedin"):
-        li_disp = escape_latex(_get_platform_display(links, "linkedin"))
-        social_items.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}")
+        li_disp = escape_latex(_get_platform_display(links, "linkedin", candidate_name=raw_name))
+        social_items.append(rf"\mbox{{\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}}}")
     if links.get("github"):
-        gh_disp = escape_latex(_get_platform_display(links, "github"))
-        social_items.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}")
+        gh_disp = escape_latex(_get_platform_display(links, "github", candidate_name=raw_name))
+        social_items.append(rf"\mbox{{\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}}}")
     if links.get("orcid"):
-        orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
-        social_items.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}")
+        orcid_disp = escape_latex(_get_platform_display(links, "orcid", candidate_name=raw_name))
+        social_items.append(rf"\mbox{{\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}}}")
     if links.get("scholar"):
-        sc_disp = escape_latex(_get_platform_display(links, "scholar"))
-        social_items.append(rf"\href{{{escape_url(links['scholar'])}}}{{\faIcon{{google}}\ \textbf{{{sc_disp}}}}}")
+        sc_disp = escape_latex(_get_platform_display(links, "scholar", candidate_name=raw_name))
+        social_items.append(rf"\mbox{{\href{{{escape_url(links['scholar'])}}}{{\faIcon{{google}}\ \textbf{{{sc_disp}}}}}}}")
     if links.get("lattes"):
-        lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
-        social_items.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}")
+        lattes_disp = escape_latex(_get_platform_display(links, "lattes", candidate_name=raw_name))
+        social_items.append(rf"\mbox{{\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}}}")
 
-    social_str = " \\quad\\textbar\\quad ".join(social_items)
+    if len(social_items) > 4:
+        mid = (len(social_items) + 1) // 2
+        r1 = " \\quad\\textbar\\quad ".join(social_items[:mid])
+        r2 = " \\quad\\textbar\\quad ".join(social_items[mid:])
+        social_str = f"{r1}\\\\[3pt]\n    {r2}"
+    else:
+        social_str = " \\quad\\textbar\\quad ".join(social_items)
 
     if photo_filename:
         header_tex = rf"""\noindent
@@ -1319,19 +1372,19 @@ def _render_overleaf_single_page_keywords(
         port_disp = escape_latex(simplify_url_display(links["portfolio"]))
         right_contacts.append(rf"{{\small Web}} \href{{{escape_url(links['portfolio'])}}}{{\textbf{{{port_disp}}}}}")
     if links.get("linkedin"):
-        li_disp = escape_latex(_get_platform_display(links, "linkedin"))
+        li_disp = escape_latex(_get_platform_display(links, "linkedin", candidate_name=raw_name))
         right_contacts.append(rf"{{\small\faIcon{{linkedin}}}} \href{{{escape_url(links['linkedin'])}}}{{\textbf{{{li_disp}}}}}")
     if links.get("github"):
-        gh_disp = escape_latex(_get_platform_display(links, "github"))
+        gh_disp = escape_latex(_get_platform_display(links, "github", candidate_name=raw_name))
         right_contacts.append(rf"{{\small\faIcon{{github}}}} \href{{{escape_url(links['github'])}}}{{\textbf{{{gh_disp}}}}}")
     if links.get("orcid"):
-        orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
+        orcid_disp = escape_latex(_get_platform_display(links, "orcid", candidate_name=raw_name))
         right_contacts.append(rf"{{\small\faIcon{{orcid}}}} \href{{{escape_url(links['orcid'])}}}{{\textbf{{{orcid_disp}}}}}")
     if links.get("scholar"):
-        sc_disp = escape_latex(_get_platform_display(links, "scholar"))
+        sc_disp = escape_latex(_get_platform_display(links, "scholar", candidate_name=raw_name))
         right_contacts.append(rf"{{\small\faIcon{{google}}}} \href{{{escape_url(links['scholar'])}}}{{\textbf{{{sc_disp}}}}}")
     if links.get("lattes"):
-        lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
+        lattes_disp = escape_latex(_get_platform_display(links, "lattes", candidate_name=raw_name))
         right_contacts.append(rf"{{\small\faIcon{{graduation-cap}}}} \href{{{escape_url(links['lattes'])}}}{{\textbf{{{lattes_disp}}}}}")
 
     right_contact_tex = "\\\\\n    ".join(right_contacts)
@@ -1555,34 +1608,40 @@ def _render_google_standard(
     title = escape_latex(cv.get("title") or default_tl)
 
     contact_parts: List[str] = []
-    if cv.get("location"):
-        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
-        contact_parts.append(rf"\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}")
-    if links.get("portfolio"):
-        port_disp = escape_latex(simplify_url_display(links["portfolio"]))
-        contact_parts.append(rf"\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}")
-    if links.get("linkedin"):
-        li_disp = escape_latex(_get_platform_display(links, "linkedin"))
-        contact_parts.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}")
-    if links.get("github"):
-        gh_disp = escape_latex(_get_platform_display(links, "github"))
-        contact_parts.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}")
     if cv.get("email"):
         em = cv["email"].strip()
-        contact_parts.append(rf"\href{{mailto:{escape_url(em)}}}{{{escape_latex(em)}}}")
+        contact_parts.append(rf"\mbox{{\href{{mailto:{escape_url(em)}}}{{\faIcon{{envelope}}\ {escape_latex(em)}}}}}")
     if cv.get("phone"):
-        contact_parts.append(escape_latex(cv["phone"]))
+        contact_parts.append(rf"\mbox{{\faIcon{{phone}}\ {escape_latex(cv['phone'].strip())}}}")
+    if cv.get("location"):
+        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}}}")
+    if links.get("portfolio"):
+        port_disp = escape_latex(simplify_url_display(links["portfolio"]))
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}}}")
+    if links.get("linkedin"):
+        li_disp = escape_latex(_get_platform_display(links, "linkedin", candidate_name=name))
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}}}")
+    if links.get("github"):
+        gh_disp = escape_latex(_get_platform_display(links, "github", candidate_name=name))
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}}}")
     if links.get("orcid"):
-        orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
-        contact_parts.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}")
+        orcid_disp = escape_latex(_get_platform_display(links, "orcid", candidate_name=name))
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}}}")
     if links.get("scholar"):
-        sc_disp = escape_latex(_get_platform_display(links, "scholar"))
-        contact_parts.append(rf"\href{{{escape_url(links['scholar'])}}}{{\faIcon{{google}}\ \textbf{{{sc_disp}}}}}")
+        sc_disp = escape_latex(_get_platform_display(links, "scholar", candidate_name=name))
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(links['scholar'])}}}{{\faIcon{{google}}\ \textbf{{{sc_disp}}}}}}}")
     if links.get("lattes"):
-        lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
-        contact_parts.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}")
+        lattes_disp = escape_latex(_get_platform_display(links, "lattes", candidate_name=name))
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}}}")
 
-    contacts_str = " \\;\\textbar\\; ".join(contact_parts)
+    if len(contact_parts) > 4:
+        mid = (len(contact_parts) + 1) // 2
+        r1 = " \\quad | \\quad ".join(contact_parts[:mid])
+        r2 = " \\quad | \\quad ".join(contact_parts[mid:])
+        contacts_str = f"{r1}\\\\[3pt]\n    {r2}"
+    else:
+        contacts_str = " \\quad | \\quad ".join(contact_parts)
 
     if photo_filename:
         header_tex = rf"""\noindent
@@ -1787,37 +1846,40 @@ def _render_ai_ats_max(
     title = escape_latex(cv.get("title") or default_tl)
 
     contact_parts: List[str] = []
-    if cv.get("location"):
-        lbl_loc = "Location: " if is_en else "Local: "
-        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
-        contact_parts.append(rf"{lbl_loc}\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}")
-    if links.get("portfolio"):
-        port_disp = escape_latex(simplify_url_display(links["portfolio"]))
-        lbl_web = "Portfolio: " if is_en else "Portfólio: "
-        contact_parts.append(rf"{lbl_web}\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ {port_disp}}}")
-    if links.get("linkedin"):
-        li_disp = escape_latex(_get_platform_display(links, "linkedin"))
-        contact_parts.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ {li_disp}}}")
-    if links.get("github"):
-        gh_disp = escape_latex(_get_platform_display(links, "github"))
-        contact_parts.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ {gh_disp}}}")
     if cv.get("email"):
         em = cv["email"].strip()
-        contact_parts.append(rf"Email: \href{{mailto:{escape_url(em)}}}{{{escape_latex(em)}}}")
+        contact_parts.append(rf"\mbox{{\href{{mailto:{escape_url(em)}}}{{\faIcon{{envelope}}\ {escape_latex(em)}}}}}")
     if cv.get("phone"):
-        lbl_ph = "Phone: " if is_en else "Tel: "
-        contact_parts.append(lbl_ph + escape_latex(cv["phone"]))
+        contact_parts.append(rf"\mbox{{\faIcon{{phone}}\ {escape_latex(cv['phone'].strip())}}}")
+    if cv.get("location"):
+        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}}}")
+    if links.get("portfolio"):
+        port_disp = escape_latex(simplify_url_display(links["portfolio"]))
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}}}")
+    if links.get("linkedin"):
+        li_disp = escape_latex(_get_platform_display(links, "linkedin", candidate_name=name))
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}}}")
+    if links.get("github"):
+        gh_disp = escape_latex(_get_platform_display(links, "github", candidate_name=name))
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}}}")
     if links.get("orcid"):
-        orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
-        contact_parts.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ {orcid_disp}}}")
+        orcid_disp = escape_latex(_get_platform_display(links, "orcid", candidate_name=name))
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}}}")
     if links.get("scholar"):
-        sc_disp = escape_latex(_get_platform_display(links, "scholar"))
-        contact_parts.append(rf"\href{{{escape_url(links['scholar'])}}}{{\faIcon{{google}}\ {sc_disp}}}")
+        sc_disp = escape_latex(_get_platform_display(links, "scholar", candidate_name=name))
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(links['scholar'])}}}{{\faIcon{{google}}\ \textbf{{{sc_disp}}}}}}}")
     if links.get("lattes"):
-        lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
-        contact_parts.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ {lattes_disp}}}")
+        lattes_disp = escape_latex(_get_platform_display(links, "lattes", candidate_name=name))
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}}}")
 
-    contact_str = " \\;|\\; ".join(contact_parts)
+    if len(contact_parts) > 4:
+        mid = (len(contact_parts) + 1) // 2
+        row1 = " \\quad | \\quad ".join(contact_parts[:mid])
+        row2 = " \\quad | \\quad ".join(contact_parts[mid:])
+        contact_str = f"{row1}\\\\[3pt]\n    {row2}"
+    else:
+        contact_str = " \\quad | \\quad ".join(contact_parts)
 
     header_tex = rf"""\begin{{center}}
     {{\LARGE\bfseries\color{{sidecolor}} {name}}}\\[3pt]
@@ -2058,19 +2120,19 @@ def _render_nico_krieger(
         port_disp = escape_latex(simplify_url_display(links["portfolio"]))
         sidebar_contacts.append(rf"\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}")
     if links.get("linkedin"):
-        li_disp = escape_latex(_get_platform_display(links, "linkedin"))
+        li_disp = escape_latex(_get_platform_display(links, "linkedin", candidate_name=raw_name))
         sidebar_contacts.append(rf"\href{{{escape_url(links['linkedin'])}}}{{\faIcon{{linkedin}}\ \textbf{{{li_disp}}}}}")
     if links.get("github"):
-        gh_disp = escape_latex(_get_platform_display(links, "github"))
+        gh_disp = escape_latex(_get_platform_display(links, "github", candidate_name=raw_name))
         sidebar_contacts.append(rf"\href{{{escape_url(links['github'])}}}{{\faIcon{{github}}\ \textbf{{{gh_disp}}}}}")
     if links.get("orcid"):
-        orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
+        orcid_disp = escape_latex(_get_platform_display(links, "orcid", candidate_name=raw_name))
         sidebar_contacts.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}")
     if links.get("scholar"):
-        sc_disp = escape_latex(_get_platform_display(links, "scholar"))
+        sc_disp = escape_latex(_get_platform_display(links, "scholar", candidate_name=raw_name))
         sidebar_contacts.append(rf"\href{{{escape_url(links['scholar'])}}}{{\faIcon{{google}}\ \textbf{{{sc_disp}}}}}")
     if links.get("lattes"):
-        lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
+        lattes_disp = escape_latex(_get_platform_display(links, "lattes", candidate_name=raw_name))
         sidebar_contacts.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}")
 
     contact_lbl = "CONTACT" if is_en else "CONTATO"

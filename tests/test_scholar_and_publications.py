@@ -185,11 +185,14 @@ def test_extract_portfolio_languages_awards_and_publications():
 
 
 def test_platform_display_scholar():
-    links = {"scholar": "https://scholar.google.com/citations?user=JicYPdAAAAAJ"}
-    assert _get_platform_display(links, "scholar") == "JicYPdAAAAAJ"
+    links = {"scholar": "https://scholar.google.com/citations?user=JicYPdAAAAAJ", "scholar_name": "João Lucas Mayrinck"}
+    assert _get_platform_display(links, "scholar") == "J. L. Mayrinck"
 
-    links_id = {"scholar": "https://scholar.google.com/citations?user=JicYPdAAAAAJ", "scholar_id": "JicYPdAAAAAJ"}
-    assert _get_platform_display(links_id, "scholar") == "JicYPdAAAAAJ"
+    links_cand = {"scholar": "https://scholar.google.com/citations?user=JicYPdAAAAAJ", "candidate_name": "Ada Lovelace"}
+    assert _get_platform_display(links_cand, "scholar") == "A. Lovelace"
+
+    links_empty = {"scholar": "https://scholar.google.com/citations?user=JicYPdAAAAAJ"}
+    assert _get_platform_display(links_empty, "scholar") == "Google Scholar"
 
 
 @pytest.mark.parametrize("template_id", list(BUILTIN_TEMPLATES.keys()))
@@ -332,3 +335,79 @@ def test_pipeline_with_scholar_and_supplementary_data(tmp_path):
     assert r"\faIcon{google}" in result.latex_code
     assert "Português" in result.latex_code
     assert "Prêmio Jovem Pesquisador" in result.latex_code
+
+
+def test_abbreviate_researcher_name():
+    from src.templates import abbreviate_researcher_name
+
+    assert abbreviate_researcher_name("") == ""
+    assert abbreviate_researcher_name("Mayrinck") == "Mayrinck"
+    assert abbreviate_researcher_name("Ada Lovelace") == "A. Lovelace"
+    assert abbreviate_researcher_name("João Lucas Mayrinck") == "J. L. Mayrinck"
+    assert abbreviate_researcher_name("João Lucas de Oliveira Mayrinck") == "J. L. O. Mayrinck"
+    assert abbreviate_researcher_name("João Lucas Mayrinck D'Oliveira") == "J. L. M. D'Oliveira"
+    assert abbreviate_researcher_name("Marie Sklodowska Curie") == "M. S. Curie"
+
+
+def test_ai_ats_max_header_formatting_and_mbox():
+    from src.templates import render_builtin_template
+
+    cv = {
+        "name": "João Lucas Mayrinck D'Oliveira",
+        "title": "Cientista da Computação",
+        "email": "teste@exemplo.com",
+        "phone": "+55 31 99999-9999",
+        "location": "Belo Horizonte, MG",
+        "summary": "Resumo do perfil",
+        "experience": [],
+        "education": [],
+        "projects": [],
+        "publications": [],
+        "skills": ["Python", "LaTeX"],
+    }
+    links = {
+        "scholar": "https://scholar.google.com/citations?user=TULpQMIAAAAJ",
+        "scholar_id": "TULpQMIAAAAJ",
+        "candidate_name": "João Lucas Mayrinck D'Oliveira",
+        "portfolio": "https://jluckmay.github.io",
+        "github": "https://github.com/jluckmay",
+        "github_nick": "jluckmay",
+        "linkedin": "https://linkedin.com/in/jluckmay",
+        "linkedin_nick": "jluckmay",
+    }
+
+    latex = render_builtin_template(
+        template_id="ai_ats_max",
+        cv=cv,
+        links=links,
+        resume_type="academico",
+        lang="pt-br",
+    )
+
+    # 1. Não deve haver prefixos de texto inconsistentes como "Local:" ou "Portfólio:"
+    assert "Local:" not in latex
+    assert "Portfólio:" not in latex
+
+    # 2. Itens de contato devem estar protegidos com \mbox para evitar quebra de ícone/texto
+    assert r"\mbox{\href{https://scholar.google.com/citations?user=TULpQMIAAAAJ}{\faIcon{google}\ \textbf{J. L. M. D'Oliveira}}}" in latex
+    assert r"\mbox{\href{mailto:teste@exemplo.com}{\faIcon{envelope}\ teste@exemplo.com}}" in latex
+    assert r"\mbox{\faIcon{phone}\ +55 31 99999-9999}" in latex
+    assert r"\mbox{\href{https://github.com/jluckmay}{\faIcon{github}\ \textbf{jluckmay}}}" in latex
+
+    # 3. Não deve usar o ID alfanumérico TULpQMIAAAAJ no rótulo de exibição do Scholar
+    assert r"\textbf{TULpQMIAAAAJ}" not in latex
+
+
+def test_index_html_no_fake_cards():
+    import pathlib
+
+    html_path = pathlib.Path(__file__).parent.parent / "index.html"
+    content = html_path.read_text(encoding="utf-8")
+
+    # Garante que initStructuredManualInputs não injeta cards preenchidos fictícios por padrão
+    assert "addStructuredExperience({" not in content
+    assert "addStructuredEducation({" not in content
+    assert "addStructuredProject({" not in content
+    assert "addStructuredPublication({" not in content
+    assert "addStructuredAward({" not in content
+
