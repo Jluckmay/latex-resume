@@ -262,13 +262,13 @@
             margin: clamp(0.75rem, 2vw, 1.5rem) auto;
             padding: 0 clamp(0.75rem, 2.5vw, 1.5rem);
             display: grid;
-            grid-template-columns: 1.08fr 0.92fr;
+            grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
             gap: 1.5rem;
             align-items: start;
         }
         @media (max-width: 1080px) {
             .container {
-                grid-template-columns: 1fr;
+                grid-template-columns: minmax(0, 1fr);
                 gap: 1.25rem;
             }
         }
@@ -611,6 +611,10 @@
             padding: 0.65rem 0.9rem;
             background-color: var(--bg-subtle);
             margin-bottom: 0.85rem;
+            min-width: 0;
+            max-width: 100%;
+            overflow: hidden;
+            box-sizing: border-box;
         }
         details.collapsible summary {
             cursor: pointer;
@@ -624,8 +628,26 @@
             border-radius: 8px;
             font-size: 0.76rem;
             overflow-x: auto;
+            overflow-y: auto;
             max-height: 320px;
             margin-top: 0.65rem;
+            min-width: 0;
+            max-width: 100%;
+            box-sizing: border-box;
+            white-space: pre-wrap;
+            word-break: break-all;
+            overflow-wrap: anywhere;
+        }
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
         .hidden {
             display: none !important;
@@ -820,6 +842,7 @@
         <div class="nav-controls">
             <span class="pill-badge" id="ui-latex-badge" onclick="openBackendModal()" style="cursor:pointer;" title="Clique para verificar ou configurar a conexão com o backend">⏳ Conectando backend...</span>
             <button type="button" class="btn-toggle" id="btn-backend-settings" onclick="openBackendModal()" title="Configurações do Servidor Backend">⚙️ <span id="ui-backend-lbl">Backend</span></button>
+            <label for="resume-lang-select" class="sr-only" id="ui-resume-lang-lbl">Idioma de Saída do Currículo (Resume Output Language)</label>
             <select id="resume-lang-select" class="btn-toggle" title="Resume Output Language" aria-label="Idioma de Saída do Currículo (Resume Output Language)">
                 <option value="pt-br">📝 PDF: Português (pt-BR)</option>
                 <option value="en-us">📝 PDF: English (en-US)</option>
@@ -1206,8 +1229,8 @@
                     </div>
 
                 <div class="form-group" id="group-ai-mode" style="margin-top:-0.3rem;margin-bottom:0.85rem;">
-                    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;font-size:0.84rem;color:var(--text-main);">
-                        <input type="checkbox" id="chk-review-only" style="cursor:pointer;width:16px;height:16px;" checked>
+                    <label for="chk-review-only" style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;font-size:0.84rem;color:var(--text-main);">
+                        <input type="checkbox" id="chk-review-only" style="cursor:pointer;width:16px;height:16px;" checked aria-label="Modo Apenas Revisão de LaTeX e Conteúdo">
                         <span id="ui-review-only-lbl">⚡ <b>Modo Apenas Revisão:</b> Gerar direto via extratores e usar IA para revisar código LaTeX e textos (Economiza ~75% de tokens)</span>
                     </label>
                 </div>
@@ -2578,7 +2601,7 @@
                         <div style="font-weight:800;font-size:13px;color:${sCol};">${nameVal}</div>
                         <div style="font-style:italic;font-size:10px;color:${pCol};margin-bottom:8px;">${roleVal}</div>
                         <div style="font-weight:700;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:4px;">LINKS</div>
-                        <div style="font-size:9px;color:#475569;">📍 ${locVal}<br>🌐 ${portDisp} • 🔗 ${liNick}<br>🐙 ${ghNick} • 🆔 ${orcidId.slice(0, 11)}...</div>
+                        <div style="font-size:9px;color:#475569;">🌐 ${portDisp} • 🔗 ${liNick}<br>🐙 ${ghNick} • 🆔 ${orcidId.slice(0, 11)}...<br>📍 ${locVal}</div>
                         <div style="font-weight:700;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};margin:8px 0 4px 0;">${lblSk}</div>
                         <div style="font-size:9px;color:#475569;">Python, LaTeX, AI, Cloud</div>
                     </div>
@@ -2599,7 +2622,7 @@
                         <div>
                             <div style="font-weight:700;font-size:15px;color:${pCol};">${nameVal}</div>
                             <div style="font-style:italic;font-size:10.5px;color:${sCol};">${roleVal}</div>
-                            <div style="font-size:9px;color:#475569;margin-top:3px;">📍 ${locVal} • 🌐 ${portDisp} • 🔗 ${liNick} • 🆔 ${orcidId} • 🎓 ${lattesId} • 🐙 ${ghNick}</div>
+                            <div style="font-size:9px;color:#475569;margin-top:3px;">🌐 ${portDisp} • 🔗 ${liNick} • 🆔 ${orcidId} • 🎓 ${lattesId} • 🐙 ${ghNick} • 📍 ${locVal}</div>
                         </div>
                         ${avatarHtml}
                     </div>
@@ -2617,7 +2640,7 @@
                     <div style="text-align:center;border-bottom:1.5px solid ${pCol};padding-bottom:7px;margin-bottom:8px;">
                         <div style="font-weight:800;font-size:15px;color:${pCol};">${nameVal.toUpperCase()}</div>
                         <div style="font-size:10px;color:${sCol};">${roleVal}</div>
-                        <div style="font-size:9px;color:#52525b;margin-top:2px;">📍 ${locVal} | 🌐 ${portDisp} | 🔗 ${liNick} | 🐙 ${ghNick} | 🆔 ${orcidId}</div>
+                        <div style="font-size:9px;color:#52525b;margin-top:2px;">🌐 ${portDisp} | 🔗 ${liNick} | 🐙 ${ghNick} | 🆔 ${orcidId} | 📍 ${locVal}</div>
                     </div>
                     <div style="font-weight:800;font-size:9.5px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:5px;">${lblExp}</div>
                     <div style="font-size:9.5px;color:#27272a;margin-bottom:8px;"><b>Senior Software Engineer</b> (2022–Present)<br>• High-throughput microservices & automated LaTeX generation</div>
@@ -2631,8 +2654,8 @@
                         ${avatarHtml}
                         <div style="flex:1;text-align:center;">
                             <div><span style="font-size:15px;color:#64748b;font-weight:300;">${firstPart}</span> <span style="font-size:15px;color:${sCol};font-weight:800;">${restPart}</span></div>
-                            <div style="font-size:9px;color:#475569;margin-top:2px;">✉️ lucas@email.com | 📱 WhatsApp | 🔗 ${liNick} | 🌐 ${portDisp} | 📍 ${locVal}</div>
-                            <div style="font-size:9px;color:#475569;">🐙 ${ghNick} | 🆔 ${orcidId} | 🎓 ${lattesId}</div>
+                            <div style="font-size:9px;color:#475569;margin-top:2px;">✉️ lucas@email.com | 📱 WhatsApp | 🔗 ${liNick} | 🌐 ${portDisp}</div>
+                            <div style="font-size:9px;color:#475569;">🐙 ${ghNick} | 🆔 ${orcidId} | 🎓 ${lattesId} | 📍 ${locVal}</div>
                         </div>
                     </div>
                     <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
@@ -2660,7 +2683,7 @@
                         <div style="text-align:center;margin-bottom:8px;">
                             <div><span style="font-size:16px;color:#64748b;font-weight:300;">${firstPart}</span> <span style="font-size:16px;color:${sCol};font-weight:800;">${restPart}</span></div>
                             <div style="font-size:9.5px;font-variant:small-caps;color:${pCol};font-weight:700;">${roleVal}</div>
-                            <div style="font-size:8.5px;color:#64748b;margin-top:2px;">📱 Phone &nbsp;|&nbsp; ✉️ Email &nbsp;|&nbsp; 📍 ${locVal} &nbsp;|&nbsp; 🌐 ${portDisp} &nbsp;|&nbsp; 🔗 ${liNick} &nbsp;|&nbsp; 🐙 ${ghNick}</div>
+                            <div style="font-size:8.5px;color:#64748b;margin-top:2px;">📱 Phone &nbsp;|&nbsp; ✉️ Email &nbsp;|&nbsp; 🌐 ${portDisp} &nbsp;|&nbsp; 🔗 ${liNick} &nbsp;|&nbsp; 🐙 ${ghNick} &nbsp;|&nbsp; 📍 ${locVal}</div>
                         </div>
                         <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
                             <span style="font-weight:800;font-size:11px;"><span style="color:${pCol};">Ski</span><span style="color:${sCol};">lls</span></span>
@@ -2688,7 +2711,7 @@
                             <div style="font-size:9px;color:${pCol};margin-top:2px;">${roleVal}</div>
                         </div>
                         <div style="text-align:right;font-size:8.5px;color:#475569;">
-                            Loc <b>${locVal}</b><br>Web <b>${portDisp}</b><br>LinkedIn <b>${liNick}</b><br>GitHub <b>${ghNick}</b>
+                            Web <b>${portDisp}</b><br>LinkedIn <b>${liNick}</b><br>GitHub <b>${ghNick}</b><br>Loc <b>${locVal}</b>
                         </div>
                     </div>
                     <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;">
@@ -2730,10 +2753,10 @@
                             <div style="line-height:1.45;margin-bottom:8px;">
                                 ✉️ email@domain.com<br>
                                 📱 +55 11 99999-8888<br>
-                                📍 ${locVal}<br>
                                 🌐 ${portDisp}<br>
                                 🔗 ${liNick}<br>
-                                🐙 ${ghNick}
+                                🐙 ${ghNick}<br>
+                                📍 ${locVal}
                             </div>
                             <div style="font-weight:800;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};padding-bottom:2px;margin-bottom:4px;">HABILIDADES</div>
                             <div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span>Python</span><span style="color:${pCol};">● ● ● ● ●</span></div>
@@ -2765,7 +2788,7 @@
                     <div style="text-align:center;border-bottom:1.5px solid ${pCol};padding-bottom:5px;margin-bottom:6px;">
                         <div style="font-weight:800;font-size:15px;color:${sCol};letter-spacing:-0.2px;">${nameVal.toUpperCase()}</div>
                         <div style="font-size:9.5px;color:${pCol};font-weight:600;">${roleVal}</div>
-                        <div style="font-size:8.5px;color:#444746;margin-top:2px;">📍 ${locVal} | 🌐 ${portDisp} | 🔗 ${liNick} | 🐙 ${ghNick} | email@domain.com</div>
+                        <div style="font-size:8.5px;color:#444746;margin-top:2px;">🌐 ${portDisp} | 🔗 ${liNick} | 🐙 ${ghNick} | email@domain.com | 📍 ${locVal}</div>
                     </div>
                     <div style="font-weight:800;font-size:9.5px;color:${sCol};border-bottom:1px solid ${pCol};margin-bottom:4px;letter-spacing:0.5px;">EXPERIENCE</div>
                     <div style="display:flex;justify-content:space-between;font-size:9.5px;font-weight:700;color:${sCol};">
@@ -2789,7 +2812,7 @@
                     <div style="text-align:center;border-bottom:1.5px solid ${sCol};padding-bottom:5px;margin-bottom:6px;">
                         <div style="font-weight:900;font-size:15px;color:${sCol};">${nameVal.toUpperCase()}</div>
                         <div style="font-size:9.5px;font-weight:700;color:${pCol};">${roleVal.toUpperCase()}</div>
-                        <div style="font-size:8px;color:#334155;margin-top:2px;">LOCATION: ${locVal} &nbsp;|&nbsp; PORTFOLIO: ${portDisp} &nbsp;|&nbsp; LINKEDIN: ${liNick} &nbsp;|&nbsp; GITHUB: ${ghNick} &nbsp;|&nbsp; EMAIL: contact@email.com</div>
+                        <div style="font-size:8px;color:#334155;margin-top:2px;">PORTFOLIO: ${portDisp} &nbsp;|&nbsp; LINKEDIN: ${liNick} &nbsp;|&nbsp; GITHUB: ${ghNick} &nbsp;|&nbsp; EMAIL: contact@email.com &nbsp;|&nbsp; LOCATION: ${locVal}</div>
                     </div>
                     <div style="font-weight:800;font-size:9px;color:${sCol};border-bottom:1px solid #cbd5e1;margin-bottom:3px;">CORE COMPETENCIES & KEYWORDS</div>
                     <div style="font-size:8.5px;color:#1e293b;margin-bottom:5px;">
@@ -2814,7 +2837,7 @@
                         <div>
                             <div style="font-weight:800;font-size:15px;color:${pCol};">${nameVal}</div>
                             <div style="font-style:italic;font-size:10.5px;color:${sCol};">${roleVal}</div>
-                            <div style="font-size:9px;color:#475569;margin-top:3px;">📍 ${locVal} | 🌐 ${portDisp} | 🔗 ${liNick} | 🐙 ${ghNick} | 🆔 ${orcidId} | 🎓 ${lattesId}</div>
+                            <div style="font-size:9px;color:#475569;margin-top:3px;">🌐 ${portDisp} | 🔗 ${liNick} | 🐙 ${ghNick} | 🆔 ${orcidId} | 🎓 ${lattesId} | 📍 ${locVal}</div>
                         </div>
                         ${avatarHtml}
                     </div>

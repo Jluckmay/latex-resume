@@ -802,11 +802,9 @@ def _split_first_last_name(raw_name: str) -> tuple[str, str]:
 
 
 def _acv_sec_cmd(raw_title: str) -> str:
-    """Formata comando \\cvsection{3 primeiras letras}{restante} sem quebrar UTF-8 no pdflatex."""
-    clean = (raw_title or "").replace(r"\&", "&").strip()
-    p1 = escape_latex(clean[:3])
-    p2 = escape_latex(clean[3:])
-    return rf"\cvsection{{{p1}}}{{{p2}}}"
+    """Formata comando \\cvsection{título} garantindo que nenhuma linha horizontal engula o parágrafo seguinte."""
+    clean = escape_latex((raw_title or "").replace(r"\&", "&").strip())
+    return rf"\cvsection{{{clean}}}"
 
 
 def _build_acv_sections(
@@ -1121,9 +1119,9 @@ def _render_overleaf_russell_ti(
 \setlength{{\parindent}}{{0pt}}
 
 \newcommand{{\vhrulefill}}[1]{{\leavevmode\leaders\hrule height #1\hfill\kern0pt}}
-\newcommand{{\cvsection}}[2]{{%
+\newcommand{{\cvsection}}[1]{{%
   \vspace{{7pt}}%
-  \noindent{{\Large\bfseries{{\color{{accent}}#1}}{{\color{{sidecolor}}#2}}}}\hspace{{4pt}}{{\color{{graytext}}\vhrulefill{{0.9pt}}}}\par\vspace{{4pt}}%
+  \noindent{{\Large\bfseries\color{{accent}}#1}}\hspace{{4pt}}{{\color{{graytext}}\vhrulefill{{0.9pt}}}}\par\vspace{{4pt}}%
 }}
 \newcommand{{\cventry}}[5]{{%
   \noindent\begin{{tabular*}}{{\textwidth}}{{@{{\extracolsep{{\fill}}}} p{{0.74\textwidth}} r @{{}}}}
@@ -1241,9 +1239,9 @@ def _render_overleaf_awesome_cv(
 \setlength{{\parindent}}{{0pt}}
 
 \newcommand{{\vhrulefill}}[1]{{\leavevmode\leaders\hrule height #1\hfill\kern0pt}}
-\newcommand{{\cvsection}}[2]{{%
+\newcommand{{\cvsection}}[1]{{%
   \vspace{{7pt}}%
-  \noindent{{\Large\bfseries{{\color{{accent}}#1}}{{\color{{sidecolor}}#2}}}}\hspace{{4pt}}{{\color{{graytext}}\vhrulefill{{0.9pt}}}}\par\vspace{{4pt}}%
+  \noindent{{\Large\bfseries\color{{accent}}#1}}\hspace{{4pt}}{{\color{{graytext}}\vhrulefill{{0.9pt}}}}\par\vspace{{4pt}}%
 }}
 \newcommand{{\cventry}}[5]{{%
   \noindent\begin{{tabular*}}{{\textwidth}}{{@{{\extracolsep{{\fill}}}} p{{0.74\textwidth}} r @{{}}}}
@@ -1429,8 +1427,8 @@ def _render_overleaf_single_page_keywords(
         lg_lbl = "LANGUAGES / INTERESTS" if is_en else "IDIOMAS"
         lg_sec = rf"\cvsec{{\faIcon{{globe}}}}{{{lg_lbl}}}" + "\n{\\small " + " $\\cdot$ ".join(escape_latex(x) for x in langs) + "}"
 
-    col1_body = "\n\n".join(x for x in (work_sec, sk_sec) if x)
-    col2_body = "\n\n".join(x for x in (proj_sec, edu_sec, pub_sec, aw_sec, lg_sec) if x)
+    col1_body = "\n\n".join(x for x in (work_sec, edu_sec, aw_sec) if x)
+    col2_body = "\n\n".join(x for x in (proj_sec, sk_sec, pub_sec, lg_sec) if x)
 
     return rf"""% Template Overleaf: Sample single page resume with keywords — https://www.overleaf.com/latex/templates/sample-single-page-resume-with-keywords/wmcxcgmtkxzk
 \documentclass[10pt,a4paper]{{article}}
@@ -2012,7 +2010,7 @@ def _render_nico_krieger(
 \end{{minipage}}
 \end{{tcolorbox}}"""
 
-    # 2. Contacts (Strictly: location -> portfolio -> linkedin -> github -> orcid -> lattes)
+    # 2. Contacts (Strictly: email -> phone -> location -> portfolio -> linkedin -> github -> orcid -> lattes)
     sidebar_contacts: List[str] = []
     if cv.get("email"):
         em = cv["email"].strip()

@@ -49,10 +49,15 @@ class LLMResumeGenerator:
     ) -> Tuple[str, Dict[str, Any], str, bool]:
         """Executa chamada segura ao provedor selecionado via TLS 1.3 e cofre em memória volátil."""
         cache_key = self.cache.make_key(f"{self.provider}:{self.model}", messages)
+        is_latex_call = any(
+            "\\begin{document}" in m.get("content", "") or "CAVEMAN_LATEX" in m.get("content", "")
+            for m in messages
+        )
         if self.use_cache:
             cached = self.cache.get(cache_key)
             if cached:
-                return cached, {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}, self.model, True
+                if not is_latex_call or r"\end{document}" in cached:
+                    return cached, {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}, self.model, True
 
         prov_cfg = PROVIDERS_CONFIG.get(self.provider, PROVIDERS_CONFIG["default"])
         models_to_try = [self.model] + [
@@ -76,6 +81,10 @@ class LLMResumeGenerator:
             content = (parsed_data.get("content") or "").strip()
             if not content:
                 last_err = f"Modelo {candidate_model} retornou conteúdo vazio"
+                continue
+
+            if is_latex_call and r"\end{document}" not in content:
+                last_err = f"Modelo {candidate_model} retornou resposta LaTeX truncada (sem \\end{{document}})"
                 continue
 
             if self.use_cache and content:
@@ -149,11 +158,11 @@ class LLMResumeGenerator:
                 max_tokens=4096,
             )
             clean_body = sanitize_latex_layout(CavemanPromptPlugin.strip_code_fences(content))
-            if not clean_body or len(clean_body.strip()) < 30:
-                raise ValueError("Resposta do modelo insuficiente ou vazia.")
+            if not clean_body or len(clean_body.strip()) < 30 or r"\end{document}" not in clean_body:
+                raise ValueError("Resposta do modelo insuficiente ou incompleta (sem \\end{document}).")
             final_latex = sanitize_latex_layout(LaTeXPreambleSplitPlugin.reassemble(preamble, clean_body))
             if r"\end{document}" not in final_latex:
-                final_latex = final_latex.rstrip() + r"\n\end{document}\n"
+                final_latex = final_latex.rstrip() + "\n\\end{document}\n"
             self._populate_metrics(
                 metrics,
                 usage,
@@ -233,11 +242,11 @@ class LLMResumeGenerator:
         ]
         fixed, _, _, _ = self._call_llm_chat(messages=messages, max_tokens=4096)
         cleaned = sanitize_latex_layout(CavemanPromptPlugin.strip_code_fences(fixed))
-        if not cleaned or len(cleaned.strip()) < 30:
+        if not cleaned or len(cleaned.strip()) < 30 or r"\end{document}" not in cleaned:
             return broken_latex
         reassembled = LaTeXPreambleSplitPlugin.reassemble(preamble, cleaned) if preamble else cleaned
         if r"\end{document}" not in reassembled:
-            reassembled = reassembled.rstrip() + r"\n\end{document}\n"
+            reassembled = reassembled.rstrip() + "\n\\end{document}\n"
         return sanitize_latex_layout(reassembled)
 
     def review_and_enhance_latex(
@@ -280,7 +289,7 @@ class LLMResumeGenerator:
             "5. MACRO PRESERVATION: Preserve existing template structure, commands, and styling macros (e.g. \\cventry, \\cvsection, \\cvskill, \\textbf, \\textit, \\href, \\color).\n\n"
             "PART 2: TEXT & CONTENT ENHANCEMENT\n"
             "1. ACTION VERBS & METRICS: Polish bullet points with high-impact, punchy action verbs and clear accomplishments in the target language.\n"
-            "2. EXECUTIVE SUMMARY: If the summary/resumo section is sparse or missing, synthesize a concise 2-3 sentence technical overview based strictly on the candidate's actual data.\n"
+            "2. EXECUTIVE SUMMARY: If the summary/resumo section is sparse, missing, or contains generic website metadata (e.g. starting with 'Portfólio profissional de...'), synthesize a concise 2-3 sentence executive technical overview highlighting candidate's core expertise, academic background, and technical focus based strictly on their actual data.\n"
             "3. STRICT TRUTHFULNESS: Keep all institutions, degrees, dates, metrics, and names 100% truthful to source facts. Never invent experiences or credentials.\n\n"
             "PART 3: OUTPUT FORMAT\n"
             "Return ONLY the audited, polished LaTeX body from \\begin{document} to \\end{document}. "
@@ -306,12 +315,13 @@ class LLMResumeGenerator:
             )
             cleaned = sanitize_latex_layout(CavemanPromptPlugin.strip_code_fences(fixed))
             is_severely_truncated = (len(target) > 600 and len(cleaned.strip()) < int(len(target) * 0.2))
-            if not cleaned or len(cleaned.strip()) < 30 or is_severely_truncated:
+            has_end_doc = r"\end{document}" in cleaned
+            if not cleaned or len(cleaned.strip()) < 30 or is_severely_truncated or not has_end_doc:
                 final_latex = base_latex
             else:
                 final_latex = sanitize_latex_layout(LaTeXPreambleSplitPlugin.reassemble(preamble, cleaned) if preamble else cleaned)
                 if r"\end{document}" not in final_latex:
-                    final_latex = final_latex.rstrip() + r"\n\end{document}\n"
+                    final_latex = final_latex.rstrip() + "\n\\end{document}\n"
 
             self._populate_metrics(
                 metrics,

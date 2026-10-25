@@ -39,6 +39,27 @@ class ResumeGenerationResult:
     compiler_message: str
 
 
+def _is_pdf_blank_or_corrupted(pdf_path: Path | None) -> bool:
+    """Verifica se o PDF gerado existe em disco mas está vazio ou contém página em branco (menos de 25 caracteres)."""
+    if not pdf_path or not pdf_path.exists():
+        return False
+    try:
+        if pdf_path.stat().st_size < 500:
+            return True
+        from pypdf import PdfReader
+        reader = PdfReader(str(pdf_path))
+        if len(reader.pages) == 0:
+            return True
+        total_text = ""
+        for page in reader.pages:
+            total_text += (page.extract_text() or "").strip()
+        if len(total_text) < 25:
+            return True
+        return False
+    except Exception:
+        return False
+
+
 def build_resume_pipeline(
     resume_type: str = "profissional",
     linkedin_url: str = "",
@@ -296,8 +317,8 @@ def build_resume_pipeline(
             pass
 
     # 7. Fallback resiliente absoluto contra paginas em branco ou falhas de compilacao:
-    # Se a compilacao falhou ou se o PDF tem menos de 500 bytes (documento vazio), compila o LaTeX deterministico
-    is_blank_or_failed = (not ok) or (pdf_path and pdf_path.exists() and pdf_path.stat().st_size < 500)
+    # Se a compilacao falhou ou se o PDF gerado e uma pagina em branco (<25 caracteres extraidos), compila o LaTeX deterministico
+    is_blank_or_failed = (not ok) or (pdf_path and pdf_path.exists() and _is_pdf_blank_or_corrupted(pdf_path))
     if is_blank_or_failed:
         fallback_base, fb_cv = generate_direct_latex_resume(
             raw_profile_data=raw_profile_data,
@@ -319,7 +340,7 @@ def build_resume_pipeline(
             output_stem=output_stem,
             build_dir=target_dir,
         )
-        if fb_ok and fb_pdf_path and fb_pdf_path.exists() and fb_pdf_path.stat().st_size >= 500:
+        if fb_ok and fb_pdf_path and fb_pdf_path.exists() and not _is_pdf_blank_or_corrupted(fb_pdf_path):
             latex_code = safe_fallback_tex
             structured_cv = fb_cv
             ok, pdf_path, tex_path, comp_msg = fb_ok, fb_pdf_path, fb_tex_path, "Compilado com sucesso via fallback deterministico resiliente."

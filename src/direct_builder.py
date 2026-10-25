@@ -423,8 +423,25 @@ def build_structured_cv_deterministically(
         summary = gh["bio"].strip()
 
     elif portfolio.get("description"):
-
-        summary = portfolio["description"].strip()
+        port_desc = portfolio["description"].strip()
+        low_desc = port_desc.lower()
+        if low_desc.startswith("portfólio") or low_desc.startswith("portfolio"):
+            cleaned_snippet = re.sub(r"(?i)^portf[óo]lio\s+(?:profissional\s+)?de\s+[^,]+,\s*", "", port_desc).strip()
+            if cleaned_snippet:
+                cap_snippet = cleaned_snippet[0].upper() + cleaned_snippet[1:]
+                summary = (
+                    f"Computer Science and Technology Specialist. {cap_snippet}. Strong background in software architecture, distributed systems, and modern development."
+                    if is_en
+                    else f"Especialista em Computação e Tecnologia. {cap_snippet}. Sólida experiência em desenvolvimento de software, arquitetura escalável e sistemas computacionais."
+                )
+            else:
+                summary = (
+                    "Computer Scientist and Software Engineer with experience in software development, algorithm design, and modern technology stacks."
+                    if is_en
+                    else "Cientista da Computação e Engenheiro de Software com experiência em desenvolvimento de software, projetos computacionais e tecnologias modernas."
+                )
+        else:
+            summary = port_desc
 
     else:
 
