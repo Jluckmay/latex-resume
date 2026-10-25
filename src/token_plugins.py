@@ -88,7 +88,9 @@ class CavemanPromptPlugin:
                 f"Role: Senior CV synthesizer ({focus}). "
                 f"Write all resume text values in polished, high-impact {target_lang}, concise action verbs, "
                 "strictly factual from input data. Emit ONLY raw minified JSON matching requested short keys. "
-                "NEVER put ORCID, links or profile IDs into 'aw'; if no real awards/honors/certifications exist, 'aw' MUST be []."
+                "NEVER put ORCID, links or profile IDs into 'aw'; if no real awards/honors/certifications exist, 'aw' MUST be []. "
+                "PUBLICATIONS & AWARDS: Output all individual publications ('pb') and all individual awards ('aw'). NEVER summarize into 'X premiações' or generic placeholders like 'Trabalhos de Pesquisa'. "
+                "DATES & PERIODS: Output exact years/periods (e.g. '2026 - Atual', '2019 - 2025', '2023 - 2024'), NEVER use 'Período não especificado', 'Em andamento', or 'Concluído'."
             )
         return (
             "MODE:CAVEMAN_LATEX_ONLY. Zero prose, zero markdown fences, zero explanations. "
@@ -98,7 +100,10 @@ class CavemanPromptPlugin:
             "1. Escape all LaTeX special characters (%, &, $, #, _) in regular text (e.g. C\\#, R\\&D, 100\\%). "
             "2. Ensure balanced braces {}, closed environments (itemize, tabular, minipage), and valid macros. "
             "3. CRITICAL ENTRY ISOLATION RULE: Each education, experience, or project entry MUST be an isolated paragraph with \\par\\vspace{3pt} or blank lines. NEVER merge an institution/location line with a subsequent entry title on the same line. "
-            "4. Emit ONLY valid compilable LaTeX code. Do NOT create an awards/certifications section if none exist. NEVER include ORCID in awards."
+            "4. Emit ONLY valid compilable LaTeX code. Do NOT create an awards/certifications section if none exist. NEVER include ORCID in awards. "
+            "5. HEADER CONTACT DISCIPLINE: Never prefix contacts with 'Local:' or 'Portfólio:'. The candidate's location MUST be the last item in the header contact list. "
+            "6. PUBLICATIONS & AWARDS: You MUST preserve and list ALL individual publications and awards. NEVER collapse or summarize them. "
+            "7. DATES & PERIODS: Preserve exact years and periods (e.g. 2026 - Atual, 2019 - 2025). Never emit 'Período não especificado', 'Em andamento', or 'Concluído'."
         )
 
     @staticmethod
@@ -244,6 +249,37 @@ class TOONContextPrunerPlugin:
                 lines.append("LI_LANG|" + ";".join(str(x) for x in li["languages"][:6]))
             if li.get("raw_text"):
                 lines.append("LI_TXT|" + cls._clean_whitespace(li["raw_text"], 1600))
+
+        # 5. Google Scholar comprimido
+        scholar = raw_data.get("scholar", {})
+        if scholar and not scholar.get("error"):
+            if scholar.get("name") or scholar.get("affiliation"):
+                lines.append(f"SCHOLAR|nm:{scholar.get('name','')}|aff:{cls._trunc(scholar.get('affiliation',''), 100)}")
+            for pb in scholar.get("publications", [])[:15]:
+                title_norm = re.sub(r"\W+", "", (pb.get("title") or "").lower())[:40]
+                if title_norm and title_norm not in seen_works:
+                    seen_works.add(title_norm)
+                    lines.append(
+                        f"SC_PUB|{cls._trunc(pb.get('title',''), 120)}|"
+                        f"v:{cls._trunc(pb.get('venue',''), 50)}|yr:{pb.get('year','')}|c:{pb.get('citations','')}"
+                    )
+
+        # 6. Portfólio estruturado comprimido
+        port = raw_data.get("portfolio", {})
+        if port and not port.get("error"):
+            for edu in port.get("educations", [])[:5]:
+                lines.append(f"P_EDU|{edu.get('degree','')}|inst:{edu.get('institution','')}|yr:{edu.get('period','')}")
+            for emp in port.get("employments", [])[:8]:
+                lines.append(f"P_EMP|{emp.get('role','')}|org:{emp.get('organization','')}|yr:{emp.get('period','')}")
+            for pb in port.get("publications", [])[:15]:
+                title_norm = re.sub(r"\W+", "", (pb.get("title") or "").lower())[:40]
+                if title_norm and title_norm not in seen_works:
+                    seen_works.add(title_norm)
+                    lines.append(f"P_PUB|{cls._trunc(pb.get('title',''), 120)}|v:{cls._trunc(pb.get('venue',''), 50)}|yr:{pb.get('year','')}|doi:{pb.get('doi','')}")
+            if port.get("awards"):
+                lines.append("P_AWARD|" + ";".join(port["awards"][:6]))
+            if port.get("languages"):
+                lines.append("P_LANG|" + ";".join(port["languages"][:6]))
 
         # 5. Texto extra do usuário
         extra = raw_data.get("extra_notes", "")

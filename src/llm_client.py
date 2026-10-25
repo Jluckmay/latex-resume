@@ -286,11 +286,14 @@ class LLMResumeGenerator:
             r"2. SPECIAL CHARACTER ESCAPING: Audit all user text, company names, skills, URLs, and descriptions for unescaped reserved LaTeX characters. Ensure '%', '&', '$', '#', and '_' are properly escaped (e.g. C\#, C\texttt{++}, R\&D, PL/SQL, 100\%, \$1M, tech\_stack) while preserving LaTeX commands and math symbols (\cdot, \textbf, \hfill)." "\n"
             "3. ENTRY ISOLATION (ZERO COLLISION): Each education degree, job experience, or project entry MUST be an isolated paragraph block. Conclude each entry with \\par\\vspace{3pt} or a clean blank line. NEVER allow an institution, location, or details line to merge onto the same line as the next entry title or \\hfill.\n"
             "4. LINE BREAK & SPACING DISCIPLINE: Avoid awkward line breaks, overlapping text, or overfull boxes. Ensure clean vertical rhythm and correct use of \\par and \\vspace.\n"
-            "5. MACRO PRESERVATION: Preserve existing template structure, commands, and styling macros (e.g. \\cventry, \\cvsection, \\cvskill, \\textbf, \\textit, \\href, \\color).\n\n"
+            "5. MACRO PRESERVATION: Preserve existing template structure, commands, and styling macros (e.g. \\cventry, \\cvsection, \\cvskill, \\textbf, \\textit, \\href, \\color).\n"
+            "6. HEADER CONTACT DISCIPLINE: In contact line / header, NEVER use prefixes 'Local:', 'Location:', 'Portfólio:', or 'Portfolio:'. Location MUST be the last item in the contact list.\n\n"
             "PART 2: TEXT & CONTENT ENHANCEMENT\n"
             "1. ACTION VERBS & METRICS: Polish bullet points with high-impact, punchy action verbs and clear accomplishments in the target language.\n"
             "2. EXECUTIVE SUMMARY: If the summary/resumo section is sparse, missing, or contains generic website metadata (e.g. starting with 'Portfólio profissional de...'), synthesize a concise 2-3 sentence executive technical overview highlighting candidate's core expertise, academic background, and technical focus based strictly on their actual data.\n"
-            "3. STRICT TRUTHFULNESS & ZERO INVENTIONS: Keep all institutions, degrees, dates, metrics, and names 100% truthful to source facts. NEVER invent or hallucinate new projects, external URLs, project links, publications, DOI links, experiences, awards, or credentials not already present in the provided LaTeX code. Only enhance existing entries.\n\n"
+            "3. STRICT TRUTHFULNESS & ZERO INVENTIONS: Keep all institutions, degrees, dates, metrics, and names 100% truthful to source facts. NEVER invent or hallucinate new projects, external URLs, project links, publications, DOI links, experiences, awards, or credentials not already present in the provided LaTeX code. Only enhance existing entries.\n"
+            "4. PUBLICATIONS & AWARDS LISTING: Preserve and list ALL publications and awards individually. NEVER collapse them into a single line or summary. Each publication must include title, authors, venue, year, and DOI link. Each award must be an individual item.\n"
+            "5. EXACT PERIODS: Never change explicit academic or work periods into 'Período não especificado', 'Em andamento', or 'Concluído'. Keep exact years and periods (e.g. 2026 - Atual, 2019 - 2025, 2023 - 2024).\n\n"
             "PART 3: OUTPUT FORMAT\n"
             "Return ONLY the audited, polished LaTeX body from \\begin{document} to \\end{document}. "
             "Zero prose commentary, zero markdown code fences."
@@ -498,22 +501,87 @@ class LLMResumeGenerator:
                 }
                 for p in lattes["projects"][:5]
             ]
-        if not cv.get("publications"):
-            pubs = (
-                lattes.get("publications")
-                or orcid.get("works")
-                or (raw_profile_data.get("scholar") or {}).get("publications")
-                or (raw_profile_data.get("portfolio") or {}).get("publications")
-                or []
-            )
-            cv["publications"] = [
-                {
-                    "title": p.get("title", ""),
-                    "venue": p.get("venue") or p.get("journal") or "",
-                    "year": str(p.get("year") or ""),
-                    "authors": p.get("authors", ""),
-                    "doi": p.get("doi", ""),
-                }
-                for p in pubs[:30]
-                if (p.get("title") or "").strip()
-            ]
+        # Coleta e consolidação de publicações reais das fontes
+        all_real_pubs = []
+        seen_pub_titles = set()
+        for p_src in [
+            (raw_profile_data.get("scholar") or {}).get("publications"),
+            (raw_profile_data.get("portfolio") or {}).get("publications"),
+            lattes.get("publications"),
+            orcid.get("works"),
+            (raw_profile_data.get("manual_data") or {}).get("publications") if isinstance((raw_profile_data.get("manual_data") or {}).get("publications"), list) else None,
+        ]:
+            if not p_src:
+                continue
+            for pb in p_src:
+                t = str(pb.get("title") or "").strip()
+                t_k = re.sub(r"\W+", "", t.lower())[:35]
+                if t and t_k not in seen_pub_titles:
+                    seen_pub_titles.add(t_k)
+                    all_real_pubs.append({
+                        "title": t,
+                        "venue": str(pb.get("venue") or pb.get("journal") or "").strip(),
+                        "year": str(pb.get("year") or "").strip(),
+                        "authors": str(pb.get("authors") or "").strip(),
+                        "doi": str(pb.get("doi") or "").strip(),
+                    })
+
+        curr_pubs = cv.get("publications") or []
+        has_generic_pub = any("trabalhos de pesquisa em computa" in (p.get("title") or "").lower() for p in curr_pubs)
+        if not curr_pubs or has_generic_pub or (all_real_pubs and len(curr_pubs) < len(all_real_pubs)):
+            for rp in all_real_pubs:
+                rp_k = re.sub(r"\W+", "", rp["title"].lower())[:35]
+                if not any(re.sub(r"\W+", "", (cp.get("title") or "").lower())[:35] == rp_k for cp in curr_pubs):
+                    curr_pubs.append(rp)
+            curr_pubs = [p for p in curr_pubs if "trabalhos de pesquisa em computa" not in (p.get("title") or "").lower()]
+            cv["publications"] = curr_pubs
+
+        # Consolidação de premiações individuais
+        all_real_awards = []
+        for aw_src in [
+            (raw_profile_data.get("portfolio") or {}).get("awards"),
+            lattes.get("awards"),
+            (raw_profile_data.get("manual_data") or {}).get("awards"),
+        ]:
+            if not aw_src:
+                continue
+            aw_list = aw_src if isinstance(aw_src, list) else [aw_src]
+            for a in aw_list:
+                sa = str(a).strip()
+                if sa and not any(sa.lower() in x.lower() or x.lower() in sa.lower() for x in all_real_awards):
+                    all_real_awards.append(sa)
+
+        curr_aw = cv.get("awards") or []
+        is_collapsed_aw = any(re.search(r"\b\d+\s+premia[çc][õo]es", str(a), re.I) for a in curr_aw)
+        if not curr_aw or is_collapsed_aw or (all_real_awards and len(curr_aw) < len(all_real_awards)):
+            curr_aw = [a for a in curr_aw if not re.search(r"\b\d+\s+premia[çc][õo]es", str(a), re.I)]
+            for ra in all_real_awards:
+                if not any(ra.lower() in str(ca).lower() for ca in curr_aw):
+                    curr_aw.append(ra)
+            cv["awards"] = sanitize_awards(curr_aw)
+
+        # Atualização e preservação de períodos em formação
+        real_edus = (raw_profile_data.get("portfolio") or {}).get("educations") or lattes.get("educations") or orcid.get("educations") or []
+        for ed in cv.get("education") or []:
+            cur_p = (ed.get("period") or "").strip()
+            if cur_p in ("", "Em andamento", "Concluído", "Período não especificado", "Present", "Atual"):
+                for red in real_edus:
+                    r_deg = red.get("degree") or red.get("course") or ""
+                    if r_deg and (r_deg.lower() in ed.get("degree", "").lower() or ed.get("degree", "").lower() in r_deg.lower()):
+                        real_p = red.get("period") or f"{red.get('start', '')}-{red.get('end', '')}".strip("-")
+                        if real_p:
+                            ed["period"] = real_p
+                            break
+
+        # Atualização e preservação de períodos em experiência
+        real_emps = (raw_profile_data.get("portfolio") or {}).get("employments") or lattes.get("employments") or orcid.get("employments") or []
+        for ex in cv.get("experience") or []:
+            cur_p = (ex.get("period") or "").strip()
+            if cur_p in ("", "Período não especificado"):
+                for remp in real_emps:
+                    r_role = remp.get("role") or ""
+                    if r_role and (r_role.lower() in ex.get("role", "").lower() or ex.get("role", "").lower() in r_role.lower()):
+                        real_p = remp.get("period") or f"{remp.get('start', '')}-{remp.get('end', '')}".strip("-")
+                        if real_p:
+                            ex["period"] = real_p
+                            break

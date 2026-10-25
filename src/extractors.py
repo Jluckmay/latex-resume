@@ -1093,6 +1093,8 @@ def extract_portfolio(portfolio_url: str = "") -> Dict[str, Any]:
         "languages": [],
         "awards": [],
         "publications": [],
+        "educations": [],
+        "employments": [],
     }
     try:
         status_code, html_text, err_msg = _safe_http_get(url, timeout=10)
@@ -1152,25 +1154,124 @@ def extract_portfolio(portfolio_url: str = "") -> Dict[str, Any]:
                     if any(k in p.lower() for k in ("revista", "workshop", "simpósio", "simposio", "journal", "proceedings", "conference", "anais")):
                         venue = p
                         break
+                authors = ""
+                for part in re.split(r"[·\n]", full_txt):
+                    p_pt = part.strip()
+                    if p_pt.lower().startswith("com ") or p_pt.lower().startswith("with "):
+                        authors = re.sub(r"(?i)^(?:com|with)\s+", "", p_pt).strip()
+                        break
                 clean_pub_title = re.sub(r"\s+", " ", pub_title).strip()
                 if clean_pub_title and not any(p["title"].lower() == clean_pub_title.lower() or (doi and p.get("doi") == doi) for p in publications):
                     publications.append({
                         "title": clean_pub_title,
                         "venue": venue,
                         "year": year,
+                        "authors": authors,
                         "doi": doi,
                         "url": doi_a["href"],
                     })
 
         # 3. Extração estruturada de Premiações / Honrarias (Menção Honrosa, Prêmios, Títulos)
         awards: List[str] = []
+        for aw_el in soup.find_all(class_=re.compile(r"\baward\b|\bpremiacao\b|\bpremio\b", re.I)):
+            st = aw_el.find(["strong", "b", "h3", "h4"])
+            title_aw = st.get_text(" ", strip=True) if st else ""
+            full_t = aw_el.get_text(" ", strip=True)
+            clean_t = re.sub(r"\s+", " ", full_t).strip()
+            if title_aw and clean_t:
+                detail = clean_t.replace(title_aw, "").strip(": -·\n")
+                formatted = f"{title_aw}: {detail}" if detail else title_aw
+                if 15 < len(formatted) < 300 and not any(formatted in a or a in formatted for a in awards):
+                    awards.append(formatted)
+
         for el in soup.find_all(["article", "div", "li", "p"]):
             txt = el.get_text(" ", strip=True)
-            if any(k in txt.lower() for k in ("menção honrosa", "mencao honrosa", "prêmio", "premio", "award", "honor", "distinção", "distincao")):
+            if any(k in txt.lower() for k in ("menção honrosa", "mencao honrosa", "prêmio", "premio", "award", "honor", "distinção", "distincao", "segundo lugar", "primeiro lugar")):
                 if 20 < len(txt) < 250:
                     clean_aw = re.sub(r"\s+", " ", txt).strip()
                     if not any(clean_aw in a or a in clean_aw for a in awards):
                         awards.append(clean_aw)
+
+        # 4. Extração estruturada de Formação Acadêmica com Períodos
+        educations: List[Dict[str, Any]] = []
+        for art in soup.find_all(["article", "div", "li"], class_=re.compile(r"\bevent\b|\beducation\b|\bformacao\b", re.I)):
+            h_el = art.find(["h3", "h4", "h5", "strong"])
+            deg_title = h_el.get_text(" ", strip=True) if h_el else ""
+            if not deg_title or not any(k in deg_title.lower() for k in ("mestrado", "bacharelado", "doutorado", "graduação", "graduacao", "especialização", "especializacao", "master", "bachelor", "phd", "ciência", "ciencia", "sistemas")):
+                continue
+            tm = art.find("time")
+            period = tm.get_text(" ", strip=True) if tm else ""
+            if not period:
+                yr_match = re.search(r"\b(20\d\d|19\d\d)(?:\s*[-–—·]\s*(?:20\d\d|19\d\d|atual|presente))?\b", art.get_text(" "), re.I)
+                period = yr_match.group(0) if yr_match else ""
+            clean_period = re.sub(r"[–—·]", "-", period).strip()
+            if "atual" in clean_period.lower():
+                clean_period = re.sub(r"(?i)atual", "Atual", clean_period)
+
+            st = art.find(["strong", "b", "h4", "h5"])
+            inst = ""
+            if st and st != h_el:
+                inst = st.get_text(" ", strip=True)
+            if not inst:
+                for p_tag in art.find_all("p"):
+                    p_txt = p_tag.get_text(" ", strip=True)
+                    if any(k in p_txt.lower() for k in ("universidade", "ufmg", "ufv", "faculdade", "instituto", "campus")):
+                        inst = p_txt
+                        break
+            inst = re.sub(r"\s*[–—·]\s*", " - ", inst).strip()
+
+            p_desc = art.find_all("p")
+            desc = ""
+            for p in p_desc:
+                t = p.get_text(" ", strip=True)
+                if t and t != inst:
+                    desc = t
+                    break
+
+            if not any(e["degree"].lower() == deg_title.lower() for e in educations):
+                educations.append({
+                    "degree": deg_title,
+                    "institution": inst,
+                    "period": clean_period,
+                    "details": desc,
+                })
+
+        # 5. Extração estruturada de Experiências Profissionais e Acadêmicas com Períodos
+        employments: List[Dict[str, Any]] = []
+        for art in soup.find_all(["article", "div", "li"], class_=re.compile(r"\bexperience\b|\batuacao\b|\btrabalho\b|\btrajetoria\b", re.I)):
+            h_el = art.find(["h3", "h4", "h5", "strong"])
+            if not h_el:
+                continue
+            htxt = h_el.get_text(" ", strip=True)
+            if not htxt or any(k in htxt.lower() for k in ("experiência", "trajetória", "formação", "sobre")):
+                continue
+
+            parts = re.split(r"\s+[·\-\–\—\|]\s+", htxt, maxsplit=1)
+            role = parts[0].strip()
+            org = parts[1].strip() if len(parts) > 1 else ""
+
+            tm = art.find("time")
+            period = tm.get_text(" ", strip=True) if tm else ""
+            if not period:
+                yr_match = re.search(r"\b(20\d\d|19\d\d)(?:\s*[-–—·]\s*(?:20\d\d|19\d\d|atual|presente))?\b", art.get_text(" "), re.I)
+                period = yr_match.group(0) if yr_match else ""
+            clean_period = re.sub(r"[–—·]", "-", period).strip()
+            if "atual" in clean_period.lower():
+                clean_period = re.sub(r"(?i)atual", "Atual", clean_period)
+
+            p_tag = art.find("p")
+            desc = p_tag.get_text(" ", strip=True) if p_tag else ""
+
+            if not org and any(k in role.lower() for k in ("monitor", "tutor", "bolsista", "extensão", "extensao")):
+                org = "Universidade Federal de Viçosa"
+
+            if role and not any(e["role"].lower() == role.lower() for e in employments):
+                employments.append({
+                    "role": role,
+                    "organization": org,
+                    "period": clean_period,
+                    "description": desc,
+                })
 
         for tag in soup(["script", "style", "svg", "noscript", "iframe"]):
             tag.decompose()
@@ -1196,6 +1297,8 @@ def extract_portfolio(portfolio_url: str = "") -> Dict[str, Any]:
                 "languages": languages,
                 "awards": awards,
                 "publications": publications,
+                "educations": educations,
+                "employments": employments,
             }
         )
     except Exception as exc:

@@ -258,9 +258,6 @@ def _build_contact_links(links: Dict[str, str], email: str, phone: str, location
         items.append(rf"\mbox{{\href{{mailto:{escape_url(clean_em)}}}{{\faIcon{{envelope}}\ {escape_latex(clean_em)}}}}}")
     if phone:
         items.append(rf"\mbox{{\faIcon{{phone}}\ {escape_latex(phone.strip())}}}")
-    if location:
-        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(location.strip())
-        items.append(rf"\mbox{{\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(location.strip())}}}}}")
     if links.get("portfolio"):
         port_disp = escape_latex(simplify_url_display(links["portfolio"]))
         items.append(rf"\mbox{{\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}}}")
@@ -279,6 +276,9 @@ def _build_contact_links(links: Dict[str, str], email: str, phone: str, location
     if links.get("lattes"):
         lattes_disp = escape_latex(_get_platform_display(links, "lattes", candidate_name=candidate_name))
         items.append(rf"\mbox{{\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}}}")
+    if location:
+        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(location.strip())
+        items.append(rf"\mbox{{\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(location.strip())}}}}}")
     return items
 
 
@@ -1224,9 +1224,6 @@ def _render_overleaf_awesome_cv(
     if cv.get("email"):
         em = cv["email"].strip()
         social_items.append(rf"\mbox{{\href{{mailto:{escape_url(em)}}}{{\faIcon[regular]{{envelope}}\ {escape_latex(em)}}}}}")
-    if cv.get("location"):
-        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
-        social_items.append(rf"\mbox{{\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}}}")
     if links.get("portfolio"):
         port_disp = escape_latex(simplify_url_display(links["portfolio"]))
         social_items.append(rf"\mbox{{\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}}}")
@@ -1245,6 +1242,9 @@ def _render_overleaf_awesome_cv(
     if links.get("lattes"):
         lattes_disp = escape_latex(_get_platform_display(links, "lattes", candidate_name=raw_name))
         social_items.append(rf"\mbox{{\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}}}")
+    if cv.get("location"):
+        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
+        social_items.append(rf"\mbox{{\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}}}")
 
     if len(social_items) > 4:
         mid = (len(social_items) + 1) // 2
@@ -1360,17 +1360,12 @@ def _render_overleaf_single_page_keywords(
     right_contacts: List[str] = []
     if cv.get("email"):
         em = cv["email"].strip()
-        right_contacts.append(rf"{{\small Email}} \href{{mailto:{escape_url(em)}}}{{\textbf{{{escape_latex(em)}}}}}")
+        right_contacts.append(rf"{{\small\faIcon{{envelope}}}} \href{{mailto:{escape_url(em)}}}{{\textbf{{{escape_latex(em)}}}}}")
     if cv.get("phone"):
-        lbl_ph = "Phone" if is_en else "Tel"
-        right_contacts.append(rf"{{\small {lbl_ph}}} \textbf{{{escape_latex(cv['phone'])}}}")
-    if cv.get("location"):
-        lbl_lc = "Location" if is_en else "Local"
-        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
-        right_contacts.append(rf"{{\small {lbl_lc}}} \href{{{escape_url(maps_url)}}}{{\textbf{{{escape_latex(cv['location'].strip())}}}}}")
+        right_contacts.append(rf"{{\small\faIcon{{phone}}}} \textbf{{{escape_latex(cv['phone'])}}}")
     if links.get("portfolio"):
         port_disp = escape_latex(simplify_url_display(links["portfolio"]))
-        right_contacts.append(rf"{{\small Web}} \href{{{escape_url(links['portfolio'])}}}{{\textbf{{{port_disp}}}}}")
+        right_contacts.append(rf"{{\small\faIcon{{globe}}}} \href{{{escape_url(links['portfolio'])}}}{{\textbf{{{port_disp}}}}}")
     if links.get("linkedin"):
         li_disp = escape_latex(_get_platform_display(links, "linkedin", candidate_name=raw_name))
         right_contacts.append(rf"{{\small\faIcon{{linkedin}}}} \href{{{escape_url(links['linkedin'])}}}{{\textbf{{{li_disp}}}}}")
@@ -1386,6 +1381,9 @@ def _render_overleaf_single_page_keywords(
     if links.get("lattes"):
         lattes_disp = escape_latex(_get_platform_display(links, "lattes", candidate_name=raw_name))
         right_contacts.append(rf"{{\small\faIcon{{graduation-cap}}}} \href{{{escape_url(links['lattes'])}}}{{\textbf{{{lattes_disp}}}}}")
+    if cv.get("location"):
+        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
+        right_contacts.append(rf"{{\small\faIcon{{map-marker-alt}}}} \href{{{escape_url(maps_url)}}}{{\textbf{{{escape_latex(cv['location'].strip())}}}}}")
 
     right_contact_tex = "\\\\\n    ".join(right_contacts)
     photo_inline = (
@@ -1613,9 +1611,6 @@ def _render_google_standard(
         contact_parts.append(rf"\mbox{{\href{{mailto:{escape_url(em)}}}{{\faIcon{{envelope}}\ {escape_latex(em)}}}}}")
     if cv.get("phone"):
         contact_parts.append(rf"\mbox{{\faIcon{{phone}}\ {escape_latex(cv['phone'].strip())}}}")
-    if cv.get("location"):
-        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
-        contact_parts.append(rf"\mbox{{\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}}}")
     if links.get("portfolio"):
         port_disp = escape_latex(simplify_url_display(links["portfolio"]))
         contact_parts.append(rf"\mbox{{\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}}}")
@@ -1634,6 +1629,9 @@ def _render_google_standard(
     if links.get("lattes"):
         lattes_disp = escape_latex(_get_platform_display(links, "lattes", candidate_name=name))
         contact_parts.append(rf"\mbox{{\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}}}")
+    if cv.get("location"):
+        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}}}")
 
     if len(contact_parts) > 4:
         mid = (len(contact_parts) + 1) // 2
@@ -1851,9 +1849,6 @@ def _render_ai_ats_max(
         contact_parts.append(rf"\mbox{{\href{{mailto:{escape_url(em)}}}{{\faIcon{{envelope}}\ {escape_latex(em)}}}}}")
     if cv.get("phone"):
         contact_parts.append(rf"\mbox{{\faIcon{{phone}}\ {escape_latex(cv['phone'].strip())}}}")
-    if cv.get("location"):
-        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
-        contact_parts.append(rf"\mbox{{\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}}}")
     if links.get("portfolio"):
         port_disp = escape_latex(simplify_url_display(links["portfolio"]))
         contact_parts.append(rf"\mbox{{\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}}}")
@@ -1872,6 +1867,9 @@ def _render_ai_ats_max(
     if links.get("lattes"):
         lattes_disp = escape_latex(_get_platform_display(links, "lattes", candidate_name=name))
         contact_parts.append(rf"\mbox{{\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}}}")
+    if cv.get("location"):
+        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}}}")
 
     if len(contact_parts) > 4:
         mid = (len(contact_parts) + 1) // 2
@@ -2113,9 +2111,6 @@ def _render_nico_krieger(
         sidebar_contacts.append(rf"\faIcon{{envelope}}\ \href{{{escape_url('mailto:' + em)}}}{{{escape_latex(em)}}}")
     if cv.get("phone"):
         sidebar_contacts.append(rf"\faIcon{{phone}}\ {escape_latex(cv['phone'])}")
-    if cv.get("location"):
-        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
-        sidebar_contacts.append(rf"\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}")
     if links.get("portfolio"):
         port_disp = escape_latex(simplify_url_display(links["portfolio"]))
         sidebar_contacts.append(rf"\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}")
@@ -2134,6 +2129,9 @@ def _render_nico_krieger(
     if links.get("lattes"):
         lattes_disp = escape_latex(_get_platform_display(links, "lattes", candidate_name=raw_name))
         sidebar_contacts.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}")
+    if cv.get("location"):
+        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
+        sidebar_contacts.append(rf"\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}")
 
     contact_lbl = "CONTACT" if is_en else "CONTATO"
     contact_body = r"\\[4pt]" + "\n    ".join(sidebar_contacts) if sidebar_contacts else ""

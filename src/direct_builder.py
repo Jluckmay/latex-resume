@@ -663,17 +663,33 @@ def build_structured_cv_deterministically(
 
 
             deg = raw_degree or ("Higher Education" if is_en else "Formação Superior")
-
             education.append({
-
                 "degree": deg,
-
                 "institution": inst,
-
                 "period": period,
-
                 "details": "",
+            })
 
+    # Prioridade D: Portfólio (caso formações estejam incompletas ou para enriquecer períodos)
+    for pt_edu in portfolio.get("educations") or []:
+        deg_pt = pt_edu.get("degree", "").strip()
+        inst_pt = pt_edu.get("institution", "").strip()
+        per_pt = pt_edu.get("period", "").strip()
+        matched = False
+        for ex_edu in education:
+            if deg_pt.lower() in ex_edu.get("degree", "").lower() or ex_edu.get("degree", "").lower() in deg_pt.lower():
+                matched = True
+                if (not ex_edu.get("period") or ex_edu["period"] in ("Atual", "Present", "Concluído", "Em andamento")) and per_pt:
+                    ex_edu["period"] = per_pt
+                if not ex_edu.get("institution") and inst_pt:
+                    ex_edu["institution"] = inst_pt
+                break
+        if not matched and deg_pt:
+            education.append({
+                "degree": deg_pt,
+                "institution": inst_pt,
+                "period": per_pt,
+                "details": pt_edu.get("details", "").strip(),
             })
 
 
@@ -827,16 +843,36 @@ def build_structured_cv_deterministically(
 
 
             experience.append({
-
                 "role": raw_role or ("Position" if is_en else "Atuação Profissional"),
-
                 "organization": inst,
-
                 "period": period,
-
                 "bullets": [],
-
             })
+
+    # Prioridade D: Portfólio (experiências acadêmicas, monitorias, tutorias com períodos reais)
+    for emp in portfolio.get("employments") or []:
+        role = emp.get("role", "").strip()
+        org = emp.get("organization", "").strip()
+        period = emp.get("period", "").strip()
+        desc = emp.get("description", "").strip()
+        bullets = [desc] if desc else []
+        if role:
+            matched = False
+            for ex_emp in experience:
+                if ex_emp.get("role", "").lower() == role.lower():
+                    matched = True
+                    if (not ex_emp.get("period") or ex_emp["period"] in ("Período não especificado", "Atual", "Present")) and period:
+                        ex_emp["period"] = period
+                    if not ex_emp.get("organization") and org:
+                        ex_emp["organization"] = org
+                    break
+            if not matched:
+                experience.append({
+                    "role": role,
+                    "organization": org or ("Universidade Federal de Viçosa" if not is_en else "Federal University of Viçosa"),
+                    "period": period,
+                    "bullets": bullets,
+                })
 
 
 
@@ -1140,22 +1176,17 @@ def build_structured_cv_deterministically(
 
 
     # 11. Prêmios, Títulos e Certificações (Awards)
+    combined_raw_awards: List[str] = []
+    for aw_src in [lattes.get("awards"), portfolio.get("awards"), li.get("certifications"), orcid.get("awards")]:
+        if not aw_src:
+            continue
+        aw_list = aw_src if isinstance(aw_src, list) else [aw_src]
+        for item in aw_list:
+            s_item = str(item).strip()
+            if s_item and not any(s_item.lower() in x.lower() or x.lower() in s_item.lower() for x in combined_raw_awards):
+                combined_raw_awards.append(s_item)
 
-    raw_awards = (
-
-        lattes.get("awards")
-
-        or li.get("certifications")
-
-        or portfolio.get("awards")
-
-        or orcid.get("awards")
-
-        or []
-
-    )
-
-    awards = sanitize_awards(raw_awards)
+    awards = sanitize_awards(combined_raw_awards)
 
 
 
@@ -1206,12 +1237,15 @@ def build_structured_cv_deterministically(
         skills = list(manual["skills"])
 
     if manual.get("languages"):
-
-        languages = list(manual["languages"])
+        for lg in manual["languages"]:
+            if not any(lg.lower() in x.lower() for x in languages):
+                languages.append(lg)
 
     if manual.get("awards"):
-
-        awards = sanitize_awards(manual["awards"])
+        man_aw = sanitize_awards(manual["awards"])
+        for a in man_aw:
+            if not any(a.lower() in x.lower() or x.lower() in a.lower() for x in awards):
+                awards.append(a)
 
     # Limitações saudáveis para caber confortavelmente no layout LaTeX
 
@@ -1372,9 +1406,6 @@ def _fill_custom_template_deterministically(
         contact_parts.append(rf"\mbox{{\href{{mailto:{escape_url(em)}}}{{\faIcon{{envelope}}\ {escape_latex(em)}}}}}")
     if cv.get("phone"):
         contact_parts.append(rf"\mbox{{\faIcon{{phone}}\ {escape_latex(cv['phone'])}}}")
-    if cv.get("location"):
-        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
-        contact_parts.append(rf"\mbox{{\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'])}}}}}")
     if links.get("portfolio"):
         port_disp = escape_latex(simplify_url_display(links["portfolio"]))
         contact_parts.append(rf"\mbox{{\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}}}")
@@ -1393,6 +1424,9 @@ def _fill_custom_template_deterministically(
     if links.get("lattes"):
         lattes_disp = escape_latex(_get_platform_display(links, "lattes", candidate_name=name))
         contact_parts.append(rf"\mbox{{\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}}}")
+    if cv.get("location"):
+        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
+        contact_parts.append(rf"\mbox{{\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'])}}}}}")
     contact_line = " $\\cdot$ ".join(contact_parts)
 
 

@@ -397,6 +397,62 @@ def test_ai_ats_max_header_formatting_and_mbox():
     # 3. Não deve usar o ID alfanumérico TULpQMIAAAAJ no rótulo de exibição do Scholar
     assert r"\textbf{TULpQMIAAAAJ}" not in latex
 
+    # 4. O local deve ser o ÚLTIMO item a ser exibido na lista do cabeçalho
+    header = latex[:latex.find(r"\section*")]
+    assert header.rfind(r"\faIcon{map-marker-alt}") > header.rfind(r"\faIcon{google}")
+    assert header.rfind(r"\faIcon{map-marker-alt}") > header.rfind(r"\faIcon{globe}")
+    assert header.rfind(r"\faIcon{map-marker-alt}") > header.rfind(r"\faIcon{github}")
+
+
+def test_portfolio_educations_employments_and_periods_imported():
+    from src.direct_builder import build_structured_cv_deterministically
+
+    mock_raw_data = {
+        "user_meta": {"name": "João Lucas Mayrinck"},
+        "portfolio": {
+            "educations": [
+                {"degree": "Mestrado em Ciência da Computação", "institution": "UFMG", "period": "2026 - Atual"},
+                {"degree": "Bacharelado em Sistemas de Informação", "institution": "UFV", "period": "2019 - 2025"},
+            ],
+            "employments": [
+                {"role": "Monitor de Jogos", "organization": "UFV", "period": "2025"},
+                {"role": "Bolsista de Pesquisa", "organization": "FUNARBEN", "period": "2023 - 2024"},
+                {"role": "Frontend Developer", "organization": "Instituto Health Lake", "period": "2021 - 2023"},
+            ],
+            "awards": [
+                "Menção Honrosa · Games · SBIE 2024: Palavras ao Ar",
+                "Menção Honrosa · Pôster · WSIS 2025: Grécia Antiga",
+            ],
+            "publications": [
+                {"title": "Math-0-Ween", "venue": "RBIE", "year": "2026", "doi": "10.5753/rbie.2026.6599"},
+                {"title": "Palavras ao Ar", "venue": "SBIE", "year": "2024", "doi": "10.5753/sbie.2024.241887"},
+            ],
+        },
+        "lattes": {},
+        "scholar": {},
+        "orcid": {},
+        "github": {},
+    }
+
+    cv = build_structured_cv_deterministically(mock_raw_data, resume_type="academico")
+
+    # Formações importadas com períodos exatos
+    assert len(cv["education"]) == 2
+    assert cv["education"][0]["period"] == "2026 - Atual"
+    assert cv["education"][1]["period"] == "2019 - 2025"
+
+    # Experiências importadas com períodos exatos
+    assert len(cv["experience"]) == 3
+    assert any(e["role"] == "Monitor de Jogos" and e["period"] == "2025" for e in cv["experience"])
+    assert any(e["organization"] == "FUNARBEN" and e["period"] == "2023 - 2024" for e in cv["experience"])
+    assert any(e["organization"] == "Instituto Health Lake" and e["period"] == "2021 - 2023" for e in cv["experience"])
+
+    # Premiações e publicações listadas individualmente
+    assert len(cv["awards"]) == 2
+    assert "SBIE 2024" in cv["awards"][0]
+    assert "WSIS 2025" in cv["awards"][1]
+    assert len(cv["publications"]) == 2
+
 
 def test_index_html_no_fake_cards():
     import pathlib
