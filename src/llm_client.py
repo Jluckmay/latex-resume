@@ -11,7 +11,14 @@ from typing import Any, Dict, List, Tuple
 from ._vault import dispatch_secure_llm_chat
 from .compiler import sanitize_latex_layout
 from .config import DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDERS_CONFIG
-from .templates import render_builtin_template, sanitize_awards
+from .templates import (
+    deduplicate_and_sort_awards,
+    deduplicate_and_sort_educations,
+    deduplicate_and_sort_experiences,
+    deduplicate_and_sort_publications,
+    render_builtin_template,
+    sanitize_awards,
+)
 from .token_plugins import (
     CavemanPromptPlugin,
     LaTeXPreambleSplitPlugin,
@@ -585,3 +592,8 @@ class LLMResumeGenerator:
                         if real_p:
                             ex["period"] = real_p
                             break
+
+        cv["experience"] = deduplicate_and_sort_experiences(cv.get("experience") or [], lang=lang)
+        cv["education"] = deduplicate_and_sort_educations(cv.get("education") or [], lang=lang)
+        cv["publications"] = deduplicate_and_sort_publications(cv.get("publications") or [])
+        cv["awards"] = deduplicate_and_sort_awards(cv.get("awards") or [])

@@ -342,8 +342,9 @@ def test_sanitize_awards_with_structured_dictionaries():
     
     clean = sanitize_awards(raw_awards)
     assert len(clean) == 4
-    assert clean[0] == "Melhor Artigo em IA Aplicada (2023) - Conferência Brasileira de IA"
-    assert clean[1] == "AWS Certified Solutions Architect (2024) - Amazon Web Services"
-    assert clean[2] == "1º Lugar Hackathon - Tech Challenge"
-    assert clean[3] == "Prêmio Mérito Acadêmico - USP (2022)"
+    # Ordenados da mais recente à mais antiga
+    assert clean[0] == "AWS Certified Solutions Architect (2024) - Amazon Web Services"
+    assert clean[1] == "Melhor Artigo em IA Aplicada (2023) - Conferência Brasileira de IA"
+    assert clean[2] == "Prêmio Mérito Acadêmico - USP (2022)"
+    assert clean[3] == "1º Lugar Hackathon - Tech Challenge"
 

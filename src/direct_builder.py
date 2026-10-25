@@ -29,7 +29,6 @@ from __future__ import annotations
 
 
 import re
-import unicodedata
 import urllib.parse
 from typing import Any, Dict, List, Tuple
 
@@ -52,8 +51,15 @@ from .templates import (
     escape_url,
 
     render_builtin_template,
-
     sanitize_awards,
+    are_experiences_duplicate,
+    are_publications_duplicate,
+    deduplicate_and_sort_awards,
+    deduplicate_and_sort_educations,
+    deduplicate_and_sort_experiences,
+    deduplicate_and_sort_publications,
+    merge_experiences,
+    merge_publications,
 
 )
 
@@ -692,6 +698,8 @@ def build_structured_cv_deterministically(
                 "details": pt_edu.get("details", "").strip(),
             })
 
+    education = deduplicate_and_sort_educations(education, lang=lang)
+
 
 
     # 6. Experiência Profissional (Experience)
@@ -857,22 +865,22 @@ def build_structured_cv_deterministically(
         desc = emp.get("description", "").strip()
         bullets = [desc] if desc else []
         if role:
+            cand = {
+                "role": role,
+                "organization": org or ("Universidade Federal de Viçosa" if not is_en else "Federal University of Viçosa"),
+                "period": period,
+                "bullets": bullets,
+            }
             matched = False
             for ex_emp in experience:
-                if ex_emp.get("role", "").lower() == role.lower():
+                if are_experiences_duplicate(ex_emp, cand):
                     matched = True
-                    if (not ex_emp.get("period") or ex_emp["period"] in ("Período não especificado", "Atual", "Present")) and period:
-                        ex_emp["period"] = period
-                    if not ex_emp.get("organization") and org:
-                        ex_emp["organization"] = org
+                    merge_experiences(ex_emp, cand, lang=lang)
                     break
             if not matched:
-                experience.append({
-                    "role": role,
-                    "organization": org or ("Universidade Federal de Viçosa" if not is_en else "Federal University of Viçosa"),
-                    "period": period,
-                    "bullets": bullets,
-                })
+                experience.append(cand)
+
+    experience = deduplicate_and_sort_experiences(experience, lang=lang)
 
 
 
@@ -935,55 +943,26 @@ def build_structured_cv_deterministically(
 
 
     # 8. Publicações (Publications)
-
-    publications: List[Dict[str, str]] = []
-
-    def _normalize_title_for_cmp(t_str: str) -> str:
-        clean = unicodedata.normalize("NFKD", str(t_str or "")).lower()
-        clean = re.sub(r"[^\w\s]", "", clean)
-        return re.sub(r"\s+", " ", clean).strip()
-
-    def _find_matching_pub(t_norm: str, yr: str, p_list: List[Dict[str, str]]) -> Dict[str, str] | None:
-        for p in p_list:
-            p_norm = _normalize_title_for_cmp(p.get("title", ""))
-            if not p_norm or not t_norm:
-                continue
-            if p_norm == t_norm or (len(p_norm) > 20 and (p_norm in t_norm or t_norm in p_norm)):
-                p_yr = str(p.get("year") or "").strip()
-                if p_yr and yr and p_yr != yr:
-                    continue
-                return p
-        return None
+    publications: List[Dict[str, Any]] = []
 
     def _add_or_merge_pub(new_pub: Dict[str, Any]) -> None:
         t_raw = str(new_pub.get("title") or "").strip()
         if not t_raw:
             return
-        t_norm = _normalize_title_for_cmp(t_raw)
-        yr = str(new_pub.get("year") or "").strip()
-        existing = _find_matching_pub(t_norm, yr, publications)
-        if existing:
-            if not existing.get("doi") and new_pub.get("doi"):
-                existing["doi"] = str(new_pub["doi"]).strip()
-            if not existing.get("venue") and (new_pub.get("venue") or new_pub.get("journal")):
-                existing["venue"] = str(new_pub.get("venue") or new_pub.get("journal")).strip()
-            if not existing.get("year") and yr:
-                existing["year"] = yr
-            if not existing.get("authors") and new_pub.get("authors"):
-                existing["authors"] = str(new_pub["authors"]).strip()
-            if not existing.get("citations") and new_pub.get("citations"):
-                existing["citations"] = str(new_pub["citations"]).strip()
-            if len(t_raw) > len(existing.get("title", "")):
-                existing["title"] = t_raw
-        else:
-            publications.append({
-                "title": t_raw,
-                "venue": str(new_pub.get("venue") or new_pub.get("journal") or "").strip(),
-                "year": yr,
-                "authors": str(new_pub.get("authors") or "").strip(),
-                "doi": str(new_pub.get("doi") or "").strip(),
-                "citations": str(new_pub.get("citations") or "").strip(),
-            })
+        cand = {
+            "title": t_raw,
+            "venue": str(new_pub.get("venue") or new_pub.get("journal") or "").strip(),
+            "year": str(new_pub.get("year") or "").strip(),
+            "authors": str(new_pub.get("authors") or "").strip(),
+            "doi": str(new_pub.get("doi") or "").strip(),
+            "citations": str(new_pub.get("citations") or "").strip(),
+            "url": str(new_pub.get("url") or "").strip(),
+        }
+        for ex in publications:
+            if are_publications_duplicate(ex, cand):
+                merge_publications(ex, cand)
+                return
+        publications.append(cand)
 
     # A. Lattes Publicações
     for pub in lattes.get("publications") or []:
@@ -1013,6 +992,8 @@ def build_structured_cv_deterministically(
     # D. Portfolio Publicações
     for pt_pub in portfolio.get("publications") or []:
         _add_or_merge_pub(pt_pub)
+
+    publications = deduplicate_and_sort_publications(publications)
 
 
 
@@ -1246,6 +1227,12 @@ def build_structured_cv_deterministically(
         for a in man_aw:
             if not any(a.lower() in x.lower() or x.lower() in a.lower() for x in awards):
                 awards.append(a)
+
+    # Garante desduplicação, padronização de datas/descrições e ordenação cronológica reversa
+    experience = deduplicate_and_sort_experiences(experience, lang=lang)
+    education = deduplicate_and_sort_educations(education, lang=lang)
+    publications = deduplicate_and_sort_publications(publications)
+    awards = deduplicate_and_sort_awards(awards)
 
     # Limitações saudáveis para caber confortavelmente no layout LaTeX
 

@@ -443,10 +443,10 @@ def test_portfolio_educations_employments_and_periods_imported():
     assert any(e["organization"] == "FUNARBEN" and e["period"] == "2023 - 2024" for e in cv["experience"])
     assert any(e["organization"] == "Instituto Health Lake" and e["period"] == "2021 - 2023" for e in cv["experience"])
 
-    # Premiações e publicações listadas individualmente
+    # Premiações e publicações listadas individualmente ordenadas da mais recente à mais antiga
     assert len(cv["awards"]) == 2
-    assert "SBIE 2024" in cv["awards"][0]
-    assert "WSIS 2025" in cv["awards"][1]
+    assert "WSIS 2025" in cv["awards"][0]
+    assert "SBIE 2024" in cv["awards"][1]
     assert len(cv["publications"]) == 2
 
 

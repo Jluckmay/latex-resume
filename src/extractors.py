@@ -1178,14 +1178,20 @@ def extract_portfolio(portfolio_url: str = "") -> Dict[str, Any]:
             title_aw = st.get_text(" ", strip=True) if st else ""
             full_t = aw_el.get_text(" ", strip=True)
             clean_t = re.sub(r"\s+", " ", full_t).strip()
+            if any(k in clean_t.lower() for k in ("destaque", "ver publicação", "ver publicacao")):
+                continue
             if title_aw and clean_t:
                 detail = clean_t.replace(title_aw, "").strip(": -·\n")
                 formatted = f"{title_aw}: {detail}" if detail else title_aw
                 if 15 < len(formatted) < 300 and not any(formatted in a or a in formatted for a in awards):
                     awards.append(formatted)
 
-        for el in soup.find_all(["article", "div", "li", "p"]):
+        for el in soup.find_all(["article", "div", "li"]):
+            if el.find_parent(class_=re.compile(r"\baward\b|\bpremiacao\b|\bpremio\b", re.I)):
+                continue
             txt = el.get_text(" ", strip=True)
+            if any(k in txt.lower() for k in ("destaque", "ver publicação", "ver publicacao")):
+                continue
             if any(k in txt.lower() for k in ("menção honrosa", "mencao honrosa", "prêmio", "premio", "award", "honor", "distinção", "distincao", "segundo lugar", "primeiro lugar")):
                 if 20 < len(txt) < 250:
                     clean_aw = re.sub(r"\s+", " ", txt).strip()

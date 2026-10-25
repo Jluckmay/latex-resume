@@ -8,8 +8,9 @@ e garantimos compilação 100% livre de erros de sintaxe no `pdflatex`.
 from __future__ import annotations
 
 import re
+import unicodedata
 import urllib.parse
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple
 
 from .i18n import LATEX_I18N, normalize_lang
 from .extractors import (
@@ -295,7 +296,332 @@ PLACEHOLDER_PATTERN = re.compile(
 )
 
 
-def sanitize_awards(awards: Any) -> List[str]:
+def normalize_text_for_cmp(text: str) -> str:
+    clean = unicodedata.normalize("NFKD", str(text or "")).lower()
+    clean = re.sub(r"[^\w\s]", " ", clean)
+    return re.sub(r"\s+", " ", clean).strip()
+
+
+def clean_doi(doi: str) -> str:
+    d = str(doi or "").strip().lower()
+    d = re.sub(r"^(?:https?://)?(?:dx\.)?doi\.org/", "", d)
+    d = re.sub(r"^doi:\s*", "", d)
+    return d.strip("/")
+
+
+def normalize_period(per: str, lang: str = "pt-br") -> str:
+    s = str(per or "").strip()
+    if not s:
+        return ""
+    # Normaliza hífens, en-dashes, em-dashes e pontos médios
+    s = re.sub(r"[\u2013\u2014\u2212·]", "-", s)
+    s = re.sub(r"\s*-\s*", " - ", s).strip()
+
+    # Se YYYY - YYYY com anos idênticos (ex: 2025 - 2025) -> simplifica para o ano único 2025
+    m = re.match(r"^(\d{4})\s*-\s*(\d{4})$", s)
+    if m and m.group(1) == m.group(2):
+        return m.group(1)
+
+    is_en = lang.lower().startswith("en")
+    curr_label = "Present" if is_en else "Atual"
+    s = re.sub(r"(?i)\b(?:atual|presente|present)\b", curr_label, s)
+    return s
+
+
+def extract_period_sort_key(per: str) -> Tuple[int, int]:
+    s = str(per or "").strip().lower()
+    if any(k in s for k in ("atual", "present")):
+        end_yr = 9999
+    else:
+        yrs = re.findall(r"\b(20\d\d|19\d\d)\b", s)
+        end_yr = int(yrs[-1]) if yrs else 0
+    yrs = re.findall(r"\b(20\d\d|19\d\d)\b", s)
+    start_yr = int(yrs[0]) if yrs else 0
+    return (end_yr, start_yr)
+
+
+def extract_pub_year_sort_key(pub: Dict[str, Any]) -> Tuple[int, str]:
+    y = str(pub.get("year") or "").strip()
+    m = re.search(r"\b(20\d\d|19\d\d)\b", y)
+    yr_int = int(m.group(1)) if m else 0
+    return (yr_int, str(pub.get("title") or ""))
+
+
+def extract_award_year_sort_key(aw: str) -> Tuple[int, str]:
+    yrs = [int(y) for y in re.findall(r"\b(20\d\d|19\d\d)\b", str(aw))]
+    return (max(yrs) if yrs else 0, str(aw))
+
+
+def are_experiences_duplicate(e1: Dict[str, Any], e2: Dict[str, Any]) -> bool:
+    r1 = normalize_text_for_cmp(e1.get("role", ""))
+    r2 = normalize_text_for_cmp(e2.get("role", ""))
+    o1 = normalize_text_for_cmp(e1.get("organization", ""))
+    o2 = normalize_text_for_cmp(e2.get("organization", ""))
+    p1 = normalize_period(e1.get("period", ""))
+    p2 = normalize_period(e2.get("period", ""))
+
+    if r1 == r2:
+        return True
+
+    stop_words = {"de", "da", "do", "das", "dos", "em", "e", "a", "o", "as", "os", "ao", "aos", "para", "com", "por", "in", "of", "and", "the", "to", "for"}
+    w1 = {w for w in r1.split() if w not in stop_words and len(w) > 2}
+    w2 = {w for w in r2.split() if w not in stop_words and len(w) > 2}
+    if w1 and w2:
+        inter = w1 & w2
+        overlap_ratio = len(inter) / min(len(w1), len(w2))
+        if overlap_ratio >= 0.7 or (len(inter) >= 2 and overlap_ratio >= 0.6):
+            yrs1 = re.findall(r"\b(20\d\d|19\d\d)\b", p1)
+            yrs2 = re.findall(r"\b(20\d\d|19\d\d)\b", p2)
+            if not p1 or not p2 or p1 == p2 or any(y in yrs2 for y in yrs1):
+                return True
+
+    if "bolsista" in r1 and "bolsista" in r2:
+        yrs1 = re.findall(r"\b(20\d\d|19\d\d)\b", p1)
+        yrs2 = re.findall(r"\b(20\d\d|19\d\d)\b", p2)
+        if any(y in yrs2 for y in yrs1):
+            if any(k in o1 or k in o2 for k in ("vicosa", "viçosa", "funarben")):
+                return True
+
+    return False
+
+
+def merge_experiences(target: Dict[str, Any], source: Dict[str, Any], lang: str = "pt-br") -> None:
+    r_t = target.get("role", "").strip()
+    r_s = source.get("role", "").strip()
+    if len(r_s) > len(r_t) and not any(k in r_s.lower() for k in ("teaching assistant", "fellow")):
+        target["role"] = r_s
+    elif not r_t:
+        target["role"] = r_s
+
+    o_t = target.get("organization", "").strip()
+    o_s = source.get("organization", "").strip()
+    if not o_t:
+        target["organization"] = o_s
+    elif "funarben" in o_s.lower() and any(k in o_t.lower() for k in ("viçosa", "vicosa")):
+        target["organization"] = "Universidade Federal de Viçosa"
+
+    p_t = normalize_period(target.get("period", ""), lang)
+    p_s = normalize_period(source.get("period", ""), lang)
+    if not p_t or p_t in ("Atual", "Present", "Período não especificado"):
+        target["period"] = p_s
+    elif p_s and p_s not in ("Atual", "Present") and ("-" in p_s and "-" not in p_t):
+        target["period"] = p_s
+    else:
+        target["period"] = normalize_period(p_t or p_s, lang)
+
+    b_t = [str(b).strip() for b in (target.get("bullets") or []) if str(b).strip()]
+    b_s = [str(b).strip() for b in (source.get("bullets") or []) if str(b).strip()]
+    merged_b: List[str] = list(b_t)
+    for b in b_s:
+        if not any(normalize_text_for_cmp(b) == normalize_text_for_cmp(x) for x in merged_b):
+            merged_b.append(b)
+    target["bullets"] = merged_b
+
+
+def deduplicate_and_sort_experiences(experiences: List[Dict[str, Any]], lang: str = "pt-br") -> List[Dict[str, Any]]:
+    if not experiences:
+        return []
+    merged: List[Dict[str, Any]] = []
+    for item in experiences:
+        if not item or not isinstance(item, dict):
+            continue
+        c_item = dict(item)
+        c_item["period"] = normalize_period(c_item.get("period", ""), lang)
+
+        raw_bullets = c_item.get("bullets") or []
+        std_bullets = []
+        for b in raw_bullets:
+            b_str = re.sub(r"^[–—·\-\*•\s]+", "", str(b)).strip()
+            if b_str:
+                b_str = b_str[0].upper() + b_str[1:]
+                if not b_str.endswith((".", "!", "?")):
+                    b_str += "."
+                std_bullets.append(b_str)
+        c_item["bullets"] = std_bullets
+
+        found = False
+        for ex in merged:
+            if are_experiences_duplicate(ex, c_item):
+                found = True
+                merge_experiences(ex, c_item, lang)
+                break
+        if not found:
+            merged.append(c_item)
+
+    merged.sort(key=lambda x: extract_period_sort_key(x.get("period", "")), reverse=True)
+    return merged
+
+
+def are_educations_duplicate(ed1: Dict[str, Any], ed2: Dict[str, Any]) -> bool:
+    d1 = normalize_text_for_cmp(ed1.get("degree", ""))
+    d2 = normalize_text_for_cmp(ed2.get("degree", ""))
+    p1 = normalize_period(ed1.get("period", ""))
+    p2 = normalize_period(ed2.get("period", ""))
+    if d1 == d2:
+        return True
+    if (d1 in d2 or d2 in d1) and ("mestrado" in d1 or "bacharelado" in d1 or "doutorado" in d1 or "master" in d1 or "bachelor" in d1 or "phd" in d1):
+        if not p1 or not p2 or p1 == p2 or any(y in p2 for y in re.findall(r"\b(20\d\d|19\d\d)\b", p1)):
+            return True
+    return False
+
+
+def merge_educations(target: Dict[str, Any], source: Dict[str, Any], lang: str = "pt-br") -> None:
+    if len(source.get("degree", "")) > len(target.get("degree", "")):
+        target["degree"] = source["degree"]
+    if not target.get("institution") and source.get("institution"):
+        target["institution"] = source["institution"]
+    p_t = normalize_period(target.get("period", ""), lang)
+    p_s = normalize_period(source.get("period", ""), lang)
+    if not p_t or p_t in ("Atual", "Present", "Concluído"):
+        target["period"] = p_s
+    elif p_s and p_s not in ("Atual", "Present") and ("-" in p_s and "-" not in p_t):
+        target["period"] = p_s
+    else:
+        target["period"] = normalize_period(p_t or p_s, lang)
+    if not target.get("details") and source.get("details"):
+        target["details"] = source["details"]
+
+
+def deduplicate_and_sort_educations(educations: List[Dict[str, Any]], lang: str = "pt-br") -> List[Dict[str, Any]]:
+    if not educations:
+        return []
+    merged: List[Dict[str, Any]] = []
+    for ed in educations:
+        if not ed or not isinstance(ed, dict):
+            continue
+        c_ed = dict(ed)
+        c_ed["period"] = normalize_period(c_ed.get("period", ""), lang)
+        found = False
+        for ex in merged:
+            if are_educations_duplicate(ex, c_ed):
+                found = True
+                merge_educations(ex, c_ed, lang)
+                break
+        if not found:
+            merged.append(c_ed)
+    merged.sort(key=lambda x: extract_period_sort_key(x.get("period", "")), reverse=True)
+    return merged
+
+
+def are_publications_duplicate(p1: Dict[str, Any], p2: Dict[str, Any]) -> bool:
+    d1 = clean_doi(p1.get("doi", ""))
+    d2 = clean_doi(p2.get("doi", ""))
+    if d1 and d2 and d1 == d2:
+        return True
+
+    t1 = normalize_text_for_cmp(p1.get("title", ""))
+    t2 = normalize_text_for_cmp(p2.get("title", ""))
+    if not t1 or not t2:
+        return False
+
+    y1 = str(p1.get("year", "")).strip()
+    y2 = str(p2.get("year", "")).strip()
+    years_match = (not y1 or not y2 or y1 == y2)
+
+    if t1 == t2:
+        return years_match
+
+    if (t1 in t2 or t2 in t1) and len(min(t1, t2, key=len)) >= 15:
+        if years_match:
+            return True
+
+    stop_words = {"de", "da", "do", "das", "dos", "em", "e", "a", "o", "as", "os", "ao", "aos", "para", "com", "por", "in", "of", "and", "the", "to", "for"}
+    w1 = {w for w in t1.split() if w not in stop_words and len(w) > 2}
+    w2 = {w for w in t2.split() if w not in stop_words and len(w) > 2}
+    if w1 and w2:
+        inter = w1 & w2
+        overlap_ratio = len(inter) / min(len(w1), len(w2))
+        if overlap_ratio >= 0.8 and years_match:
+            return True
+
+    return False
+
+
+def merge_publications(target: Dict[str, Any], source: Dict[str, Any]) -> None:
+    t_t = target.get("title", "").strip()
+    t_s = source.get("title", "").strip()
+    if len(t_s) > len(t_t):
+        target["title"] = t_s
+
+    v_t = target.get("venue", "").strip()
+    v_s = source.get("venue", "").strip()
+    if len(v_s) > len(v_t):
+        target["venue"] = v_s
+
+    y_t = str(target.get("year") or "").strip()
+    y_s = str(source.get("year") or "").strip()
+    if not y_t and y_s:
+        target["year"] = y_s
+
+    a_t = target.get("authors", "").strip()
+    a_s = source.get("authors", "").strip()
+    if len(a_s) > len(a_t):
+        target["authors"] = a_s
+
+    d_t = target.get("doi", "").strip()
+    d_s = source.get("doi", "").strip()
+    if not d_t and d_s:
+        target["doi"] = d_s
+
+    u_t = target.get("url", "").strip()
+    u_s = source.get("url", "").strip()
+    if not u_t and u_s:
+        target["url"] = u_s
+
+    c_t = str(target.get("citations") or "").strip()
+    c_s = str(source.get("citations") or "").strip()
+    if not c_t and c_s:
+        target["citations"] = c_s
+
+
+def deduplicate_and_sort_publications(publications: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not publications:
+        return []
+    merged: List[Dict[str, Any]] = []
+    for pub in publications:
+        if not pub or not isinstance(pub, dict):
+            continue
+        c_pub = dict(pub)
+        found = False
+        for ex in merged:
+            if are_publications_duplicate(ex, c_pub):
+                found = True
+                merge_publications(ex, c_pub)
+                break
+        if not found:
+            merged.append(c_pub)
+    merged.sort(key=lambda p: (extract_pub_year_sort_key(p)[0], p.get("title", "")), reverse=True)
+    return merged
+
+
+def deduplicate_and_sort_awards(awards: List[Any]) -> List[str]:
+    sanitized = _raw_sanitize_awards(awards)
+    if not sanitized:
+        return []
+    cleaned: List[str] = []
+    for aw in sanitized:
+        s = str(aw).strip()
+        if not s:
+            continue
+        if any(k in s.lower() for k in ("destaque", "ver publicação", "ver publicacao")):
+            continue
+        norm = normalize_text_for_cmp(s)
+        found = False
+        for idx, ex in enumerate(cleaned):
+            ex_norm = normalize_text_for_cmp(ex)
+            if norm == ex_norm or (len(min(norm, ex_norm, key=len)) >= 20 and (norm in ex_norm or ex_norm in norm)):
+                found = True
+                if len(s) > len(ex) or (":" in s and ":" not in ex):
+                    cleaned[idx] = s
+                break
+        if not found:
+            cleaned.append(s)
+
+    cleaned.sort(key=lambda a: (extract_award_year_sort_key(a)[0], a), reverse=True)
+    return cleaned
+
+
+def _raw_sanitize_awards(awards: Any) -> List[str]:
     """Higieniza a lista de prêmios/títulos/certificações:
     - Normaliza dicionários estruturados para texto limpo
     - Remove entradas nulas, vazias ou puramente de espaços
@@ -335,6 +661,11 @@ def sanitize_awards(awards: Any) -> List[str]:
     return clean
 
 
+def sanitize_awards(awards: Any) -> List[str]:
+    """Sanitiza, deduplica e ordena prêmios da mais recente à mais antiga."""
+    return deduplicate_and_sort_awards(awards)
+
+
 def render_builtin_template(
     template_id: str,
     cv: Dict[str, Any],
@@ -346,8 +677,10 @@ def render_builtin_template(
     """Renderiza o currículo completo em LaTeX usando o template e idioma escolhidos."""
     norm_lang = normalize_lang(lang)
     cv_clean = dict(cv)
-    if "awards" in cv_clean:
-        cv_clean["awards"] = sanitize_awards(cv_clean.get("awards"))
+    cv_clean["experience"] = deduplicate_and_sort_experiences(cv_clean.get("experience") or [], lang=norm_lang)
+    cv_clean["education"] = deduplicate_and_sort_educations(cv_clean.get("education") or [], lang=norm_lang)
+    cv_clean["publications"] = deduplicate_and_sort_publications(cv_clean.get("publications") or [])
+    cv_clean["awards"] = deduplicate_and_sort_awards(cv_clean.get("awards") or [])
     cv = cv_clean
     if template_id == "academic_classic":
         return _render_academic_classic(cv, links, photo_filename, norm_lang)
