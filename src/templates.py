@@ -2464,7 +2464,7 @@ def _render_nico_krieger(
         sidebar_contacts.append(rf"\href{{{escape_url(maps_url)}}}{{\faIcon{{map-marker-alt}}\ {escape_latex(cv['location'].strip())}}}")
 
     contact_lbl = "CONTACT" if is_en else "CONTATO"
-    contact_body = r"\\[4pt]" + "\n    ".join(sidebar_contacts) if sidebar_contacts else ""
+    contact_body = "\\\\[4pt]\n    ".join(sidebar_contacts) if sidebar_contacts else ""
     contact_block = rf"""{{\large\bfseries\color{{accent}} {contact_lbl}}}\\[-2pt]
 \rule{{\linewidth}}{{0.8pt}}\\[5pt]
 \small
@@ -2519,7 +2519,7 @@ def _render_nico_krieger(
 
     # 5. Certifications & Awards in Sidebar
     clean_awards = sanitize_awards(cv.get("awards"))
-    aw_lbl = r"CERTIFICATIONS \& AWARDS" if is_en else r"CERTIFICAÇÕES \& PRÊMIOS"
+    aw_lbl = r"AWARDS \& HONORS" if is_en else r"PRÊMIOS \& DESTAQUES"
     if clean_awards:
         aw_lines = [rf"{{\large\bfseries\color{{accent}} {aw_lbl}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\\[5pt]"]
         for aw in clean_awards[:4]:
@@ -2629,14 +2629,18 @@ def _render_nico_krieger(
 \usepackage[utf8]{{inputenc}}
 \usepackage[T1]{{fontenc}}
 \usepackage[{t['babel']}]{{babel}}
-\usepackage[margin=0cm,noheadfoot]{{geometry}}
+\usepackage[left=0cm,right=1.2cm,top=1.2cm,bottom=1.2cm,noheadfoot]{{geometry}}
 \usepackage{{xcolor}}
+\usepackage{{paracol}}
 \usepackage{{tikz}}
 \usepackage[skins]{{tcolorbox}}
 \usepackage{{fontawesome5}}
 \usepackage{{enumitem}}
-\usepackage{{parskip}}
+\usepackage[default]{{sourcesanspro}}
 \usepackage[hidelinks]{{hyperref}}
+
+\input{{glyphtounicode}}
+\pdfgentounicode=1
 
 \definecolor{{headerbg}}{{HTML}}{{212529}}
 \definecolor{{sidebg}}{{HTML}}{{F8F9FA}}
@@ -2663,32 +2667,30 @@ def _render_nico_krieger(
 
 \begin{{document}}
 
+\vspace*{{-1.2cm}}%
+\makebox[\textwidth][l]{{%
 {header_tex}
+}}
 
-\vspace{{-1.5mm}}
-\noindent
-\begin{{minipage}}[t]{{0.33\paperwidth}}
-\begin{{tcolorbox}}[
-    enhanced,
-    colback=sidebg,
-    colframe=sidebg,
-    arc=0mm,
-    boxrule=0mm,
-    left=8mm,
-    right=8mm,
-    top=6mm,
-    bottom=8mm
-]
+\vspace{{2mm}}
+
+\setcolumnwidth{{68mm, 124mm}}
+\setlength{{\columnsep}}{{6mm}}
+\backgroundcolor{{c[0]}}{{sidebg}}
+
+\begin{{paracol}}{{2}}
+\hskip 6mm
+\begin{{minipage}}{{58mm}}
+\vspace{{2mm}}
 {sidebar_content}
-\end{{tcolorbox}}
-\end{{minipage}}%
-\hspace{{0.02\paperwidth}}%
-\begin{{minipage}}[t]{{0.61\paperwidth}}
-\vspace{{6mm}}
-\begin{{minipage}}{{0.96\linewidth}}
+\end{{minipage}}
+
+\switchcolumn
+
+\vspace{{2mm}}
 {main_content}
-\end{{minipage}}
-\end{{minipage}}
+
+\end{{paracol}}
 
 \end{{document}}
 """
