@@ -47,6 +47,8 @@ class TokenMetrics:
     cache_hit: bool = False
     active_plugins: List[str] = field(default_factory=list)
     model_used: str = ""
+    fallback_reason: str = ""
+    fallback_detail: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         saved_pct = 0.0
@@ -55,6 +57,8 @@ class TokenMetrics:
             saved_pct = max(0.0, min(95.0, (self.estimated_tokens_saved / baseline) * 100.0))
         return {
             "model_used": self.model_used,
+            "fallback_reason": self.fallback_reason,
+            "fallback_detail": self.fallback_detail,
             "raw_input_tokens_est": self.raw_input_tokens_est,
             "compressed_input_tokens_est": self.compressed_input_tokens_est,
             "prompt_tokens_actual": self.prompt_tokens_actual,
@@ -66,6 +70,33 @@ class TokenMetrics:
             "cache_hit": self.cache_hit,
             "active_plugins": self.active_plugins,
         }
+
+
+def diagnose_fallback_reason(exc: Exception) -> Tuple[str, str]:
+    """Diagnostica a causa raiz de um fallback com transparência auditável."""
+    raw = str(exc)
+    exc_type = type(exc).__name__
+
+    if "ReadTimeout" in raw or "timed out" in raw.lower() or "504" in raw or "timeout" in raw.lower():
+        return "timeout", "Latência temporária na API upstream; compilado com segurança via motor determinístico."
+    if "429" in raw or "too many requests" in raw.lower() or "quota" in raw.lower() or "cota" in raw.lower():
+        return "rate_limit", "Limite de taxa temporário da API; compilado com layout determinístico seguro."
+    if "401" in raw or "unauthorized" in raw.lower() or "chave de api não informada" in raw.lower() or "invalid api key" in raw.lower():
+        return "auth_error", "Chave de API ausente ou inválida; compilado offline com layout determinístico."
+    if r"sem \end{document}" in raw or "truncada" in raw.lower() or "truncated" in raw.lower():
+        return "latex_truncated", "Resposta da IA excedeu limite de tokens; layout determinístico preservado."
+    if "502" in raw or "503" in raw or "connectionerror" in raw.lower() or "transporte seguro" in raw.lower() or "instabilidade" in raw.lower():
+        return "network_error", "Instabilidade temporária de conexão com o provedor; compilado offline com segurança."
+
+    if "Último status:" in raw:
+        detail = raw.split("Último status:")[-1].strip()
+        if "HTTP 429" in detail:
+            return "rate_limit", "Limite de requisições por minuto atingido no provedor; compilado offline."
+        if "ReadTimeout" in detail or "timeout" in detail.lower():
+            return "timeout", "Timeout de resposta da API de IA; compilado via motor determinístico direto."
+        return "provider_error", f"Provedor indisponível ({detail[:60]}); compilado offline."
+
+    return "runtime_guard", f"Compilado via motor determinístico direto ({exc_type})."
 
 
 class CavemanPromptPlugin:

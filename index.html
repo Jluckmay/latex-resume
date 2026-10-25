@@ -3403,22 +3403,40 @@
                 document.getElementById("m-val-saved").textContent = "~" + (tm.estimated_tokens_saved ?? 0);
                 document.getElementById("m-val-pct").textContent = (tm.estimated_savings_pct ?? 0) + "%";
 
-                // Atualização do status do motor/modelo de processamento
+                // Atualização do status do motor/modelo de processamento com diagnóstico transparente
                 const mu = tm.model_used || "direct_extractor_engine";
                 const isFallback = mu.includes("fallback") || mu === "direct_extractor_engine";
+                const fbReason = tm.fallback_reason || "";
+                const fbDetail = tm.fallback_detail || "";
                 const badgeEl = document.getElementById("m-model-badge");
                 const nameEl = document.getElementById("m-model-name");
                 const statusEl = document.getElementById("m-model-status");
                 if (badgeEl && nameEl && statusEl) {
                     if (isFallback) {
-                        if (providerVal === "none") {
+                        if (providerVal === "none" || mu === "direct_extractor_engine") {
                             nameEl.textContent = (state.uiLang === "en-us") ? "⚡ Engine: Deterministic Direct (0 Tokens / Offline)" : "⚡ Motor: Direto Determinístico (0 Tokens / Offline)";
                             statusEl.textContent = (state.uiLang === "en-us") ? "✅ Clean 0-Token Build" : "✅ Compilação 0 Tokens Limpa";
                             badgeEl.style.borderColor = "var(--border)";
                             badgeEl.style.color = "var(--text-muted)";
                         } else {
                             nameEl.textContent = (state.uiLang === "en-us") ? `⚠️ Engine: Direct Fallback (${mu})` : `⚠️ Motor: Fallback Direto (${mu})`;
-                            statusEl.textContent = (state.uiLang === "en-us") ? "💡 Key missing/quota exceeded; compiled offline" : "💡 Chave ausente/cota excedida; compilado offline";
+                            let reasonMsg = "";
+                            if (fbReason === "timeout") {
+                                reasonMsg = (state.uiLang === "en-us") ? "⏱️ Upstream API latency exceeded; compiled cleanly via deterministic engine" : "⏱️ Latência temporária na API upstream; compilado com layout determinístico seguro";
+                            } else if (fbReason === "latex_truncated") {
+                                reasonMsg = (state.uiLang === "en-us") ? "🛡️ Token limit reached by model; preserved clean deterministic layout" : "🛡️ Resposta truncada pela IA; preservado layout determinístico perfeito";
+                            } else if (fbReason === "rate_limit") {
+                                reasonMsg = (state.uiLang === "en-us") ? "⏳ API rate limit reached; compiled offline safely" : "⏳ Limite de taxa temporário da API; compilado offline com segurança";
+                            } else if (fbReason === "auth_error") {
+                                reasonMsg = (state.uiLang === "en-us") ? "🔑 Key missing or invalid; compiled offline" : "🔑 Chave ausente ou inválida; compilado offline";
+                            } else if (fbReason === "network_error") {
+                                reasonMsg = (state.uiLang === "en-us") ? "🌐 Upstream network issue; compiled offline" : "🌐 Instabilidade de conexão upstream; compilado offline";
+                            } else if (fbDetail) {
+                                reasonMsg = `💡 ${fbDetail}`;
+                            } else {
+                                reasonMsg = (state.uiLang === "en-us") ? "💡 Compiled cleanly via direct deterministic engine" : "💡 Compilado com segurança via motor determinístico direto";
+                            }
+                            statusEl.textContent = reasonMsg;
                             badgeEl.style.borderColor = "#f59e0b";
                             badgeEl.style.color = "#d97706";
                         }

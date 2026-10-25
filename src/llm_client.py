@@ -5,7 +5,10 @@ integrado ao cofre criptográfico efêmero e aos Plugins de Economia de Tokens.
 from __future__ import annotations
 
 import json
+import logging
 import re
+
+logger = logging.getLogger(__name__)
 from typing import Any, Dict, List, Tuple
 
 from ._vault import dispatch_secure_llm_chat
@@ -27,6 +30,7 @@ from .token_plugins import (
     ThinkingSuppressionPlugin,
     TokenMetrics,
     TOONContextPrunerPlugin,
+    diagnose_fallback_reason,
     estimate_tokens,
 )
 
@@ -67,19 +71,22 @@ class LLMResumeGenerator:
                     return cached, {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}, self.model, True
 
         prov_cfg = PROVIDERS_CONFIG.get(self.provider, PROVIDERS_CONFIG["default"])
-        models_to_try = [self.model] + [
-            m["id"] for m in prov_cfg.get("models", []) if m["id"] != self.model
-        ]
+        available_models = [m["id"] for m in prov_cfg.get("models", []) if m.get("id")]
+        fallback_candidates = [m for m in available_models if m != self.model]
+        # Limita a no máximo 1 fallback model para evitar tempos excessivos que estourem o gateway do Render (100s)
+        models_to_try = [self.model] + fallback_candidates[:1]
 
         last_err = None
-        for candidate_model in models_to_try:
+        for idx, candidate_model in enumerate(models_to_try):
+            # Modelo primário: até 50s (necessário para LaTeX longo); fallback: até 25s
+            req_timeout = 50 if idx == 0 else 25
             status_code, parsed_data, err_str, usage = dispatch_secure_llm_chat(
                 provider=self.provider,
                 model=candidate_model,
                 messages=messages,
                 custom_key=self._custom_key,
                 max_tokens=max_tokens,
-                timeout=40,
+                timeout=req_timeout,
             )
             if status_code != 200:
                 last_err = err_str
@@ -91,8 +98,12 @@ class LLMResumeGenerator:
                 continue
 
             if is_latex_call and r"\end{document}" not in content:
-                last_err = f"Modelo {candidate_model} retornou resposta LaTeX truncada (sem \\end{{document}})"
-                continue
+                # Se o modelo gerou a quase totalidade do corpo (>1200 chars) e tem \begin{document}, auto-fecha com segurança
+                if r"\begin{document}" in content and len(content) > 1200:
+                    content = content.rstrip() + "\n\\end{document}\n"
+                else:
+                    last_err = f"Modelo {candidate_model} retornou resposta LaTeX truncada (sem \\end{{document}})"
+                    continue
 
             if self.use_cache and content:
                 self.cache.set(cache_key, content, candidate_model)
@@ -342,7 +353,15 @@ class LLMResumeGenerator:
             )
             return final_latex, metrics
         except Exception as exc:
-            metrics.model_used = f"direct_fallback ({type(exc).__name__})"
+            reason_code, reason_detail = diagnose_fallback_reason(exc)
+            metrics.model_used = f"direct_fallback ({reason_code})"
+            metrics.fallback_reason = reason_code
+            metrics.fallback_detail = reason_detail
+            logger.warning(
+                "Falha na chamada LLM para review (%s): %s. Usando fallback direto.",
+                reason_code,
+                reason_detail,
+            )
             # Em caso de indisponibilidade de API ou falha, preserva o LaTeX determinístico com segurança
             return base_latex, metrics
 

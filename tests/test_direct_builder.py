@@ -455,3 +455,80 @@ def test_orcid_education_and_experience_extraction_and_translation():
     assert len(edus_en) == 2
     assert "Computer Science" in edus_en[0]["degree"]
     assert edus_en[0]["institution"] == "Universidade Federal de Minas Gerais"
+
+
+
+def test_diagnose_fallback_reasons():
+    """Valida se o diagnosticador de fallbacks classifica erros com precisão auditável."""
+    from src.token_plugins import diagnose_fallback_reason
+
+    # Timeout
+    code, desc = diagnose_fallback_reason(RuntimeError("Erro de transporte seguro (ReadTimeout: HTTPSConnectionPool)"))
+    assert code == "timeout"
+    assert "Latência temporária" in desc or "motor determinístico" in desc
+
+    code, _ = diagnose_fallback_reason(RuntimeError("Falha ao chamar modelos. Último status: ReadTimeout"))
+    assert code == "timeout"
+
+    # Rate limit
+    code, desc = diagnose_fallback_reason(RuntimeError("HTTP 429 Too Many Requests (Quota limit)"))
+    assert code == "rate_limit"
+
+    code, _ = diagnose_fallback_reason(RuntimeError("Falha ao chamar modelos. Último status: HTTP 429"))
+    assert code == "rate_limit"
+
+    # Auth error
+    code, desc = diagnose_fallback_reason(RuntimeError("HTTP 401 Unauthorized"))
+    assert code == "auth_error"
+
+    # LaTeX truncated
+    code, desc = diagnose_fallback_reason(RuntimeError("Modelo retornou resposta LaTeX truncada (sem \\end{document})"))
+    assert code == "latex_truncated"
+
+    # Network / Connection error
+    code, desc = diagnose_fallback_reason(RuntimeError("ConnectionError: failed to connect"))
+    assert code == "network_error"
+
+
+def test_token_metrics_fallback_fields_serialization():
+    """Valida se TokenMetrics inclui fallback_reason e fallback_detail no to_dict()."""
+    from src.token_plugins import TokenMetrics
+
+    tm = TokenMetrics(
+        model_used="direct_fallback (timeout)",
+        fallback_reason="timeout",
+        fallback_detail="Latência temporária na API upstream",
+    )
+    d = tm.to_dict()
+    assert d["model_used"] == "direct_fallback (timeout)"
+    assert d["fallback_reason"] == "timeout"
+    assert "Latência" in d["fallback_detail"]
+
+
+def test_review_and_enhance_latex_sets_diagnostic_reason():
+    """Valida se review_and_enhance_latex registra fallback_reason transparente em vez de mascarar."""
+    from unittest.mock import patch
+    from src.llm_client import LLMResumeGenerator
+
+    gen = LLMResumeGenerator(provider="default")
+    with patch.object(gen, "_call_llm_chat", side_effect=RuntimeError("ReadTimeout: HTTPSConnectionPool timed out")):
+        latex, metrics = gen.review_and_enhance_latex(
+            base_latex="\\documentclass{article}\n\\begin{document}\nTest\n\\end{document}",
+            resume_type="profissional",
+        )
+        assert metrics.fallback_reason == "timeout"
+        assert metrics.model_used == "direct_fallback (timeout)"
+        assert "\\end{document}" in latex
+
+
+def test_index_html_fallback_handling_not_blaming_quota():
+    """Valida se index.html não atribui fallbacks incondicionalmente a 'chave ausente ou cota excedida'."""
+    with open("index.html", "r", encoding="utf-8") as f:
+        html = f.read()
+
+    # Confirma que o tratamento agora analisa fbReason
+    assert 'fbReason === "timeout"' in html
+    assert 'fbReason === "latex_truncated"' in html
+    assert 'fbReason === "rate_limit"' in html
+    assert 'fbReason === "auth_error"' in html
+    assert 'fbReason === "network_error"' in html

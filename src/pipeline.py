@@ -23,7 +23,7 @@ from .extractors import (
     parse_scholar_input,
 )
 from .llm_client import LLMResumeGenerator
-from .token_plugins import TokenMetrics
+from .token_plugins import TokenMetrics, diagnose_fallback_reason
 from .ui_theme import apply_custom_colors_and_portfolio_to_latex
 
 
@@ -237,9 +237,12 @@ def build_resume_pipeline(
                 lang=lang,
             )
         except Exception as exc:
+            reason_code, reason_detail = diagnose_fallback_reason(exc)
             latex_code = base_latex
             metrics = TokenMetrics(
-                model_used=f"review_fallback ({type(exc).__name__})",
+                model_used=f"review_fallback ({reason_code})",
+                fallback_reason=reason_code,
+                fallback_detail=reason_detail,
                 cache_hit=False,
                 prompt_tokens_actual=0,
                 completion_tokens_actual=0,
@@ -247,7 +250,7 @@ def build_resume_pipeline(
                 raw_input_tokens_est=0,
                 compressed_input_tokens_est=0,
                 estimated_tokens_saved=3800,
-                active_plugins=["ResilientReviewFallback (0-token deterministic fallback)"],
+                active_plugins=[f"ResilientReviewFallback ({reason_code})"],
             )
     else:
         generator = LLMResumeGenerator(provider=chosen_provider, api_key=api_key, model=model, use_cache=use_cache)
@@ -275,8 +278,11 @@ def build_resume_pipeline(
                 photo_filename=photo_filename,
                 lang=lang,
             )
+            reason_code, reason_detail = diagnose_fallback_reason(exc)
             metrics = TokenMetrics(
-                model_used=f"resilient_fallback ({type(exc).__name__})",
+                model_used=f"resilient_fallback ({reason_code})",
+                fallback_reason=reason_code,
+                fallback_detail=reason_detail,
                 cache_hit=False,
                 prompt_tokens_actual=0,
                 completion_tokens_actual=0,
@@ -285,7 +291,7 @@ def build_resume_pipeline(
                 raw_input_tokens_est=0,
                 compressed_input_tokens_est=0,
                 estimated_tokens_saved=3800,
-                active_plugins=["ResilientFallbackEngine (0-token deterministic fallback)"],
+                active_plugins=[f"ResilientFallbackEngine ({reason_code})"],
             )
 
     # 4. Aplica customização de cores do usuário e link clicável de Portfólio ao LaTeX
