@@ -411,7 +411,7 @@ UI_TEXT: Dict[str, Dict[str, Any]] = {
         "phone_ph": "+55 (11) 99999-9999",
         "loc_label": "Cidade / Estado / País",
         "loc_ph": "São Paulo, SP, Brasil",
-        "gen_btn": "🚀 Gerar Currículo LaTeX + PDF",
+        "gen_btn": "🚀 Gerar Currículo",
         "res_header": "📑 Resultado, Preview PDF e Métricas de Tokens",
         "spinner_msg": "Extraindo perfis, otimizando tokens (Caveman + TOON) e compilando PDF via pdflatex...",
         "metric_total": "Tokens Totais API",
@@ -446,7 +446,7 @@ UI_TEXT: Dict[str, Dict[str, Any]] = {
         "preview_card_caption": "Representação visual fiel da estrutura tipográfica e das cores selecionadas.",
         "idle_info": (
             "Configure seu perfil, escolha o modelo e as cores à esquerda e clique em "
-            "**Gerar Currículo LaTeX + PDF** para compilar o documento final."
+            "**Gerar Currículo** para compilar o documento final."
         ),
     },
     "en-us": {
@@ -588,7 +588,7 @@ UI_TEXT: Dict[str, Dict[str, Any]] = {
         "phone_ph": "+1 (555) 000-0000",
         "loc_label": "City / State / Country",
         "loc_ph": "San Francisco, CA, USA",
-        "gen_btn": "🚀 Generate LaTeX + PDF Resume",
+        "gen_btn": "🚀 Generate Resume",
         "res_header": "📑 Result, PDF Preview & Token Metrics",
         "spinner_msg": "Extracting profiles & portfolio, optimizing tokens (Caveman + TOON), and compiling PDF via pdflatex...",
         "metric_total": "Total API Tokens",
@@ -623,7 +623,7 @@ UI_TEXT: Dict[str, Dict[str, Any]] = {
         "preview_card_caption": "Real-time visual representation of the layout structure and selected colors.",
         "idle_info": (
             "Configure your profile, choose your template and colors on the left, and click "
-            "**Generate LaTeX + PDF Resume** to compile the final document."
+            "**Generate Resume** to compile the final document."
         ),
     },
 }

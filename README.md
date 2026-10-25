@@ -393,7 +393,7 @@ O projeto permite que os usuários utilizem a chave padrão do servidor ou utili
    - **`nico_krieger`**: Modelo Nico Krieger com cabeçalho escuro de largura total e barra lateral de habilidades em 5 pontos.
    - **`modern_pro`**, **`academic_classic`**, **`tech_sidebar`**, **`minimal_ats`** ou seu próprio arquivo `.tex`.
 4. **Customização de Cores**: Escolha uma paleta executiva ou insira seus códigos HEX para a Cor Principal e Secundária.
-5. **Gerar**: Clique no botão **"Gerar Currículo (PDF + LaTeX)"**.
+5. **Gerar**: Clique no botão **"Gerar Currículo"**.
 6. **Visualização e Download**: O PDF compilado é exibido diretamente no visualizador embutido da página, com opção para copiar o código LaTeX fonte ou baixar o arquivo `.pdf` gerado.
 
 #### 5. Restrição Estrita de Comunicação
@@ -791,7 +791,7 @@ Users can choose between the secure server-provided default or **provide their o
    - **`nico_krieger`**: Modelo Nico Krieger with dark top header and 5-dot skill ratings.
    - **`modern_pro`**, **`academic_classic`**, **`tech_sidebar`**, **`minimal_ats`** or your own uploaded `.tex` file.
 4. **Color Customization**: Choose a curated executive palette or input custom HEX colors for primary and secondary accents.
-5. **Generate**: Click **"Generate Resume (PDF + LaTeX)"**.
+5. **Generate**: Click **"Generate Resume"**.
 6. **Preview & Download**: The generated PDF renders in the embedded interactive viewer, alongside tabs to inspect or copy the raw `.tex` source code and download the `.pdf` file with a single click.
 
 #### 5. Strict Communication Lockdown
