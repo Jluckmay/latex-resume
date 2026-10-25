@@ -381,3 +381,36 @@ def test_all_form_fields_have_associated_labels_and_accessibility():
         violating.append((el.name, el_id, el_type))
 
     assert len(violating) == 0, f"Campos de formulário sem label associado: {violating}"
+
+
+def test_pdf_viewer_continuous_scroll_and_wheel_page_switching():
+    """Valida se os visualizadores de PDF em index.html e app.py suportam scroll contínuo e troca de páginas por scroll/roda do mouse."""
+    from pathlib import Path
+
+    html = Path("index.html").read_text(encoding="utf-8")
+    app_py = Path("app.py").read_text(encoding="utf-8")
+
+    # index.html: estrutura de classes e container com scroll-behavior: smooth
+    assert 'id="pdf-canvas-container"' in html
+    assert 'scroll-behavior: smooth;' in html
+    assert '.pdf-page-wrapper' in html
+    assert '.pdf-page-canvas' in html
+    assert 'tabindex="0"' in html
+    assert 'role="region"' in html
+
+    # index.html: renderização multi-páginas contínua e atualização reativa do número de página
+    assert "function renderAllPdfPages()" in html
+    assert "function updateActivePageFromScroll()" in html
+    assert "function scrollToPage(" in html
+    assert 'container.addEventListener("scroll", updateActivePageFromScroll' in html
+
+    # index.html: interceptação e troca de páginas via roda do mouse (wheel) e atalhos de teclado
+    assert 'container.addEventListener("wheel"' in html
+    assert "e.deltaY > 60" in html
+    assert "e.deltaY < -60" in html
+    assert "PageDown" in html
+    assert "PageUp" in html
+
+    # app.py: parâmetros para visualizador nativo permitir scroll contínuo entre páginas
+    assert "#toolbar=1&navpanes=0&scrollbar=1&page=1&view=FitH" in app_py
+

@@ -623,8 +623,9 @@ with col_right:
 
             b64_pdf = base64.b64encode(pdf_bytes).decode("utf-8")
             pdf_iframe = (
-                f'<iframe src="data:application/pdf;base64,{b64_pdf}" '
-                f'width="100%" height="680" type="application/pdf"></iframe>'
+                f'<iframe src="data:application/pdf;base64,{b64_pdf}#toolbar=1&navpanes=0&scrollbar=1&page=1&view=FitH" '
+                f'width="100%" height="680" type="application/pdf" '
+                f'style="border:1px solid #3F3F46;border-radius:8px;"></iframe>'
             )
             st.markdown(pdf_iframe, unsafe_allow_html=True)
         else:
