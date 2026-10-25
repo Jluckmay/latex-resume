@@ -463,3 +463,24 @@ def test_index_html_no_fake_cards():
     assert "addStructuredPublication({" not in content
     assert "addStructuredAward({" not in content
 
+
+def test_index_html_scholar_and_github_fields_order():
+    """Valida se os campos Google Scholar e GitHub foram trocados de lugar na interface (Scholar precede GitHub)."""
+    import pathlib
+
+    html_path = pathlib.Path(__file__).parent.parent / "index.html"
+    content = html_path.read_text(encoding="utf-8")
+
+    # 1. No modo de importação: inp-scholar deve aparecer antes de inp-github
+    scholar_pos = content.find('id="inp-scholar"')
+    github_pos = content.find('id="inp-github"')
+    assert scholar_pos != -1 and github_pos != -1
+    assert scholar_pos < github_pos, "Google Scholar deve preceder GitHub no formulário de importação"
+
+    # 2. No modo manual: inp-man-scholar deve aparecer antes de inp-man-github
+    man_scholar_pos = content.find('id="inp-man-scholar"')
+    man_github_pos = content.find('id="inp-man-github"')
+    assert man_scholar_pos != -1 and man_github_pos != -1
+    assert man_scholar_pos < man_github_pos, "Google Scholar deve preceder GitHub no formulário manual"
+
+
