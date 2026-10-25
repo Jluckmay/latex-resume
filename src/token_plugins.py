@@ -158,9 +158,10 @@ class TOONContextPrunerPlugin:
             ]
             lines.append("GH|" + "|".join(x for x in gh_head if not x.endswith(":")))
             for r in gh.get("repos", [])[:8]:
+                r_tech = r.get("tech") or r.get("language", "")
                 lines.append(
-                    f"GH_REPO|{r.get('name','')}|lang:{r.get('language','')}|"
-                    f"stars:{r.get('stars',0)}|{cls._trunc(r.get('description',''), 110)}"
+                    f"GH_REPO|{r.get('name','')}|tech:{r_tech}|"
+                    f"stars:{r.get('stars',0)}|{cls._trunc(r.get('description',''), 140)}"
                 )
 
         # 3. ORCID + Lattes deduplicados

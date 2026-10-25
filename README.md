@@ -64,7 +64,7 @@ Para executar o gerador e compilar os currículos em PDF, o ambiente deve atende
    - **Alternância Flexível na Interface**: escolha facilmente entre **Importar Informações** ou **Inserir Manualmente** tanto na aplicação Web quanto no Streamlit.
    - **Modo Importação (Perfis Online & Arquivos)**:
      - **Portfólio Pessoal (`URL`)**: extrai título, descrição, seções (`h1`/`h2`/`h3`), bio e projetos diretamente da página web de portfólio do usuário e adiciona o link clicável simplificado no cabeçalho do PDF.
-     - **GitHub**: extrai bio, localização, linguagens principais e repositórios de maior destaque via API REST pública (aceita URL completa ou username).
+     - **GitHub**: extrai bio, localização, linguagens principais e repositórios de maior destaque via API REST pública (aceita URL completa ou username), com análise automatizada de README para extração de resumos contextuais e detecção completa de todas as ferramentas e linguagens utilizadas.
      - **ORCID**: extrai biografia, formação (`educations`), vínculos (`employments`) e artigos publicados (`works` com DOI) via API Pública v3.0 (aceita ID ou URL).
      - **Lattes**: parser nativo para o arquivo oficial `XML`/`ZIP` exportado do CNPq (`CURRICULO-VITAE`), além de suporte a PDF, HTML, URL ou ID de 16 dígitos / texto complementar.
      - **LinkedIn**: suporte a URL do perfil ou username, upload do PDF oficial exportado pelo LinkedIn (*Salvar como PDF*) e texto complementar.
@@ -462,7 +462,7 @@ To run the generator and compile resumes into PDF, your environment must meet th
    - **Flexible UI Mode Switcher**: easily toggle between **Import Information** and **Enter Manually** in both the Web interface and Streamlit app.
    - **Import Mode (Online Profiles & Files)**:
      - **Personal Portfolio (`URL`)**: scrapes title, meta description, section headings (`h1`/`h2`/`h3`), bio, and project highlights from your portfolio website and injects a clean clickable link in the resume header.
-     - **GitHub**: fetches bio, location, top programming languages, and top repositories via the public GitHub REST API (supports full URL or username).
+     - **GitHub**: fetches bio, location, top programming languages, and top repositories via the public GitHub REST API (supports full URL or username), featuring automated README analysis to extract contextual summaries and detect all tools and languages used.
      - **ORCID**: fetches biography, education history (`educations`), employment affiliations (`employments`), and published works (`works` with DOIs) via the ORCID Public API v3.0 (supports numeric ID or URL).
      - **Lattes**: native parser for official CNPq `XML`/`ZIP` exports (`CURRICULO-VITAE`), plus PDF, HTML, URL or 16-digit ID / supplementary text.
      - **LinkedIn**: supports profile URLs or usernames, official LinkedIn exported PDFs (*Save to PDF*), and supplementary text.

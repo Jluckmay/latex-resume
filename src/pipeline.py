@@ -109,7 +109,7 @@ def build_resume_pipeline(
     lattes_url_norm, lattes_id = parse_lattes_input(lattes_url)
     li_url_norm, li_nick = parse_linkedin_input(linkedin_url)
 
-    gh_data = extract_github(gh_url_norm or github_input) if github_input else {}
+    gh_data = extract_github(gh_url_norm or github_input, target_lang=lang) if github_input else {}
     orcid_data = extract_orcid(orcid_url_norm or orcid_input) if orcid_input else {}
     lattes_data = (
         extract_lattes(

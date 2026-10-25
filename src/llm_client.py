@@ -482,7 +482,7 @@ class LLMResumeGenerator:
             cv["projects"] = [
                 {
                     "name": r.get("name", ""),
-                    "tech": r.get("language", ""),
+                    "tech": r.get("tech") or r.get("language", ""),
                     "url": r.get("url", ""),
                     "description": r.get("description", ""),
                 }

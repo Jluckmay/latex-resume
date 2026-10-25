@@ -847,7 +847,7 @@ def build_structured_cv_deterministically(
 
         r_name = repo.get("name", "").strip()
 
-        r_tech = repo.get("language", "").strip()
+        r_tech = (repo.get("tech") or repo.get("language") or "").strip()
 
         r_desc = repo.get("description", "").strip()
 
@@ -887,7 +887,7 @@ def build_structured_cv_deterministically(
 
                 "tech": f"Pesquisa ({p_year})" if not is_en else f"Research ({p_year})",
 
-                "url": p_year,
+                "url": "",
 
                 "description": p_desc,
 

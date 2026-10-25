@@ -458,8 +458,6 @@ def _build_projects_block(projects: List[Dict[str, Any]], resume_type: str, lang
             head = rf"\textbf{{{nm}}}"
         if tech:
             head += rf" ({{\small\texttt{{{tech}}}}})"
-        if url and not url.startswith("http"):
-            head += rf" \hfill \textit{{{escape_latex(url)}}}"
         item_line = f"    \\item {head}"
         if desc:
             item_line += f": {desc}"
@@ -576,6 +574,7 @@ def _render_modern_pro(
 \usepackage{{titlesec}}
 \usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
+\usepackage{{etoolbox}}
 
 \input{{glyphtounicode}}
 \pdfgentounicode=1
@@ -622,6 +621,7 @@ def _render_academic_classic(
 \usepackage{{titlesec}}
 \usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
+\usepackage{{etoolbox}}
 
 \input{{glyphtounicode}}
 \pdfgentounicode=1
@@ -703,6 +703,7 @@ def _render_tech_sidebar(
 \usepackage{{titlesec}}
 \usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
+\usepackage{{etoolbox}}
 
 \input{{glyphtounicode}}
 \pdfgentounicode=1
@@ -768,6 +769,7 @@ def _render_minimal_ats(
 \usepackage{{titlesec}}
 \usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
+\usepackage{{etoolbox}}
 
 \input{{glyphtounicode}}
 \pdfgentounicode=1
@@ -886,6 +888,7 @@ def _build_acv_sections(
 
     # Projects block (\cventries)
     pj_entries: List[str] = []
+    lbl_tech = t.get("lbl_tech_stack", "Ferramentas & Tecnologias")
     for pj in (cv.get("projects") or []):
         nm = escape_latex(pj.get("name"))
         tech = escape_latex(pj.get("tech"))
@@ -893,15 +896,13 @@ def _build_acv_sections(
         desc = escape_latex(pj.get("description"))
         if url and url.startswith("http"):
             nm_tex = rf"\href{{{escape_url(url)}}}{{\textbf{{{nm}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
-            url_tex = rf"\href{{{escape_url(url)}}}{{\small {t['link_label']}}}"
         else:
             nm_tex = rf"\textbf{{{nm}}}"
-            url_tex = escape_latex(url)
         b_items: List[str] = []
         if desc:
             b_items.append(rf"    \item {desc}")
         if tech:
-            b_items.append(rf"    \item \textbf{{Technical Stack:}} {tech}")
+            b_items.append(rf"    \item \textbf{{{lbl_tech}:}} {tech}")
         b_tex = (
             r"\begin{itemize}[leftmargin=1.3em,nosep,topsep=2pt]"
             + "\n"
@@ -911,7 +912,7 @@ def _build_acv_sections(
             if b_items
             else ""
         )
-        pj_entries.append(rf"\cventry{{{tech}}}{{{nm_tex}}}{{{url_tex}}}{{}}{{{b_tex}}}")
+        pj_entries.append(rf"\cventry{{}}{{{nm_tex}}}{{}}{{}}{{{b_tex}}}")
     proj_title = t["sec_proj_acad"] if resume_type == "academico" else t["sec_proj_prof"]
     proj_block = _acv_sec_title_with_body(proj_title, "\n\n".join(pj_entries)) if pj_entries else ""
 
@@ -1106,6 +1107,7 @@ def _render_overleaf_russell_ti(
 \usepackage{{enumitem}}
 \usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
+\usepackage{{etoolbox}}
 
 \input{{glyphtounicode}}
 \pdfgentounicode=1
@@ -1126,7 +1128,7 @@ def _render_overleaf_russell_ti(
 \newcommand{{\cventry}}[5]{{%
   \noindent\begin{{tabular*}}{{\textwidth}}{{@{{\extracolsep{{\fill}}}} p{{0.74\textwidth}} r @{{}}}}
     \textbf{{\color{{sidecolor}} #2}} & {{\small\itshape\color{{accent}} #3}} \\
-    {{\small\scshape #1}} & {{\small\itshape\color{{graytext}} #4}} \\
+    \ifstrempty{{#1#4}}{{}}{{\small\scshape #1 & \small\itshape\color{{graytext}} #4 \\}}%
   \end{{tabular*}}\par
   #5\vspace{{4pt}}\par
 }}
@@ -1220,6 +1222,7 @@ def _render_overleaf_awesome_cv(
 \usepackage{{enumitem}}
 \usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
+\usepackage{{etoolbox}}
 
 \input{{glyphtounicode}}
 \pdfgentounicode=1
@@ -1246,7 +1249,7 @@ def _render_overleaf_awesome_cv(
 \newcommand{{\cventry}}[5]{{%
   \noindent\begin{{tabular*}}{{\textwidth}}{{@{{\extracolsep{{\fill}}}} p{{0.74\textwidth}} r @{{}}}}
     \textbf{{\color{{sidecolor}} #2}} & {{\small\itshape\color{{accent}} #3}} \\
-    {{\small\scshape #1}} & {{\small\itshape\color{{graytext}} #4}} \\
+    \ifstrempty{{#1#4}}{{}}{{\small\scshape #1 & \small\itshape\color{{graytext}} #4 \\}}%
   \end{{tabular*}}\par
   #5\vspace{{4pt}}\par
 }}
@@ -1446,6 +1449,7 @@ def _render_overleaf_single_page_keywords(
 \usepackage{{enumitem}}
 \usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
+\usepackage{{etoolbox}}
 
 \input{{glyphtounicode}}
 \pdfgentounicode=1
@@ -1656,7 +1660,7 @@ def _render_google_standard(
                 nm_head = rf"\textbf{{{nm}}}"
                 link_tex = escape_latex(url)
             tech_str = rf" \textbar{{}} \textit{{{tech}}}" if tech else ""
-            pj_lines.append(rf"\noindent{nm_head}{tech_str} \hfill {link_tex}")
+            pj_lines.append(rf"\noindent{nm_head}{tech_str}")
             if desc:
                 pj_lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
                 pj_lines.append(rf"    \item {desc}")
@@ -1712,6 +1716,7 @@ def _render_google_standard(
 \usepackage{{titlesec}}
 \usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
+\usepackage{{etoolbox}}
 
 \input{{glyphtounicode}}
 \pdfgentounicode=1
@@ -1926,6 +1931,7 @@ def _render_ai_ats_max(
 \usepackage{{titlesec}}
 \usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
+\usepackage{{etoolbox}}
 
 \input{{glyphtounicode}}
 \pdfgentounicode=1

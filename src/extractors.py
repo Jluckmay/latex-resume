@@ -208,7 +208,189 @@ def _safe_http_get(
         session.close()
 
 
-def extract_github(github_input: str) -> Dict[str, Any]:
+TECH_PATTERNS = [
+    # Languages
+    (r"\bPython(?:\s*3(?:\.\d+)?)?\b", "Python"),
+    (r"\bTypeScript\b", "TypeScript"),
+    (r"\bJavaScript\b|\bES6\b", "JavaScript"),
+    (r"\bC\+\+\b", "C++"),
+    (r"\bC#\b", "C#"),
+    (r"\bRust\b", "Rust"),
+    (r"\bGolang\b|\bGo\s+language\b", "Go"),
+    (r"\bKotlin\b", "Kotlin"),
+    (r"\bSwift\b", "Swift"),
+    (r"\bPHP\b", "PHP"),
+    (r"\bRuby\b", "Ruby"),
+    (r"\bJava\b(?!\s*Script)", "Java"),
+    (r"\b(?:linguagem C|linguagem de programa[çc][aã]o C|cabe[çc]alhos em C|c\s+codes|C99|ANSI C|\bC\b\s+(?:standards?|compiler|libraries|bibliotecas?))\b", "C"),
+    (r"\bLaTeX\b|\bpdflatex\b", "LaTeX"),
+    (r"\bHTML5?\b", "HTML5"),
+    (r"\bCSS3?\b", "CSS3"),
+    (r"\bBash\b|\bShell script\b|\bPowerShell\b", "Bash"),
+    (r"\bSQL\b|\bPostgreSQL\b|\bMySQL\b|\bSQLite\b|\bMongoDB\b|\bRedis\b", "SQL"),
+    
+    # Frameworks & Libraries
+    (r"\bFlask\b", "Flask"),
+    (r"\bFastAPI\b", "FastAPI"),
+    (r"\bDjango\b", "Django"),
+    (r"\bReact(?:\.js)?\b", "React"),
+    (r"\bVue(?:\.js)?\b", "Vue"),
+    (r"\bAngular\b", "Angular"),
+    (r"\bNode(?:\.js)?\b", "Node.js"),
+    (r"\bExpress(?:\.js)?\b", "Express"),
+    (r"\bJinja(?:2)?\b", "Jinja2"),
+    (r"\bPygame\b", "Pygame"),
+    (r"\bNumPy\b", "NumPy"),
+    (r"\bPandas\b", "Pandas"),
+    (r"\bPyTorch\b", "PyTorch"),
+    (r"\bTensorFlow\b", "TensorFlow"),
+    (r"\bOpenCV\b", "OpenCV"),
+    (r"\bScikit-Learn\b", "Scikit-Learn"),
+    
+    # Tools & Infra
+    (r"\bDocker\b", "Docker"),
+    (r"\bKubernetes\b", "Kubernetes"),
+    (r"\bGitHub Pages\b", "GitHub Pages"),
+    (r"\bGitHub Actions\b", "GitHub Actions"),
+    (r"\bGit\b", "Git"),
+    (r"\bWebSocket(?:s)?\b", "WebSockets"),
+    (r"\bTailwind(?:CSS)?\b", "Tailwind CSS"),
+    (r"\bBootstrap\b", "Bootstrap"),
+]
+
+KNOWN_TECH_TOPICS = {
+    "python": "Python", "javascript": "JavaScript", "typescript": "TypeScript",
+    "c": "C", "cpp": "C++", "csharp": "C#", "java": "Java", "html": "HTML5",
+    "html5": "HTML5", "css": "CSS3", "css3": "CSS3", "latex": "LaTeX",
+    "flask": "Flask", "fastapi": "FastAPI", "django": "Django", "react": "React",
+    "vue": "Vue", "angular": "Angular", "nodejs": "Node.js", "node": "Node.js",
+    "docker": "Docker", "kubernetes": "Kubernetes", "git": "Git", "bash": "Bash",
+    "sql": "SQL", "postgresql": "PostgreSQL", "mysql": "MySQL", "sqlite": "SQLite",
+    "mongodb": "MongoDB", "redis": "Redis", "github-pages": "GitHub Pages",
+    "github-actions": "GitHub Actions", "websocket": "WebSockets", "websockets": "WebSockets",
+    "tailwind": "Tailwind CSS", "bootstrap": "Bootstrap", "pygame": "Pygame",
+    "pandas": "Pandas", "numpy": "NumPy", "pytorch": "PyTorch", "tensorflow": "TensorFlow"
+}
+
+
+def clean_markdown_text(raw: str) -> str:
+    """Remove marcações de formatação markdown, links e badges preservando o conteúdo textual."""
+    text = re.sub(r"!\[[^\]]*\]\([^)]*\)", "", raw)
+    text = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", text)
+    text = re.sub(r"[*_]{1,3}([^*_]+)[*_]{1,3}", r"\1", text)
+    text = re.sub(r"`([^`]+)`", r"\1", text)
+    text = re.sub(r"<[^>]+>", "", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def extract_project_info_from_readme(
+    readme_text: str,
+    repo_lang: str = "",
+    topics: List[str] | None = None,
+    target_lang: str = "pt-br",
+    fallback_desc: str = "",
+) -> Tuple[str, str]:
+    """Extrai um resumo conciso (1-2 frases) baseado no README do projeto e identifica todas as ferramentas utilizadas."""
+    if not readme_text or not readme_text.strip():
+        primary = repo_lang.strip()
+        if primary.lower() == "html": primary = "HTML5"
+        elif primary.lower() == "css": primary = "CSS3"
+        return fallback_desc, primary
+
+    is_en = target_lang.lower().startswith("en")
+
+    # 1. Identifica seção de idioma preferencial se o README for multilíngue
+    section_text = readme_text
+    if not is_en:
+        m_pt = re.search(r"##+\s*(?:🇧🇷\s*)?Portugu[eê]s.*?(?=(?:##+\s*(?:🇺🇸\s*)?English|\Z))", readme_text, re.IGNORECASE | re.DOTALL)
+        if m_pt:
+            section_text = m_pt.group(0)
+    else:
+        m_en = re.search(r"##+\s*(?:🇺🇸\s*)?English.*?(?=(?:##+\s*(?:🇧🇷\s*)?Portugu[eê]s|\Z))", readme_text, re.IGNORECASE | re.DOTALL)
+        if m_en:
+            section_text = m_en.group(0)
+
+    # 2. Extrai o melhor parágrafo descritivo
+    paragraphs = section_text.split("\n\n")
+    candidate_paras = []
+    for p in paragraphs:
+        lines = [line.strip() for line in p.splitlines() if line.strip()]
+        cleaned_lines = []
+        for line in lines:
+            if line.startswith(("#", ">", "|", "-", "*", "1.", "2.", "3.", "---", "===")):
+                continue
+            cleaned_lines.append(line)
+        para = clean_markdown_text(" ".join(cleaned_lines))
+        if len(para) < 25:
+            continue
+        if re.match(r"^(?:read in|leia em|idioma|language|aplica[çc][aã]o|live application|table of contents|sum[aá]rio)", para, re.IGNORECASE):
+            continue
+        candidate_paras.append(para)
+
+    best_summary = ""
+    for para in candidate_paras:
+        if re.match(r"^desenvolvido por\b", para, re.IGNORECASE):
+            parts = re.split(r"(?<=[.!?])\s+", para)
+            if len(parts) > 1 and len(" ".join(parts[1:])) > 30:
+                best_summary = " ".join(parts[1:])
+                break
+            continue
+        best_summary = para
+        break
+
+    if not best_summary and fallback_desc:
+        best_summary = fallback_desc
+    elif not best_summary and candidate_paras:
+        best_summary = candidate_paras[0]
+
+    # Trunca no limite de frase (~160-200 caracteres)
+    if best_summary:
+        sentences = re.split(r"(?<=[.!?])\s+", best_summary)
+        if sentences:
+            accum = sentences[0]
+            for s in sentences[1:]:
+                if len(accum) + len(s) + 1 <= 190:
+                    accum = f"{accum} {s}"
+                else:
+                    break
+            if len(accum) > 210:
+                accum = accum[:205].rsplit(" ", 1)[0] + "..."
+            best_summary = accum
+
+    # 3. Detecta ferramentas e linguagens (Tech Stack completa)
+    detected_tech = []
+    seen = set()
+
+    # Prioridade A: Linguagem principal informada pelo GitHub
+    if repo_lang:
+        primary = repo_lang.strip()
+        if primary.lower() == "html": primary = "HTML5"
+        elif primary.lower() == "css": primary = "CSS3"
+        detected_tech.append(primary)
+        seen.add(primary.lower())
+
+    # Prioridade B: Tópicos técnicos do repositório
+    for t in (topics or []):
+        t_low = t.strip().lower()
+        if t_low in KNOWN_TECH_TOPICS:
+            name = KNOWN_TECH_TOPICS[t_low]
+            if name.lower() not in seen:
+                detected_tech.append(name)
+                seen.add(name.lower())
+
+    # Prioridade C: Varredura de tecnologias no README
+    for pat, name in TECH_PATTERNS:
+        if name.lower() in seen:
+            continue
+        if re.search(pat, readme_text, re.IGNORECASE):
+            detected_tech.append(name)
+            seen.add(name.lower())
+
+    return best_summary, ", ".join(detected_tech[:6])
+
+
+def extract_github(github_input: str, target_lang: str = "pt-br") -> Dict[str, Any]:
     """Extrai perfil, linguagens e principais repositórios públicos via API do GitHub."""
     if not github_input or not github_input.strip():
         return {}
@@ -266,14 +448,41 @@ def extract_github(github_input: str) -> Dict[str, Any]:
             lang = repo.get("language") or ""
             if lang:
                 lang_counter[lang] += 1
+            repo_name = repo.get("name") or ""
+            fallback_desc = repo.get("description") or ""
+            topics = (repo.get("topics") or [])[:5]
+
+            # Consulta README para extrair resumo contextual e todas as ferramentas utilizadas
+            desc = fallback_desc
+            tech = lang
+            if repo_name and len(repos_summary) < 6:
+                try:
+                    readme_url = f"https://raw.githubusercontent.com/{username}/{repo_name}/HEAD/README.md"
+                    r_readme = requests.get(readme_url, headers={"User-Agent": USER_AGENT}, timeout=3)
+                    if r_readme.status_code == 200 and r_readme.text:
+                        ext_desc, ext_tech = extract_project_info_from_readme(
+                            r_readme.text,
+                            repo_lang=lang,
+                            topics=topics,
+                            target_lang=target_lang,
+                            fallback_desc=fallback_desc,
+                        )
+                        if ext_desc:
+                            desc = ext_desc
+                        if ext_tech:
+                            tech = ext_tech
+                except Exception:
+                    pass
+
             repos_summary.append(
                 {
-                    "name": repo.get("name") or "",
-                    "description": repo.get("description") or "",
+                    "name": repo_name,
+                    "description": desc,
                     "language": lang,
+                    "tech": tech,
                     "stars": repo.get("stargazers_count") or 0,
                     "url": repo.get("html_url") or "",
-                    "topics": (repo.get("topics") or [])[:5],
+                    "topics": topics,
                 }
             )
 
