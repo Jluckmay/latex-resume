@@ -36,7 +36,11 @@ from typing import Any, Dict, List, Tuple
 
 from .i18n import normalize_lang
 
-from .extractors import extract_languages_from_text, sanitize_project_description
+from .extractors import (
+    extract_languages_from_text,
+    sanitize_project_description,
+    sanitize_experience_description,
+)
 
 from .templates import (
 
@@ -323,6 +327,8 @@ def build_structured_cv_deterministically(
 
     scholar = raw_profile_data.get("scholar") or {}
 
+    links = raw_profile_data.get("links") or {}
+
     extra_notes = str(raw_profile_data.get("extra_notes") or "").strip()
 
     manual = parse_manual_resume_inputs(raw_profile_data.get("manual_data"))
@@ -399,7 +405,26 @@ def build_structured_cv_deterministically(
 
     # 3. Informações de Contato
 
-    email = (user_meta.get("email") or gh.get("email") or "").strip()
+    email = (
+        user_meta.get("email")
+        or links.get("email")
+        or portfolio.get("email")
+        or lattes.get("email")
+        or gh.get("email")
+        or li.get("email")
+        or orcid.get("email")
+        or scholar.get("email")
+        or manual.get("email")
+        or ""
+    ).strip()
+    if not email:
+        for src_data in (portfolio, lattes, li, gh):
+            raw = src_data.get("raw_text") or src_data.get("bio") or ""
+            if raw:
+                m_em = re.search(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", raw)
+                if m_em and not m_em.group(0).lower().endswith((".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif")):
+                    email = m_em.group(0).strip()
+                    break
 
     phone = (user_meta.get("phone") or "").strip()
 
@@ -881,6 +906,11 @@ def build_structured_cv_deterministically(
                 experience.append(cand)
 
     experience = deduplicate_and_sort_experiences(experience, lang=lang)
+    for exp in experience:
+        if exp.get("description"):
+            exp["description"] = sanitize_experience_description(exp["description"], lang=lang)
+        if exp.get("bullets"):
+            exp["bullets"] = [sanitize_experience_description(b, lang=lang) for b in exp["bullets"]]
 
 
 
@@ -1234,6 +1264,11 @@ def build_structured_cv_deterministically(
 
     # Garante desduplicação, padronização de datas/descrições e ordenação cronológica reversa
     experience = deduplicate_and_sort_experiences(experience, lang=lang)
+    for exp in experience:
+        if exp.get("description"):
+            exp["description"] = sanitize_experience_description(exp["description"], lang=lang)
+        if exp.get("bullets"):
+            exp["bullets"] = [sanitize_experience_description(b, lang=lang) for b in exp["bullets"]]
     education = deduplicate_and_sort_educations(education, lang=lang)
     publications = deduplicate_and_sort_publications(publications)
     awards = deduplicate_and_sort_awards(awards)
@@ -1392,9 +1427,9 @@ def _fill_custom_template_deterministically(
 
 
     contact_parts = []
-    if cv.get("email"):
-        em = cv["email"].strip()
-        contact_parts.append(rf"\mbox{{\href{{mailto:{escape_url(em)}}}{{\faIcon{{envelope}}\ {escape_latex(em)}}}}}")
+    clean_em = (cv.get("email") or links.get("email") or "").strip()
+    if clean_em:
+        contact_parts.append(rf"\mbox{{\href{{mailto:{escape_url(clean_em)}}}{{\faIcon{{envelope}}\ {escape_latex(clean_em)}}}}}")
     if cv.get("phone"):
         contact_parts.append(rf"\mbox{{\faIcon{{phone}}\ {escape_latex(cv['phone'])}}}")
     if links.get("portfolio"):

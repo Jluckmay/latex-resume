@@ -359,6 +359,175 @@ def sanitize_project_description(desc: str, lang: str = "pt-br") -> str:
     return text
 
 
+def sanitize_experience_description(desc: str, lang: str = "pt-br") -> str:
+    """Padroniza descrições e bullet points de experiências profissionais para iniciarem com substantivos e não verbos no passado.
+
+    Exemplos:
+    - 'Participou do processo...' -> 'Participação no processo...'
+    - 'Orientou estudantes e apoiou...' -> 'Orientação a estudantes e apoio...'
+    - 'Acompanhou estudantes e apoiou...' -> 'Acompanhamento de estudantes e apoio...'
+    - 'Desenvolveu figuras...' -> 'Desenvolvimento de figuras...'
+    - 'Ensinou conceitos...' -> 'Ensino de conceitos...'
+    - 'Realizou trabalho voluntário...' -> 'Realização de trabalho voluntário...'
+    """
+    if not desc or not desc.strip():
+        return ""
+    text = desc.strip()
+    is_en = str(lang).lower().startswith("en")
+
+    # Detecta se a frase está em inglês mesmo se lang não foi especificado
+    if not is_en and re.match(r"^(?:Led|Managed|Developed|Designed|Implemented|Created|Taught|Mentored|Guided|Participated|Assisted|Conducted|Coordinated|Collaborated|Organized|Engineered)\b", text, re.IGNORECASE):
+        is_en = True
+
+    if not is_en:
+        conversions = [
+            # Participou
+            (r"^\s*participou\s+no\b", "Participação no"),
+            (r"^\s*participou\s+na\b", "Participação na"),
+            (r"^\s*participou\s+nos\b", "Participação nos"),
+            (r"^\s*participou\s+nas\b", "Participação nas"),
+            (r"^\s*participou\s+do\b", "Participação no"),
+            (r"^\s*participou\s+da\b", "Participação na"),
+            (r"^\s*participou\s+dos\b", "Participação nos"),
+            (r"^\s*participou\s+das\b", "Participação nas"),
+            (r"^\s*participou\s+de\b", "Participação em"),
+            (r"^\s*participou\s+em\b", "Participação em"),
+            (r"^\s*participou\b", "Participação em"),
+
+            # Orientou / Acompanhou / Ensinou / Desenvolveu
+            (r"^\s*orientou\s+(?:a\s+|de\s+)?", "Orientação a "),
+            (r"^\s*acompanhou\s+(?:de\s+)?", "Acompanhamento de "),
+            (r"^\s*ensinou\s+(?:de\s+)?", "Ensino de "),
+            (r"^\s*desenvolveu\s+(?:de\s+)?", "Desenvolvimento de "),
+
+            # Realizou
+            (r"^\s*realizou\s+trabalho\s+volunt[aá]rio\b", "Realização de trabalho voluntário"),
+            (r"^\s*realizou\s+(?:de\s+)?", "Realização de "),
+
+            # Liderou / Coordenou / Gerenciou
+            (r"^\s*liderou\s+(?:de\s+)?", "Liderança de "),
+            (r"^\s*coordenou\s+(?:de\s+)?", "Coordenação de "),
+            (r"^\s*(?:gerenciou|geriu)\s+(?:de\s+)?", "Gerenciamento de "),
+
+            # Implementou / Criou / Elaborou / Ministrou
+            (r"^\s*implementou\s+(?:de\s+)?", "Implementação de "),
+            (r"^\s*criou\s+(?:de\s+)?", "Criação de "),
+            (r"^\s*elaborou\s+(?:de\s+)?", "Elaboração de "),
+            (r"^\s*ministrou\s+(?:de\s+)?", "Ministração de "),
+
+            # Apoiou / Atuou
+            (r"^\s*apoiou\s+no\b", "Apoio ao"),
+            (r"^\s*apoiou\s+na\b", "Apoio à"),
+            (r"^\s*apoiou\s+nos\b", "Apoio aos"),
+            (r"^\s*apoiou\s+nas\b", "Apoio às"),
+            (r"^\s*apoiou\s+(?:a\s+)?", "Apoio a "),
+            (r"^\s*atuou\s+como\b", "Atuação como"),
+            (r"^\s*atuou\s+na\b", "Atuação na"),
+            (r"^\s*atuou\s+no\b", "Atuação no"),
+            (r"^\s*atuou\s+nos\b", "Atuação nos"),
+            (r"^\s*atuou\s+nas\b", "Atuação nas"),
+            (r"^\s*atuou\s+em\b", "Atuação em"),
+            (r"^\s*atuou\b", "Atuação em"),
+
+            # Prestou / Colaborou / Conduziu / Executou / Planejou
+            (r"^\s*prestou\s+assessoria\s+(?:a\s+)?", "Assessoria a "),
+            (r"^\s*prestou\s+apoio\s+(?:a\s+)?", "Apoio a "),
+            (r"^\s*prestou\s+suporte\s+(?:a\s+)?", "Suporte a "),
+            (r"^\s*prestou\s+(?:de\s+)?", "Prestação de "),
+            (r"^\s*colaborou\s+com\b", "Colaboração com"),
+            (r"^\s*colaborou\s+(?:em\s+)?", "Colaboração em "),
+            (r"^\s*conduziu\s+(?:de\s+)?", "Condução de "),
+            (r"^\s*executou\s+(?:de\s+)?", "Execução de "),
+            (r"^\s*planejou\s+(?:de\s+)?", "Planejamento de "),
+
+            # Auxiliou / Supervisionou / Construiu / Estruturou / Projetou
+            (r"^\s*auxiliou\s+no\b", "Auxílio no"),
+            (r"^\s*auxiliou\s+na\b", "Auxílio na"),
+            (r"^\s*auxiliou\s+nos\b", "Auxílio nos"),
+            (r"^\s*auxiliou\s+nas\b", "Auxílio nas"),
+            (r"^\s*auxiliou\s+(?:em\s+)?", "Auxílio em "),
+            (r"^\s*supervisionou\s+(?:de\s+)?", "Supervisão de "),
+            (r"^\s*construiu\s+(?:de\s+)?", "Construção de "),
+            (r"^\s*estruturou\s+(?:de\s+)?", "Estruturação de "),
+            (r"^\s*projetou\s+(?:de\s+)?", "Projeto de "),
+
+            # Pesquisou / Investigou / Organizou / Administrou / Otimizou / Automatizou
+            (r"^\s*pesquisou\s+(?:de\s+|sobre\s+)?", "Pesquisa sobre "),
+            (r"^\s*investigou\s+(?:de\s+|sobre\s+)?", "Investigação de "),
+            (r"^\s*organizou\s+(?:de\s+)?", "Organização de "),
+            (r"^\s*administrou\s+(?:de\s+)?", "Administração de "),
+            (r"^\s*otimizou\s+(?:de\s+)?", "Otimização de "),
+            (r"^\s*automatizou\s+(?:de\s+)?", "Automatização de "),
+            (r"^\s*publicou\s+(?:de\s+)?", "Publicação de "),
+            (r"^\s*apresentou\s+(?:de\s+)?", "Apresentação de "),
+            (r"^\s*redigiu\s+(?:de\s+)?", "Redação de "),
+            (r"^\s*revisou\s+(?:de\s+)?", "Revisão de "),
+            (r"^\s*produziu\s+(?:de\s+)?", "Produção de "),
+            (r"^\s*integrou\s+(?:de\s+)?", "Integração de "),
+            (r"^\s*configurou\s+(?:de\s+)?", "Configuração de "),
+            (r"^\s*instalou\s+(?:de\s+)?", "Instalação de "),
+            (r"^\s*facilitou\s+(?:de\s+)?", "Facilitação de "),
+            (r"^\s*articulou\s+(?:de\s+)?", "Articulação de "),
+            (r"^\s*promoveu\s+(?:de\s+)?", "Promoção de "),
+            (r"^\s*assessorou\s+(?:a\s+)?", "Assessoria a "),
+            (r"^\s*treinou\s+(?:de\s+)?", "Treinamento de "),
+            (r"^\s*capacitou\s+(?:de\s+)?", "Capacitação de "),
+            (r"^\s*tutelou\s+(?:de\s+)?", "Tutoria de "),
+            (r"^\s*migrou\s+(?:de\s+)?", "Migração de "),
+            (r"^\s*analisou\s+(?:de\s+)?", "Análise de "),
+            (r"^\s*gerou\s+(?:de\s+)?", "Geração de "),
+        ]
+        for pat, repl in conversions:
+            if re.search(pat, text, re.IGNORECASE):
+                text = re.sub(pat, repl, text, count=1, flags=re.IGNORECASE)
+                break
+
+        # Normaliza conjunções com verbos internos: 'e apoiou no' -> 'e apoio no'
+        text = re.sub(r"\be apoiou no\b", "e apoio no", text, flags=re.IGNORECASE)
+        text = re.sub(r"\be apoiou na\b", "e apoio na", text, flags=re.IGNORECASE)
+        text = re.sub(r"\be apoiou o\b", "e apoio ao", text, flags=re.IGNORECASE)
+        text = re.sub(r"\be apoiou a\b", "e apoio à", text, flags=re.IGNORECASE)
+        text = re.sub(r"\be apoiou\b", "e apoio a", text, flags=re.IGNORECASE)
+        text = re.sub(r"\be acompanhou\b", "e acompanhamento de", text, flags=re.IGNORECASE)
+        text = re.sub(r"\be auxiliou\b", "e auxílio em", text, flags=re.IGNORECASE)
+    else:
+        conversions_en = [
+            (r"^\s*led\s+(?:in\s+|the\s+)?", "Leadership of "),
+            (r"^\s*managed\s+(?:the\s+)?", "Management of "),
+            (r"^\s*developed\s+(?:the\s+)?", "Development of "),
+            (r"^\s*designed\s+(?:the\s+)?", "Design of "),
+            (r"^\s*implemented\s+(?:the\s+)?", "Implementation of "),
+            (r"^\s*created\s+(?:the\s+)?", "Creation of "),
+            (r"^\s*taught\s+(?:the\s+)?", "Instruction in "),
+            (r"^\s*mentored\s+(?:the\s+)?", "Mentorship of "),
+            (r"^\s*guided\s+(?:the\s+)?", "Guidance of "),
+            (r"^\s*participated\s+in\b", "Participation in"),
+            (r"^\s*participated\b", "Participation in"),
+            (r"^\s*assisted\s+with\b", "Assistance with"),
+            (r"^\s*assisted\s+in\b", "Assistance in"),
+            (r"^\s*assisted\b", "Assistance in"),
+            (r"^\s*conducted\s+(?:the\s+)?", "Conduction of "),
+            (r"^\s*coordinated\s+(?:the\s+)?", "Coordination of "),
+            (r"^\s*collaborated\s+with\b", "Collaboration with"),
+            (r"^\s*collaborated\b", "Collaboration in"),
+            (r"^\s*organized\s+(?:the\s+)?", "Organization of "),
+            (r"^\s*engineered\s+(?:the\s+)?", "Engineering of "),
+            (r"^\s*built\s+(?:the\s+)?", "Construction of "),
+            (r"^\s*optimized\s+(?:the\s+)?", "Optimization of "),
+            (r"^\s*automated\s+(?:the\s+)?", "Automation of "),
+            (r"^\s*analyzed\s+(?:the\s+)?", "Analysis of "),
+        ]
+        for pat, repl in conversions_en:
+            if re.search(pat, text, re.IGNORECASE):
+                text = re.sub(pat, repl, text, count=1, flags=re.IGNORECASE)
+                break
+
+    text = text.strip()
+    if text:
+        text = text[0].upper() + text[1:]
+    return text
+
+
 def extract_project_info_from_readme(
     readme_text: str,
     repo_lang: str = "",
@@ -503,6 +672,10 @@ def extract_github(github_input: str, target_lang: str = "pt-br") -> Dict[str, A
                 "followers": u.get("followers") or 0,
             }
         )
+        if not result["email"] and u.get("bio"):
+            m_em = re.search(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", u["bio"])
+            if m_em and not m_em.group(0).lower().endswith((".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif")):
+                result["email"] = m_em.group(0).strip()
 
         r_repos = requests.get(
             f"https://api.github.com/users/{username}/repos?sort=updated&per_page=30",
@@ -869,6 +1042,12 @@ def extract_lattes(
     if not result["languages"] and result.get("raw_text"):
         result["languages"] = extract_languages_from_text(result["raw_text"])
 
+    if not result.get("email") and result.get("raw_text"):
+        for cand in re.findall(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", result["raw_text"]):
+            if not cand.lower().endswith((".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif")) and "example.com" not in cand.lower():
+                result["email"] = cand.strip()
+                break
+
     return result
 
 
@@ -896,6 +1075,15 @@ def _parse_lattes_xml(xml_bytes: bytes, out: Dict[str, Any]) -> None:
         out["lattes_id"] = id_lattes
         if not out.get("url"):
             out["url"] = f"http://lattes.cnpq.br/{id_lattes}"
+
+    for node in root.iter():
+        for attr_key in ("E-MAIL", "EMAIL", "E-MAIL-INSTITUCIONAL"):
+            em_val = node.attrib.get(attr_key)
+            if em_val and "@" in em_val and "." in em_val:
+                out["email"] = em_val.strip()
+                break
+        if out.get("email"):
+            break
 
     dados_gerais = root.find("DADOS-GERAIS")
     if dados_gerais is not None:
@@ -946,7 +1134,7 @@ def _parse_lattes_xml(xml_bytes: bytes, out: Dict[str, Any]) -> None:
                             ),
                             "start": vinc.attrib.get("ANO-INICIO", ""),
                             "end": vinc.attrib.get("ANO-FIM", "") or "Atual",
-                            "description": vinc.attrib.get("OUTRAS-INFORMACOES", ""),
+                            "description": sanitize_experience_description(vinc.attrib.get("OUTRAS-INFORMACOES", "")),
                         }
                     )
 
@@ -1100,6 +1288,12 @@ def extract_linkedin(
     if not result.get("languages") and result.get("raw_text"):
         result["languages"] = extract_languages_from_text(result["raw_text"])
 
+    if not result.get("email") and result.get("raw_text"):
+        for cand in re.findall(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", result["raw_text"]):
+            if not cand.lower().endswith((".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif")) and "example.com" not in cand.lower():
+                result["email"] = cand.strip()
+                break
+
     return result
 
 
@@ -1167,6 +1361,21 @@ def extract_portfolio(portfolio_url: str = "") -> Dict[str, Any]:
             if m and m.get("content"):
                 desc = m["content"].strip()
                 break
+
+        # 0. Extração de Email
+        for a_mail in soup.find_all("a", href=True):
+            hr = a_mail["href"].strip()
+            if hr.lower().startswith("mailto:"):
+                cand_mail = re.sub(r"^mailto:", "", hr, flags=re.I).split("?")[0].strip()
+                if "@" in cand_mail and "." in cand_mail.split("@")[-1]:
+                    result["email"] = cand_mail
+                    break
+        if not result.get("email"):
+            for cand in re.findall(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", html_text):
+                c_low = cand.strip().lower()
+                if not c_low.endswith((".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif", ".css", ".js")) and "example.com" not in c_low and "domain.com" not in c_low:
+                    result["email"] = cand.strip()
+                    break
 
         # 1. Extração estruturada de Idiomas antes de decompor elementos
         languages: List[str] = []
@@ -1332,7 +1541,7 @@ def extract_portfolio(portfolio_url: str = "") -> Dict[str, Any]:
                     "role": role,
                     "organization": org,
                     "period": clean_period,
-                    "description": desc,
+                    "description": sanitize_experience_description(desc),
                 })
 
         for tag in soup(["script", "style", "svg", "noscript", "iframe"]):

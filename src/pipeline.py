@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict
@@ -137,7 +138,27 @@ def build_resume_pipeline(
     )
     portfolio_data = extract_portfolio(portfolio_url) if portfolio_url else {}
 
+    effective_email = (
+        user_email.strip()
+        or portfolio_data.get("email")
+        or lattes_data.get("email")
+        or gh_data.get("email")
+        or li_data.get("email")
+        or orcid_data.get("email")
+        or scholar_data.get("email")
+        or ""
+    ).strip()
+    if not effective_email:
+        for d in (portfolio_data, lattes_data, li_data, gh_data):
+            raw = d.get("raw_text") or d.get("bio") or ""
+            if raw:
+                m = re.search(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", raw)
+                if m and not m.group(0).lower().endswith((".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif")):
+                    effective_email = m.group(0).strip()
+                    break
+
     links = {
+        "email": effective_email,
         "linkedin": li_data.get("url") or li_url_norm or (linkedin_url.strip() if linkedin_url else ""),
         "github": gh_data.get("url") or gh_url_norm or (github_input.strip() if github_input else ""),
         "orcid": orcid_data.get("url") or orcid_url_norm or (orcid_input.strip() if orcid_input else ""),
@@ -169,7 +190,7 @@ def build_resume_pipeline(
         "user_meta": {
             "name": user_name.strip(),
             "role": user_role.strip(),
-            "email": user_email.strip(),
+            "email": effective_email,
             "phone": user_phone.strip(),
             "location": user_location.strip(),
         },

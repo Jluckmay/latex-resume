@@ -19,6 +19,7 @@ from .extractors import (
     parse_linkedin_input,
     parse_orcid_input,
     sanitize_project_description,
+    sanitize_experience_description,
 )
 
 BUILTIN_TEMPLATES: Dict[str, Dict[str, str]] = {
@@ -254,8 +255,8 @@ def simplify_url_display(url: str) -> str:
 
 def _build_contact_links(links: Dict[str, str], email: str, phone: str, location: str, candidate_name: str = "") -> List[str]:
     items: List[str] = []
-    if email:
-        clean_em = email.strip()
+    clean_em = (email or links.get("email") or "").strip()
+    if clean_em:
         items.append(rf"\mbox{{\href{{mailto:{escape_url(clean_em)}}}{{\faIcon{{envelope}}\ {escape_latex(clean_em)}}}}}")
     if phone:
         items.append(rf"\mbox{{\faIcon{{phone}}\ {escape_latex(phone.strip())}}}")
@@ -412,10 +413,11 @@ def merge_experiences(target: Dict[str, Any], source: Dict[str, Any], lang: str 
 
     b_t = [str(b).strip() for b in (target.get("bullets") or []) if str(b).strip()]
     b_s = [str(b).strip() for b in (source.get("bullets") or []) if str(b).strip()]
-    merged_b: List[str] = list(b_t)
+    merged_b: List[str] = [sanitize_experience_description(b, lang=lang) for b in b_t]
     for b in b_s:
-        if not any(normalize_text_for_cmp(b) == normalize_text_for_cmp(x) for x in merged_b):
-            merged_b.append(b)
+        sb = sanitize_experience_description(b, lang=lang)
+        if not any(normalize_text_for_cmp(sb) == normalize_text_for_cmp(x) for x in merged_b):
+            merged_b.append(sb)
     target["bullets"] = merged_b
 
 
@@ -428,12 +430,15 @@ def deduplicate_and_sort_experiences(experiences: List[Dict[str, Any]], lang: st
             continue
         c_item = dict(item)
         c_item["period"] = normalize_period(c_item.get("period", ""), lang)
+        if c_item.get("description"):
+            c_item["description"] = sanitize_experience_description(c_item["description"], lang=lang)
 
         raw_bullets = c_item.get("bullets") or []
         std_bullets = []
         for b in raw_bullets:
             b_str = re.sub(r"^[–—·\-\*•\s]+", "", str(b)).strip()
             if b_str:
+                b_str = sanitize_experience_description(b_str, lang=lang)
                 b_str = b_str[0].upper() + b_str[1:]
                 if not b_str.endswith((".", "!", "?")):
                     b_str += "."
@@ -801,7 +806,7 @@ def _build_experience_block(experiences: List[Dict[str, Any]], resume_type: str,
         role = escape_latex(xp.get("role"))
         org = escape_latex(xp.get("organization"))
         per = escape_latex(xp.get("period"))
-        bullets = [escape_latex(b) for b in (xp.get("bullets") or []) if str(b).strip()]
+        bullets = [escape_latex(sanitize_experience_description(b, lang=lang)) for b in (xp.get("bullets") or []) if str(b).strip()]
         header_left = f"{role} --- \\textit{{{org}}}" if org else role
         lines.append(rf"\noindent\textbf{{{header_left}}} \hfill \textit{{{per}}}")
         if bullets:
@@ -1253,7 +1258,7 @@ def _build_acv_sections(
         role = escape_latex(xp.get("role"))
         org = escape_latex(xp.get("organization"))
         per = escape_latex(xp.get("period"))
-        bullets = [escape_latex(b) for b in (xp.get("bullets") or []) if str(b).strip()]
+        bullets = [escape_latex(sanitize_experience_description(b, lang=lang)) for b in (xp.get("bullets") or []) if str(b).strip()]
         b_tex = ""
         if bullets:
             items_str = "\n".join(rf"    \item {b}" for b in bullets)
@@ -1447,9 +1452,9 @@ def _render_overleaf_russell_ti(
         row1_links.append(rf"\mbox{{\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}}}")
 
     row2_links: List[str] = []
-    if cv.get("email"):
-        em = cv["email"].strip()
-        row2_links.append(rf"\mbox{{\href{{mailto:{escape_url(em)}}}{{\faIcon[regular]{{envelope}}\ {escape_latex(em)}}}}}")
+    clean_em = (cv.get("email") or links.get("email") or "").strip()
+    if clean_em:
+        row2_links.append(rf"\mbox{{\href{{mailto:{escape_url(clean_em)}}}{{\faIcon[regular]{{envelope}}\ {escape_latex(clean_em)}}}}}")
     if cv.get("phone"):
         row2_links.append(rf"\mbox{{\faIcon{{whatsapp}}\ {escape_latex(cv['phone'])}}}")
     if links.get("linkedin"):
@@ -1554,9 +1559,9 @@ def _render_overleaf_awesome_cv(
     social_items: List[str] = []
     if cv.get("phone"):
         social_items.append(rf"\mbox{{\faIcon{{mobile-alt}}\ {escape_latex(cv['phone'])}}}")
-    if cv.get("email"):
-        em = cv["email"].strip()
-        social_items.append(rf"\mbox{{\href{{mailto:{escape_url(em)}}}{{\faIcon[regular]{{envelope}}\ {escape_latex(em)}}}}}")
+    clean_em = (cv.get("email") or links.get("email") or "").strip()
+    if clean_em:
+        social_items.append(rf"\mbox{{\href{{mailto:{escape_url(clean_em)}}}{{\faIcon[regular]{{envelope}}\ {escape_latex(clean_em)}}}}}")
     if links.get("portfolio"):
         port_disp = escape_latex(simplify_url_display(links["portfolio"]))
         social_items.append(rf"\mbox{{\href{{{escape_url(links['portfolio'])}}}{{\faIcon{{globe}}\ \textbf{{{port_disp}}}}}}}")
@@ -1691,9 +1696,9 @@ def _render_overleaf_single_page_keywords(
     fallback_kw = ", ".join(all_skill_items)[:95]
 
     right_contacts: List[str] = []
-    if cv.get("email"):
-        em = cv["email"].strip()
-        right_contacts.append(rf"{{\small\faIcon{{envelope}}}} \href{{mailto:{escape_url(em)}}}{{\textbf{{{escape_latex(em)}}}}}")
+    clean_em = (cv.get("email") or links.get("email") or "").strip()
+    if clean_em:
+        right_contacts.append(rf"{{\small\faIcon{{envelope}}}} \href{{mailto:{escape_url(clean_em)}}}{{\textbf{{{escape_latex(clean_em)}}}}}")
     if cv.get("phone"):
         right_contacts.append(rf"{{\small\faIcon{{phone}}}} \textbf{{{escape_latex(cv['phone'])}}}")
     if links.get("portfolio"):
@@ -1739,7 +1744,7 @@ def _render_overleaf_single_page_keywords(
         r_txt = escape_latex(xp.get("role"))
         p_txt = escape_latex(xp.get("period"))
         o_txt = escape_latex(xp.get("organization"))
-        bullets = [escape_latex(b) for b in (xp.get("bullets") or []) if str(b).strip()]
+        bullets = [escape_latex(sanitize_experience_description(b, lang=lang)) for b in (xp.get("bullets") or []) if str(b).strip()]
         desc_txt = " ".join(bullets)
         head_rp = f"{r_txt} / {p_txt}" if p_txt else r_txt
         work_items.append(rf"\work{{{head_rp}}}{{{o_txt}}}{{{desc_txt}}}{{{fallback_kw}}}")
@@ -1939,9 +1944,9 @@ def _render_google_standard(
     title = escape_latex(cv.get("title") or default_tl)
 
     contact_parts: List[str] = []
-    if cv.get("email"):
-        em = cv["email"].strip()
-        contact_parts.append(rf"\mbox{{\href{{mailto:{escape_url(em)}}}{{\faIcon{{envelope}}\ {escape_latex(em)}}}}}")
+    clean_em = (cv.get("email") or links.get("email") or "").strip()
+    if clean_em:
+        contact_parts.append(rf"\mbox{{\href{{mailto:{escape_url(clean_em)}}}{{\faIcon{{envelope}}\ {escape_latex(clean_em)}}}}}")
     if cv.get("phone"):
         contact_parts.append(rf"\mbox{{\faIcon{{phone}}\ {escape_latex(cv['phone'].strip())}}}")
     if links.get("portfolio"):
@@ -2015,7 +2020,7 @@ def _render_google_standard(
             role = escape_latex(xp.get("role"))
             org = escape_latex(xp.get("organization"))
             per = escape_latex(xp.get("period"))
-            bullets = [escape_latex(b) for b in (xp.get("bullets") or []) if str(b).strip()]
+            bullets = [escape_latex(sanitize_experience_description(b, lang=lang)) for b in (xp.get("bullets") or []) if str(b).strip()]
             head_l = f"\\textbf{{{org}}}" if org else f"\\textbf{{{role}}}"
             sub_l = f"\\textit{{{role}}}" if org else ""
             item_lines = [rf"\noindent{head_l} \hfill \textbf{{{per}}}"]
@@ -2175,9 +2180,9 @@ def _render_ai_ats_max(
     title = escape_latex(cv.get("title") or default_tl)
 
     contact_parts: List[str] = []
-    if cv.get("email"):
-        em = cv["email"].strip()
-        contact_parts.append(rf"\mbox{{\href{{mailto:{escape_url(em)}}}{{\faIcon{{envelope}}\ {escape_latex(em)}}}}}")
+    clean_em = (cv.get("email") or links.get("email") or "").strip()
+    if clean_em:
+        contact_parts.append(rf"\mbox{{\href{{mailto:{escape_url(clean_em)}}}{{\faIcon{{envelope}}\ {escape_latex(clean_em)}}}}}")
     if cv.get("phone"):
         contact_parts.append(rf"\mbox{{\faIcon{{phone}}\ {escape_latex(cv['phone'].strip())}}}")
     if links.get("portfolio"):
@@ -2256,7 +2261,7 @@ def _render_ai_ats_max(
             role = escape_latex(xp.get("role"))
             org = escape_latex(xp.get("organization"))
             per = escape_latex(xp.get("period"))
-            bullets = [escape_latex(b) for b in (xp.get("bullets") or []) if str(b).strip()]
+            bullets = [escape_latex(sanitize_experience_description(b, lang=lang)) for b in (xp.get("bullets") or []) if str(b).strip()]
             head_txt = f"{role} | {org}" if org else role
             xp_lines.append(rf"\noindent\textbf{{{head_txt}}} \hfill \textbf{{{per}}}")
             if bullets:
@@ -2437,9 +2442,9 @@ def _render_nico_krieger(
 
     # 2. Contacts (Strictly: email -> phone -> location -> portfolio -> linkedin -> github -> orcid -> lattes)
     sidebar_contacts: List[str] = []
-    if cv.get("email"):
-        em = cv["email"].strip()
-        sidebar_contacts.append(rf"\faIcon{{envelope}}\ \href{{{escape_url('mailto:' + em)}}}{{{escape_latex(em)}}}")
+    clean_em = (cv.get("email") or links.get("email") or "").strip()
+    if clean_em:
+        sidebar_contacts.append(rf"\faIcon{{envelope}}\ \href{{{escape_url('mailto:' + clean_em)}}}{{{escape_latex(clean_em)}}}")
     if cv.get("phone"):
         sidebar_contacts.append(rf"\faIcon{{phone}}\ {escape_latex(cv['phone'])}")
     if links.get("portfolio"):
@@ -2544,7 +2549,7 @@ def _render_nico_krieger(
             role_xp = escape_latex(xp.get("role"))
             org_xp = escape_latex(xp.get("organization"))
             per_xp = escape_latex(xp.get("period"))
-            bullets = [escape_latex(b) for b in (xp.get("bullets") or []) if str(b).strip()]
+            bullets = [escape_latex(sanitize_experience_description(b, lang=lang)) for b in (xp.get("bullets") or []) if str(b).strip()]
             date_tex = rf"{{\small\color{{graytext}}\faIcon{{calendar-alt}}\ {per_xp}}}" if per_xp else ""
             xp_lines.append(rf"\textbf{{\large {role_xp}}} \hfill {date_tex}\\[1pt]")
             if org_xp:

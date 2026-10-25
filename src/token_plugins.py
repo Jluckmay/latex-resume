@@ -122,7 +122,7 @@ class CavemanPromptPlugin:
                 "NEVER put ORCID, links or profile IDs into 'aw'; if no real awards/honors/certifications exist, 'aw' MUST be []. "
                 "PUBLICATIONS & AWARDS: Output all individual publications ('pb') and all individual awards ('aw'). NEVER summarize into 'X premiações' or generic placeholders like 'Trabalhos de Pesquisa'. "
                 "DATES & PERIODS: Output exact years/periods (e.g. '2026 - Atual', '2019 - 2025', '2023 - 2024'), NEVER use 'Período não especificado', 'Em andamento', or 'Concluído'. "
-                "PROJECTS: Project descriptions in 'pj' MUST start with a NOUN (Gerador, Aplicação, Utilitário, Jogo, Portfólio, Implementação...), NEVER action verbs (Desenvolveu, Criou, Implementou). Reserve action verbs strictly for work experience."
+                "EXPERIENCE & PROJECTS: Descriptions in 'xp' and 'pj' MUST start with NOUNS (Participação, Orientação, Desenvolvimento, Ensino, Gerador, Aplicação, Utilitário...), NEVER action verbs (Participou, Orientou, Desenvolveu, Implementou, Criou)."
             )
         return (
             "MODE:CAVEMAN_LATEX_ONLY. Zero prose, zero markdown fences, zero explanations. "
@@ -136,7 +136,7 @@ class CavemanPromptPlugin:
             "5. HEADER CONTACT DISCIPLINE: Never prefix contacts with 'Local:' or 'Portfólio:'. The candidate's location MUST be the last item in the header contact list. "
             "6. PUBLICATIONS & AWARDS: You MUST preserve and list ALL individual publications and awards. NEVER collapse or summarize them. "
             "7. DATES & PERIODS: Preserve exact years and periods (e.g. 2026 - Atual, 2019 - 2025). Never emit 'Período não especificado', 'Em andamento', or 'Concluído'. "
-            "8. NOUN-FIRST PROJECT DESCRIPTIONS: Project descriptions MUST start with a descriptive NOUN (Gerador, Aplicação, Utilitário, Jogo, Portfólio, Implementação...), NEVER action verbs (Desenvolveu, Criou, Implementou). Reserve action verbs strictly for work experience."
+            "8. NOUN-FIRST EXPERIENCE & PROJECT DESCRIPTIONS: Bullet points in experience and projects MUST start with descriptive NOUNS (Participação, Orientação, Desenvolvimento, Ensino, Gerador, Aplicação, Utilitário...), NEVER past-tense verbs (Participou, Orientou, Desenvolveu, Implementou, Criou)."
         )
 
     @staticmethod

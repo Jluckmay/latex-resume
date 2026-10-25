@@ -231,7 +231,9 @@ def sanitize_latex_layout(tex: str) -> str:
         fixed_lines.append(line)
 
     cleaned = "\n".join(fixed_lines)
-    return clean_latex_project_verbs(cleaned)
+    cleaned = clean_latex_project_verbs(cleaned)
+    cleaned = clean_latex_experience_verbs(cleaned)
+    return cleaned
 
 
 def clean_latex_project_verbs(tex: str) -> str:
@@ -272,6 +274,144 @@ def clean_latex_project_verbs(tex: str) -> str:
         return f"{header}{b}"
 
     return proj_sec_pattern.sub(repl_sec, tex)
+
+
+def clean_latex_experience_verbs(tex: str) -> str:
+    """Higieniza itens na seção de experiência profissional para iniciarem com substantivos e não verbos no passado."""
+    if not tex or not tex.strip():
+        return tex
+
+    exp_sec_pattern = re.compile(
+        r"(\\section\*?\{[^}]*(?:Experiência|Experience|Atuação|Histórico)[^}]*\}|"
+        r"\\cvsection\{[^}]*(?:Experiência|Experience)[^}]*\}|"
+        r"\\textbf\{[^}]*(?:Experiência|Experience)[^}]*\}|"
+        r"\{\\large\\bfseries\\color\{accent\}\s*(?:EXPERIÊNCIA PROFISSIONAL|PROFESSIONAL EXPERIENCE|WORK EXPERIENCE|EXPERIÊNCIA|EXPERIENCE)[^}]*\})"
+        r"(.*?)"
+        r"(?=(\\(?:section\*?|cvsection|subsection)\b|\{\\large\\bfseries|\\end\{document\}|\Z))",
+        re.IGNORECASE | re.DOTALL,
+    )
+
+    pt_verb_conversions = [
+        (r"(\\item\s+)Participou\s+no\b", r"\1Participação no"),
+        (r"(\\item\s+)Participou\s+na\b", r"\1Participação na"),
+        (r"(\\item\s+)Participou\s+nos\b", r"\1Participação nos"),
+        (r"(\\item\s+)Participou\s+nas\b", r"\1Participação nas"),
+        (r"(\\item\s+)Participou\s+do\b", r"\1Participação no"),
+        (r"(\\item\s+)Participou\s+da\b", r"\1Participação na"),
+        (r"(\\item\s+)Participou\s+dos\b", r"\1Participação nos"),
+        (r"(\\item\s+)Participou\s+das\b", r"\1Participação nas"),
+        (r"(\\item\s+)Participou\s+de\b", r"\1Participação em"),
+        (r"(\\item\s+)Participou\s+em\b", r"\1Participação em"),
+        (r"(\\item\s+)Participou\b", r"\1Participação em"),
+        (r"(\\item\s+)Orientou\s+(?:a\s+|de\s+)?", r"\1Orientação a "),
+        (r"(\\item\s+)Acompanhou\s+(?:de\s+)?", r"\1Acompanhamento de "),
+        (r"(\\item\s+)Ensinou\s+(?:de\s+)?", r"\1Ensino de "),
+        (r"(\\item\s+)Desenvolveu\s+(?:de\s+)?", r"\1Desenvolvimento de "),
+        (r"(\\item\s+)Realizou\s+trabalho\s+volunt[aá]rio\b", r"\1Realização de trabalho voluntário"),
+        (r"(\\item\s+)Realizou\s+(?:de\s+)?", r"\1Realização de "),
+        (r"(\\item\s+)Liderou\s+(?:de\s+)?", r"\1Liderança de "),
+        (r"(\\item\s+)Coordenou\s+(?:de\s+)?", r"\1Coordenação de "),
+        (r"(\\item\s+)(?:Gerenciou|Geriu)\s+(?:de\s+)?", r"\1Gerenciamento de "),
+        (r"(\\item\s+)Implementou\s+(?:de\s+)?", r"\1Implementação de "),
+        (r"(\\item\s+)Criou\s+(?:de\s+)?", r"\1Criação de "),
+        (r"(\\item\s+)Elaborou\s+(?:de\s+)?", r"\1Elaboração de "),
+        (r"(\\item\s+)Ministrou\s+(?:de\s+)?", r"\1Ministração de "),
+        (r"(\\item\s+)Apoiou\s+no\b", r"\1Apoio ao"),
+        (r"(\\item\s+)Apoiou\s+na\b", r"\1Apoio à"),
+        (r"(\\item\s+)Apoiou\s+nos\b", r"\1Apoio aos"),
+        (r"(\\item\s+)Apoiou\s+nas\b", r"\1Apoio às"),
+        (r"(\\item\s+)Apoiou\s+(?:a\s+)?", r"\1Apoio a "),
+        (r"(\\item\s+)Atuou\s+como\b", r"\1Atuação como"),
+        (r"(\\item\s+)Atuou\s+na\b", r"\1Atuação na"),
+        (r"(\\item\s+)Atuou\s+no\b", r"\1Atuação no"),
+        (r"(\\item\s+)Atuou\s+em\b", r"\1Atuação em"),
+        (r"(\\item\s+)Atuou\b", r"\1Atuação em"),
+        (r"(\\item\s+)Prestou\s+assessoria\s+(?:a\s+)?", r"\1Assessoria a "),
+        (r"(\\item\s+)Prestou\s+apoio\s+(?:a\s+)?", r"\1Apoio a "),
+        (r"(\\item\s+)Prestou\s+suporte\s+(?:a\s+)?", r"\1Suporte a "),
+        (r"(\\item\s+)Prestou\s+(?:de\s+)?", r"\1Prestação de "),
+        (r"(\\item\s+)Colaborou\s+com\b", r"\1Colaboração com"),
+        (r"(\\item\s+)Colaborou\s+(?:em\s+)?", r"\1Colaboração em "),
+        (r"(\\item\s+)Conduziu\s+(?:de\s+)?", r"\1Condução de "),
+        (r"(\\item\s+)Executou\s+(?:de\s+)?", r"\1Execução de "),
+        (r"(\\item\s+)Planejou\s+(?:de\s+)?", r"\1Planejamento de "),
+        (r"(\\item\s+)Auxiliou\s+no\b", r"\1Auxílio no"),
+        (r"(\\item\s+)Auxiliou\s+na\b", r"\1Auxílio na"),
+        (r"(\\item\s+)Auxiliou\s+(?:em\s+)?", r"\1Auxílio em "),
+        (r"(\\item\s+)Supervisionou\s+(?:de\s+)?", r"\1Supervisão de "),
+        (r"(\\item\s+)Construiu\s+(?:de\s+)?", r"\1Construção de "),
+        (r"(\\item\s+)Estruturou\s+(?:de\s+)?", r"\1Estruturação de "),
+        (r"(\\item\s+)Projetou\s+(?:de\s+)?", r"\1Projeto de "),
+        (r"(\\item\s+)Pesquisou\s+(?:de\s+|sobre\s+)?", r"\1Pesquisa sobre "),
+        (r"(\\item\s+)Investigou\s+(?:de\s+|sobre\s+)?", r"\1Investigação de "),
+        (r"(\\item\s+)Organizou\s+(?:de\s+)?", r"\1Organização de "),
+        (r"(\\item\s+)Administrou\s+(?:de\s+)?", r"\1Administração de "),
+        (r"(\\item\s+)Otimizou\s+(?:de\s+)?", r"\1Otimização de "),
+        (r"(\\item\s+)Automatizou\s+(?:de\s+)?", r"\1Automatização de "),
+        (r"(\\item\s+)Publicou\s+(?:de\s+)?", r"\1Publicação de "),
+        (r"(\\item\s+)Apresentou\s+(?:de\s+)?", r"\1Apresentação de "),
+        (r"(\\item\s+)Redigiu\s+(?:de\s+)?", r"\1Redação de "),
+        (r"(\\item\s+)Revisou\s+(?:de\s+)?", r"\1Revisão de "),
+        (r"(\\item\s+)Produziu\s+(?:de\s+)?", r"\1Produção de "),
+        (r"(\\item\s+)Integrou\s+(?:de\s+)?", r"\1Integração de "),
+        (r"(\\item\s+)Configurou\s+(?:de\s+)?", r"\1Configuração de "),
+        (r"(\\item\s+)Instalou\s+(?:de\s+)?", r"\1Instalação de "),
+        (r"(\\item\s+)Facilitou\s+(?:de\s+)?", r"\1Facilitação de "),
+        (r"(\\item\s+)Articulou\s+(?:de\s+)?", r"\1Articulação de "),
+        (r"(\\item\s+)Promoveu\s+(?:de\s+)?", r"\1Promoção de "),
+        (r"(\\item\s+)Assessorou\s+(?:a\s+)?", r"\1Assessoria a "),
+        (r"(\\item\s+)Treinou\s+(?:de\s+)?", r"\1Treinamento de "),
+        (r"(\\item\s+)Capacitou\s+(?:de\s+)?", r"\1Capacitação de "),
+        (r"(\\item\s+)Tutelou\s+(?:de\s+)?", r"\1Tutoria de "),
+        (r"(\\item\s+)Migrou\s+(?:de\s+)?", r"\1Migração de "),
+        (r"(\\item\s+)Analisou\s+(?:de\s+)?", r"\1Análise de "),
+        (r"(\\item\s+)Gerou\s+(?:de\s+)?", r"\1Geração de "),
+    ]
+
+    en_verb_conversions = [
+        (r"(\\item\s+)Led\s+(?:in\s+|the\s+)?", r"\1Leadership of "),
+        (r"(\\item\s+)Managed\s+(?:the\s+)?", r"\1Management of "),
+        (r"(\\item\s+)Developed\s+(?:the\s+)?", r"\1Development of "),
+        (r"(\\item\s+)Designed\s+(?:the\s+)?", r"\1Design of "),
+        (r"(\\item\s+)Implemented\s+(?:the\s+)?", r"\1Implementation of "),
+        (r"(\\item\s+)Created\s+(?:the\s+)?", r"\1Creation of "),
+        (r"(\\item\s+)Taught\s+(?:the\s+)?", r"\1Instruction in "),
+        (r"(\\item\s+)Mentored\s+(?:the\s+)?", r"\1Mentorship of "),
+        (r"(\\item\s+)Guided\s+(?:the\s+)?", r"\1Guidance of "),
+        (r"(\\item\s+)Participated\s+in\b", r"\1Participation in"),
+        (r"(\\item\s+)Participated\b", r"\1Participation in"),
+        (r"(\\item\s+)Assisted\s+with\b", r"\1Assistance with"),
+        (r"(\\item\s+)Assisted\s+in\b", r"\1Assistance in"),
+        (r"(\\item\s+)Assisted\b", r"\1Assistance in"),
+        (r"(\\item\s+)Conducted\s+(?:the\s+)?", r"\1Conduction of "),
+        (r"(\\item\s+)Coordinated\s+(?:the\s+)?", r"\1Coordination of "),
+        (r"(\\item\s+)Collaborated\s+with\b", r"\1Collaboration with"),
+        (r"(\\item\s+)Collaborated\b", r"\1Collaboration in"),
+        (r"(\\item\s+)Organized\s+(?:the\s+)?", r"\1Organization of "),
+        (r"(\\item\s+)Engineered\s+(?:the\s+)?", r"\1Engineering of "),
+        (r"(\\item\s+)Built\s+(?:the\s+)?", r"\1Construction of "),
+    ]
+
+    def repl_sec(match):
+        header = match.group(1)
+        body = match.group(2)
+        b = body
+        for pat, rep in pt_verb_conversions:
+            b = re.sub(pat, rep, b, flags=re.IGNORECASE)
+        for pat, rep in en_verb_conversions:
+            b = re.sub(pat, rep, b, flags=re.IGNORECASE)
+
+        # Conjunções internas com verbos comuns
+        b = re.sub(r"\be apoiou no\b", "e apoio no", b, flags=re.IGNORECASE)
+        b = re.sub(r"\be apoiou na\b", "e apoio na", b, flags=re.IGNORECASE)
+        b = re.sub(r"\be apoiou o\b", "e apoio ao", b, flags=re.IGNORECASE)
+        b = re.sub(r"\be apoiou a\b", "e apoio à", b, flags=re.IGNORECASE)
+        b = re.sub(r"\be apoiou\b", "e apoio a", b, flags=re.IGNORECASE)
+        b = re.sub(r"\be acompanhou\b", "e acompanhamento de", b, flags=re.IGNORECASE)
+        b = re.sub(r"\be auxiliou\b", "e auxílio em", b, flags=re.IGNORECASE)
+        return f"{header}{b}"
+
+    return exp_sec_pattern.sub(repl_sec, tex)
 
 
 def compile_latex_to_pdf(

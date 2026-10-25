@@ -108,7 +108,7 @@ def test_experiences_deduplicated_standardized_and_reverse_chronological():
     assert exps[1]["period"] == "2025"  # Padronizado (não "2025 - 2025")
     assert "Jogos" in exps[1]["role"]
     assert len(exps[1]["bullets"]) >= 1
-    assert "Orientou estudantes" in exps[1]["bullets"][0]
+    assert "Orientação a estudantes" in exps[1]["bullets"][0]
 
     assert exps[2]["period"] == "2023 - 2024"
     assert "Bolsista" in exps[2]["role"]
