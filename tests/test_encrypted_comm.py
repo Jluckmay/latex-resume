@@ -16,14 +16,10 @@ import pytest
 
 from server import app
 from src._vault import (
-    derive_payload_transport_key,
     encrypt_payload_envelope,
     decrypt_payload_envelope,
     scrub_sensitive_api_keys,
-    create_secure_envelope,
-    unwrap_secure_api_key,
 )
-from src.config import PROVIDERS_CONFIG
 
 
 @pytest.fixture

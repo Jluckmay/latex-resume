@@ -3,12 +3,11 @@ responsividade do visualizador de código e balanceamento de templates.
 """
 
 from pathlib import Path
-from unittest.mock import patch, MagicMock
-from bs4 import BeautifulSoup
+from unittest.mock import patch
 
 from src.direct_builder import build_structured_cv_deterministically
 from src.llm_client import LLMResumeGenerator
-from src.pipeline import _is_pdf_blank_or_corrupted, build_resume_pipeline
+from src.pipeline import _is_pdf_blank_or_corrupted
 from src.templates import render_builtin_template
 
 

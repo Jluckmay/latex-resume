@@ -1,6 +1,5 @@
 """Testes para integração do Google Scholar, extração de publicações, idiomas e premiações."""
 
-from pathlib import Path
 from unittest.mock import patch
 import pytest
 
@@ -8,18 +7,15 @@ from src.extractors import (
     parse_scholar_input,
     extract_scholar,
     extract_portfolio,
-    extract_orcid,
 )
 from src.direct_builder import (
     build_structured_cv_deterministically,
-    generate_direct_latex_resume,
 )
 from src.templates import (
     BUILTIN_TEMPLATES,
     render_builtin_template,
     _get_platform_display,
 )
-from src.compiler import compile_latex_to_pdf
 from src.pipeline import build_resume_pipeline
 
 MOCK_SCHOLAR_HTML = """

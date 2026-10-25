@@ -1,6 +1,5 @@
 """Testes de normalização e exibição de nicks e IDs para LinkedIn, Lattes, GitHub e ORCID."""
 
-import pytest
 from src.extractors import (
     parse_github_input,
     parse_lattes_input,
@@ -213,7 +212,6 @@ def test_location_maps_and_portfolio_between_location_and_linkedin():
         if loc_pos == -1:
             loc_pos = tex.find("maps/search")
         port_pos = tex.find("carlosdev.io/portfolio")
-        li_pos = tex.find("carlosdev")
 
         assert loc_pos != -1, f"Location link not found in {tpl_id}"
         assert port_pos != -1, f"Portfolio display not found in {tpl_id}"

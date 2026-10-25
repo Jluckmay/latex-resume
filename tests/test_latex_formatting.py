@@ -2,7 +2,6 @@
 
 
 
-import pytest
 
 from src.compiler import sanitize_latex_layout
 

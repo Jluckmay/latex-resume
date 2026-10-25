@@ -2,15 +2,11 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
-from typing import Any, Dict
 
-import pytest
 
 from src.direct_builder import (
     build_structured_cv_deterministically,
-    generate_direct_latex_resume,
     parse_manual_resume_inputs,
 )
 from src.pipeline import build_resume_pipeline

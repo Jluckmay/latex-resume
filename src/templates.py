@@ -17,7 +17,6 @@ from .extractors import (
     parse_lattes_input,
     parse_linkedin_input,
     parse_orcid_input,
-    parse_scholar_input,
 )
 
 BUILTIN_TEMPLATES: Dict[str, Dict[str, str]] = {
@@ -1737,10 +1736,8 @@ def _render_google_standard(
             desc = escape_latex(pj.get("description"))
             if url and url.startswith("http"):
                 nm_head = rf"\href{{{escape_url(url)}}}{{\textbf{{{nm}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
-                link_tex = rf"\href{{{escape_url(url)}}}{{\textit{{{t['link_label']}}}}}"
             else:
                 nm_head = rf"\textbf{{{nm}}}"
-                link_tex = escape_latex(url)
             tech_str = rf" \textbar{{}} \textit{{{tech}}}" if tech else ""
             pj_lines.append(rf"\noindent{nm_head}{tech_str}")
             if desc:

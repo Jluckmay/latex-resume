@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 import pytest
 
 from src.extractors import extract_project_info_from_readme, clean_markdown_text

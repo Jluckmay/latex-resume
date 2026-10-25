@@ -5,7 +5,7 @@ from __future__ import annotations
 import locale
 import os
 import re
-from typing import Any, Dict, Tuple
+from typing import Dict
 
 COLOR_PRESETS: Dict[str, Dict[str, str]] = {
     "charcoal_minimal": {

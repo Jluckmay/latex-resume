@@ -8,11 +8,13 @@ de atestação mútua, proteção contra DoS/Rate Limiting e compilação em dir
 from __future__ import annotations
 
 import base64
+import json
 import os
 import tempfile
 import time
 from collections import defaultdict
 from pathlib import Path
+from typing import Any
 
 from flask import Flask, Response, jsonify, request, send_file
 

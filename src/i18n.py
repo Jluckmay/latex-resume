@@ -130,13 +130,6 @@ TEMPLATES_I18N: Dict[str, Dict[str, Dict[str, str]]] = {
         "nico_krieger": {
             "name": "Modelo Nico Krieger",
             "description": (
-                "Nico Krieger resume template featuring a full-width dark top header, "
-                "highlight sidebar with 5-dot skill ratings and languages, and clean main column."
-            ),
-        },
-        "nico_krieger": {
-            "name": "Modelo Nico Krieger",
-            "description": (
                 "Modelo de página única com cabeçalho escuro de largura total, "
                 "barra lateral destacada para contatos, habilidades avaliadas em 5 pontos e idiomas, e coluna principal clara."
             ),

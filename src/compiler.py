@@ -8,7 +8,7 @@ import re
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Tuple
+from typing import List, Tuple
 
 from PIL import Image
 
