@@ -17,6 +17,7 @@ from .extractors import (
     parse_lattes_input,
     parse_linkedin_input,
     parse_orcid_input,
+    parse_scholar_input,
 )
 
 BUILTIN_TEMPLATES: Dict[str, Dict[str, str]] = {
@@ -199,6 +200,15 @@ def _get_platform_display(links: Dict[str, str], platform: str) -> str:
             return lid or val
         return "Lattes"
 
+    if platform == "scholar":
+        if links.get("scholar_id"):
+            return str(links["scholar_id"]).strip()
+        val = str(links.get("scholar") or "").strip()
+        if val:
+            _, sid = parse_scholar_input(val)
+            return sid or "Google Scholar"
+        return "Google Scholar"
+
     return ""
 
 def simplify_url_display(url: str) -> str:
@@ -237,6 +247,9 @@ def _build_contact_links(links: Dict[str, str], email: str, phone: str, location
     if links.get("lattes"):
         lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
         items.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}")
+    if links.get("scholar"):
+        scholar_disp = escape_latex(_get_platform_display(links, "scholar"))
+        items.append(rf"\href{{{escape_url(links['scholar'])}}}{{\faIcon{{google}}\ \textbf{{{scholar_disp}}}}}")
     return items
 
 
@@ -1046,6 +1059,9 @@ def _render_overleaf_russell_ti(
     if links.get("orcid"):
         orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
         row1_links.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}")
+    if links.get("scholar"):
+        sc_disp = escape_latex(_get_platform_display(links, "scholar"))
+        row1_links.append(rf"\href{{{escape_url(links['scholar'])}}}{{\faIcon{{google}}\ \textbf{{{sc_disp}}}}}")
     if links.get("lattes"):
         lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
         row1_links.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}")
@@ -1176,6 +1192,9 @@ def _render_overleaf_awesome_cv(
     if links.get("orcid"):
         orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
         social_items.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}")
+    if links.get("scholar"):
+        sc_disp = escape_latex(_get_platform_display(links, "scholar"))
+        social_items.append(rf"\href{{{escape_url(links['scholar'])}}}{{\faIcon{{google}}\ \textbf{{{sc_disp}}}}}")
     if links.get("lattes"):
         lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
         social_items.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}")
@@ -1308,6 +1327,9 @@ def _render_overleaf_single_page_keywords(
     if links.get("orcid"):
         orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
         right_contacts.append(rf"{{\small\faIcon{{orcid}}}} \href{{{escape_url(links['orcid'])}}}{{\textbf{{{orcid_disp}}}}}")
+    if links.get("scholar"):
+        sc_disp = escape_latex(_get_platform_display(links, "scholar"))
+        right_contacts.append(rf"{{\small\faIcon{{google}}}} \href{{{escape_url(links['scholar'])}}}{{\textbf{{{sc_disp}}}}}")
     if links.get("lattes"):
         lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
         right_contacts.append(rf"{{\small\faIcon{{graduation-cap}}}} \href{{{escape_url(links['lattes'])}}}{{\textbf{{{lattes_disp}}}}}")
@@ -1553,6 +1575,9 @@ def _render_google_standard(
     if links.get("orcid"):
         orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
         contact_parts.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}")
+    if links.get("scholar"):
+        sc_disp = escape_latex(_get_platform_display(links, "scholar"))
+        contact_parts.append(rf"\href{{{escape_url(links['scholar'])}}}{{\faIcon{{google}}\ \textbf{{{sc_disp}}}}}")
     if links.get("lattes"):
         lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
         contact_parts.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}")
@@ -1785,6 +1810,9 @@ def _render_ai_ats_max(
     if links.get("orcid"):
         orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
         contact_parts.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ {orcid_disp}}}")
+    if links.get("scholar"):
+        sc_disp = escape_latex(_get_platform_display(links, "scholar"))
+        contact_parts.append(rf"\href{{{escape_url(links['scholar'])}}}{{\faIcon{{google}}\ {sc_disp}}}")
     if links.get("lattes"):
         lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
         contact_parts.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ {lattes_disp}}}")
@@ -2038,6 +2066,9 @@ def _render_nico_krieger(
     if links.get("orcid"):
         orcid_disp = escape_latex(_get_platform_display(links, "orcid"))
         sidebar_contacts.append(rf"\href{{{escape_url(links['orcid'])}}}{{\faIcon{{orcid}}\ \textbf{{{orcid_disp}}}}}")
+    if links.get("scholar"):
+        sc_disp = escape_latex(_get_platform_display(links, "scholar"))
+        sidebar_contacts.append(rf"\href{{{escape_url(links['scholar'])}}}{{\faIcon{{google}}\ \textbf{{{sc_disp}}}}}")
     if links.get("lattes"):
         lattes_disp = escape_latex(_get_platform_display(links, "lattes"))
         sidebar_contacts.append(rf"\href{{{escape_url(links['lattes'])}}}{{\faIcon{{graduation-cap}}\ \textbf{{{lattes_disp}}}}}")

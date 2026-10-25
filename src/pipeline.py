@@ -15,10 +15,12 @@ from .extractors import (
     extract_linkedin,
     extract_orcid,
     extract_portfolio,
+    extract_scholar,
     parse_github_input,
     parse_lattes_input,
     parse_linkedin_input,
     parse_orcid_input,
+    parse_scholar_input,
 )
 from .llm_client import LLMResumeGenerator
 from .token_plugins import TokenMetrics
@@ -67,6 +69,7 @@ def build_resume_pipeline(
     linkedin_text: str = "",
     github_input: str = "",
     orcid_input: str = "",
+    scholar_input: str = "",
     lattes_url: str = "",
     lattes_file_bytes: bytes | None = None,
     lattes_filename: str = "",
@@ -106,11 +109,13 @@ def build_resume_pipeline(
     # 1. Extração automática das fontes informadas (incluindo normalização de URLs, IDs e nicks)
     gh_url_norm, gh_nick = parse_github_input(github_input)
     orcid_url_norm, orcid_id = parse_orcid_input(orcid_input)
+    scholar_url_norm, scholar_id = parse_scholar_input(scholar_input)
     lattes_url_norm, lattes_id = parse_lattes_input(lattes_url)
     li_url_norm, li_nick = parse_linkedin_input(linkedin_url)
 
     gh_data = extract_github(gh_url_norm or github_input, target_lang=lang) if github_input else {}
     orcid_data = extract_orcid(orcid_url_norm or orcid_input) if orcid_input else {}
+    scholar_data = extract_scholar(scholar_url_norm or scholar_input) if scholar_input else {}
     lattes_data = (
         extract_lattes(
             lattes_url=lattes_url_norm or lattes_url,
@@ -136,11 +141,13 @@ def build_resume_pipeline(
         "linkedin": li_data.get("url") or li_url_norm or (linkedin_url.strip() if linkedin_url else ""),
         "github": gh_data.get("url") or gh_url_norm or (github_input.strip() if github_input else ""),
         "orcid": orcid_data.get("url") or orcid_url_norm or (orcid_input.strip() if orcid_input else ""),
+        "scholar": scholar_data.get("url") or scholar_url_norm or (scholar_input.strip() if scholar_input else ""),
         "lattes": lattes_data.get("url") or lattes_url_norm or (lattes_url.strip() if lattes_url else ""),
         "portfolio": portfolio_data.get("url") or (portfolio_url.strip() if portfolio_url else ""),
         "github_nick": gh_data.get("username") or gh_nick,
         "linkedin_nick": li_data.get("linkedin_nick") or li_nick,
         "orcid_id": orcid_data.get("orcid_id") or orcid_id,
+        "scholar_id": scholar_data.get("scholar_id") or scholar_id,
         "lattes_id": lattes_data.get("lattes_id") or lattes_id,
     }
 
@@ -167,6 +174,7 @@ def build_resume_pipeline(
         "links": links,
         "github": gh_data,
         "orcid": orcid_data,
+        "scholar": scholar_data,
         "lattes": lattes_data,
         "linkedin": li_data,
         "portfolio": portfolio_data,

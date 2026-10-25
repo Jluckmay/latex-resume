@@ -356,6 +356,7 @@ def api_generate() -> Response | tuple[Response, int]:
             req_linkedin = payload_data.get("linkedin", "")
             req_github = payload_data.get("github", "")
             req_orcid = payload_data.get("orcid", "")
+            req_scholar = payload_data.get("scholar", "")
             req_lattes = payload_data.get("lattes", "")
             req_portfolio = payload_data.get("portfolio", "")
             req_name = payload_data.get("name", "")
@@ -407,6 +408,7 @@ def api_generate() -> Response | tuple[Response, int]:
             req_linkedin = form.get("linkedin", "")
             req_github = form.get("github", "")
             req_orcid = form.get("orcid", "")
+            req_scholar = form.get("scholar", "")
             req_lattes = form.get("lattes", "")
             req_portfolio = form.get("portfolio", "")
             req_name = form.get("name", "")
@@ -446,6 +448,7 @@ def api_generate() -> Response | tuple[Response, int]:
                 linkedin_pdf_bytes=li_pdf_bytes,
                 github_input=req_github,
                 orcid_input=req_orcid,
+                scholar_input=req_scholar,
                 lattes_url=req_lattes,
                 lattes_file_bytes=lattes_bytes,
                 lattes_filename=lattes_fname,

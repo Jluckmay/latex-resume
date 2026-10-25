@@ -499,7 +499,13 @@ class LLMResumeGenerator:
                 for p in lattes["projects"][:5]
             ]
         if not cv.get("publications"):
-            pubs = lattes.get("publications") or orcid.get("works") or []
+            pubs = (
+                lattes.get("publications")
+                or orcid.get("works")
+                or (raw_profile_data.get("scholar") or {}).get("publications")
+                or (raw_profile_data.get("portfolio") or {}).get("publications")
+                or []
+            )
             cv["publications"] = [
                 {
                     "title": p.get("title", ""),
@@ -508,6 +514,6 @@ class LLMResumeGenerator:
                     "authors": p.get("authors", ""),
                     "doi": p.get("doi", ""),
                 }
-                for p in pubs[:8]
+                for p in pubs[:30]
                 if (p.get("title") or "").strip()
             ]

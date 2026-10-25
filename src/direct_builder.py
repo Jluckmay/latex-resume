@@ -29,9 +29,8 @@ from __future__ import annotations
 
 
 import re
-
+import unicodedata
 import urllib.parse
-
 from typing import Any, Dict, List, Tuple
 
 
@@ -316,6 +315,8 @@ def build_structured_cv_deterministically(
 
     portfolio = raw_profile_data.get("portfolio") or {}
 
+    scholar = raw_profile_data.get("scholar") or {}
+
     extra_notes = str(raw_profile_data.get("extra_notes") or "").strip()
 
     manual = parse_manual_resume_inputs(raw_profile_data.get("manual_data"))
@@ -329,6 +330,8 @@ def build_structured_cv_deterministically(
         user_meta.get("name")
 
         or lattes.get("name")
+
+        or scholar.get("name")
 
         or li.get("name")
 
@@ -899,51 +902,82 @@ def build_structured_cv_deterministically(
 
     publications: List[Dict[str, str]] = []
 
-    # Lattes Publicações
+    def _normalize_title_for_cmp(t_str: str) -> str:
+        clean = unicodedata.normalize("NFKD", str(t_str or "")).lower()
+        clean = re.sub(r"[^\w\s]", "", clean)
+        return re.sub(r"\s+", " ", clean).strip()
 
+    def _find_matching_pub(t_norm: str, yr: str, p_list: List[Dict[str, str]]) -> Dict[str, str] | None:
+        for p in p_list:
+            p_norm = _normalize_title_for_cmp(p.get("title", ""))
+            if not p_norm or not t_norm:
+                continue
+            if p_norm == t_norm or (len(p_norm) > 20 and (p_norm in t_norm or t_norm in p_norm)):
+                p_yr = str(p.get("year") or "").strip()
+                if p_yr and yr and p_yr != yr:
+                    continue
+                return p
+        return None
+
+    def _add_or_merge_pub(new_pub: Dict[str, Any]) -> None:
+        t_raw = str(new_pub.get("title") or "").strip()
+        if not t_raw:
+            return
+        t_norm = _normalize_title_for_cmp(t_raw)
+        yr = str(new_pub.get("year") or "").strip()
+        existing = _find_matching_pub(t_norm, yr, publications)
+        if existing:
+            if not existing.get("doi") and new_pub.get("doi"):
+                existing["doi"] = str(new_pub["doi"]).strip()
+            if not existing.get("venue") and (new_pub.get("venue") or new_pub.get("journal")):
+                existing["venue"] = str(new_pub.get("venue") or new_pub.get("journal")).strip()
+            if not existing.get("year") and yr:
+                existing["year"] = yr
+            if not existing.get("authors") and new_pub.get("authors"):
+                existing["authors"] = str(new_pub["authors"]).strip()
+            if not existing.get("citations") and new_pub.get("citations"):
+                existing["citations"] = str(new_pub["citations"]).strip()
+            if len(t_raw) > len(existing.get("title", "")):
+                existing["title"] = t_raw
+        else:
+            publications.append({
+                "title": t_raw,
+                "venue": str(new_pub.get("venue") or new_pub.get("journal") or "").strip(),
+                "year": yr,
+                "authors": str(new_pub.get("authors") or "").strip(),
+                "doi": str(new_pub.get("doi") or "").strip(),
+                "citations": str(new_pub.get("citations") or "").strip(),
+            })
+
+    # A. Lattes Publicações
     for pub in lattes.get("publications") or []:
+        _add_or_merge_pub(pub)
 
-        p_title = pub.get("title", "").strip()
-
-        if p_title:
-
-            publications.append({
-
-                "title": p_title,
-
-                "venue": pub.get("venue", "").strip(),
-
-                "year": str(pub.get("year") or "").strip(),
-
-                "authors": pub.get("authors", "").strip(),
-
-                "doi": pub.get("doi", "").strip(),
-
-            })
-
-
-
-    # ORCID Works (se não duplicado)
-
+    # B. ORCID Works
     for work in orcid.get("works") or []:
+        _add_or_merge_pub({
+            "title": work.get("title", ""),
+            "venue": work.get("journal", ""),
+            "year": str(work.get("year") or ""),
+            "authors": "",
+            "doi": work.get("doi", ""),
+        })
 
-        w_title = work.get("title", "").strip()
+    # C. Google Scholar Publicações
+    for sc_pub in scholar.get("publications") or []:
+        _add_or_merge_pub({
+            "title": sc_pub.get("title", ""),
+            "venue": sc_pub.get("venue", ""),
+            "year": str(sc_pub.get("year") or ""),
+            "authors": sc_pub.get("authors", ""),
+            "doi": "",
+            "citations": str(sc_pub.get("citations") or ""),
+        })
 
-        if w_title and not any(p["title"].lower() == w_title.lower() for p in publications):
+    # D. Portfolio Publicações
+    for pt_pub in portfolio.get("publications") or []:
+        _add_or_merge_pub(pt_pub)
 
-            publications.append({
-
-                "title": w_title,
-
-                "venue": work.get("journal", "").strip(),
-
-                "year": str(work.get("year") or "").strip(),
-
-                "authors": "",
-
-                "doi": work.get("doi", "").strip(),
-
-            })
 
 
 
@@ -1007,6 +1041,8 @@ def build_structured_cv_deterministically(
 
         or li.get("languages")
 
+        or portfolio.get("languages")
+
         or raw_profile_data.get("languages")
 
         or user_meta.get("languages")
@@ -1015,9 +1051,17 @@ def build_structured_cv_deterministically(
 
     )
 
+    if not raw_languages and portfolio.get("raw_text"):
+
+        raw_languages = extract_languages_from_text(portfolio["raw_text"])
+
     if not raw_languages and extra_notes:
 
         raw_languages = extract_languages_from_text(extra_notes)
+
+    if not raw_languages and manual.get("languages"):
+
+        raw_languages = manual["languages"]
 
 
 
@@ -1097,7 +1141,19 @@ def build_structured_cv_deterministically(
 
     # 11. Prêmios, Títulos e Certificações (Awards)
 
-    raw_awards = lattes.get("awards") or li.get("certifications") or []
+    raw_awards = (
+
+        lattes.get("awards")
+
+        or li.get("certifications")
+
+        or portfolio.get("awards")
+
+        or orcid.get("awards")
+
+        or []
+
+    )
 
     awards = sanitize_awards(raw_awards)
 
@@ -1179,13 +1235,13 @@ def build_structured_cv_deterministically(
 
         "projects": projects[:6],
 
-        "publications": publications[:12],
+        "publications": publications[:30] if is_academic else publications[:18],
 
         "skills": skills[:5],
 
-        "languages": languages[:5],
+        "languages": languages[:8],
 
-        "awards": awards[:6],
+        "awards": awards[:10],
 
     }
 

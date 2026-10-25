@@ -63,11 +63,13 @@ Para executar o gerador e compilar os currículos em PDF, o ambiente deve atende
 3. **Modo Duplo de Entrada de Dados: Importação Automática & Inserção Manual Estruturada**:
    - **Alternância Flexível na Interface**: escolha facilmente entre **Importar Informações** ou **Inserir Manualmente** tanto na aplicação Web quanto no Streamlit.
    - **Modo Importação (Perfis Online & Arquivos)**:
-     - **Portfólio Pessoal (`URL`)**: extrai título, descrição, seções (`h1`/`h2`/`h3`), bio e projetos diretamente da página web de portfólio do usuário e adiciona o link clicável simplificado no cabeçalho do PDF.
+     - **Google Scholar**: extrai nome do pesquisador, filiação institucional, métricas de impacto acadêmico (Total de Citações, h-index, i10-index) e lista completa de publicações com título, autores, conferência/periódico, ano e número de citações (aceita ID de usuário ou URL do perfil público).
+     - **Portfólio Pessoal (`URL`)**: extrai título, descrição, seções (`h1`/`h2`/`h3`), bio, projetos, idiomas estruturados com proficiência, premiações/menções honrosas e publicações científicas com link DOI diretamente da página web do usuário, adicionando o link clicável no cabeçalho do PDF.
      - **GitHub**: extrai bio, localização, linguagens principais e repositórios de maior destaque via API REST pública (aceita URL completa ou username), com análise automatizada de README para extração de resumos contextuais e detecção completa de todas as ferramentas e linguagens utilizadas.
-     - **ORCID**: extrai biografia, formação (`educations`), vínculos (`employments`) e artigos publicados (`works` com DOI) via API Pública v3.0 (aceita ID ou URL).
+     - **ORCID**: extrai biografia, formação (`educations`), vínculos (`employments`), bolsas/auxílios (`fundings`), distinções e artigos publicados (`works` com DOI) via API Pública v3.0 (aceita ID ou URL).
      - **Lattes**: parser nativo para o arquivo oficial `XML`/`ZIP` exportado do CNPq (`CURRICULO-VITAE`), além de suporte a PDF, HTML, URL ou ID de 16 dígitos / texto complementar.
      - **LinkedIn**: suporte a URL do perfil ou username, upload do PDF oficial exportado pelo LinkedIn (*Salvar como PDF*) e texto complementar.
+     - **Entrada Suplementar de Idiomas e Premiações**: campos opcionais na interface de importação para enriquecer ou complementar dados ausentes nas plataformas.
      - **Foto de Perfil**: normalização automática de imagem (`PNG`/`JPG`/`WebP`) via Pillow para inclusão no LaTeX (`\includegraphics`).
    - **Modo Inserção Manual (Preenchimento Direto & Cards Estruturados)**:
      - Permite que candidatos sem perfis públicos ou que prefiram controle editorial completo insiram seus dados diretamente em formulários estruturados na interface.
@@ -78,7 +80,7 @@ Para executar o gerador e compilar os currículos em PDF, o ambiente deve atende
        - **Publicações & Artigos**: Título da Publicação, Periódico/Conferência, Ano, Autores e DOI/Link.
        - **Prêmios & Certificações**: Título/Certificação, Ano e Instituição/Detalhes.
      - **Modo Rápido / Texto em Lote (Expansível)**: mantém suporte opcional a sintaxe linha por linha separada por barras verticais (`|`) ou objetos JSON para colar múltiplos itens em bloco.
-     - Preserva campos opcionais de links (GitHub, LinkedIn, Portfólio, ORCID, Lattes e Foto) para enriquecer o cabeçalho do currículo.
+     - Preserva campos opcionais de links (GitHub, Google Scholar, LinkedIn, Portfólio, ORCID, Lattes e Foto) para enriquecer o cabeçalho do currículo.
 4. **10 Modelos LaTeX Integrados (incluindo Padrão Google, Otimizado para IA & ATS, Modelo Russell, Awesome CV, Single Page + Keywords e Modelo Nico Krieger) + Suporte a Template `.tex` Customizado**:
    - `ai_ats_max`: **Otimizado para IA & ATS (Máxima Legibilidade por LLMs)** — Desenvolvido especificamente para triagem automatizada por LLMs (Gemini, Claude, GPT) e sistemas ATS neurais (Workday, Greenhouse, Lever). Fluxo textual 100% linear em coluna única, metadados semânticos explícitos (tags textuais ASCII: Location, Email, Phone, LinkedIn, GitHub, Portfolio), matriz de competências e palavras-chave (Core Competencies & Keywords) dedicada para match semântico e compatibilidade Unicode nativa (`glyphtounicode`).
    - `google_standard`: **Padrão Google (Big Tech / Software Engineer)** — Baseado nas diretrizes de recrutamento Big Tech (Google SWE / Gayle Laakmann McDowell). Página única densa, margens de 0.5 polegadas, estrutura XYZ de realizações ("Conquistou [X] medido por [Y], realizando [Z]"), divisórias horizontais limpas e formatação clean sem espaços ociosos.
@@ -139,7 +141,7 @@ latex-resume/
 │   ├── compiler.py             # Validação e compilação LaTeX segura com pdflatex
 │   ├── config.py               # Constantes, diretórios e configurações de provedores de IA
 │   ├── direct_builder.py       # Construtor determinístico direto (0 tokens) a partir dos extratores
-│   ├── extractors.py           # Parsers multi-fonte (GitHub, ORCID, Lattes, LinkedIn, Portfólio)
+│   ├── extractors.py           # Parsers multi-fonte (GitHub, Google Scholar, ORCID, Lattes, LinkedIn, Portfólio)
 │   ├── i18n.py                 # Dicionários de internacionalização (pt-BR e en-US)
 │   ├── llm_client.py           # Cliente orquestrador multi-provedor (NVIDIA, Gemini, Claude, OpenAI, DeepSeek)
 │   ├── nvidia_client.py        # Adaptador de compatibilidade NVIDIA NIM
@@ -537,7 +539,7 @@ latex-resume/
 │   ├── compiler.py             # Secure sandboxed LaTeX compilation with pdflatex
 │   ├── config.py               # Project constants, directories, and AI provider configurations
 │   ├── direct_builder.py       # Deterministic direct builder (0 tokens) from extractors
-│   ├── extractors.py           # Multi-source parsers (GitHub, ORCID, Lattes, LinkedIn, Portfolio)
+│   ├── extractors.py           # Multi-source parsers (GitHub, Google Scholar, ORCID, Lattes, LinkedIn, Portfolio)
 │   ├── i18n.py                 # Multi-language dictionary strings (pt-BR and en-US)
 │   ├── llm_client.py           # Multi-provider LLM coordinator (NVIDIA, Gemini, Claude, OpenAI, DeepSeek)
 │   ├── nvidia_client.py        # NVIDIA NIM backward-compatibility adapter

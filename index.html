@@ -1006,6 +1006,10 @@
                             <input type="text" id="inp-github" class="form-control" placeholder="ex: octocat ou https://github.com/usuario" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="GitHub (usuário ou URL)">
                         </div>
                         <div class="form-group">
+                            <label for="inp-scholar" id="ui-scholar-lbl">Google Scholar (ID ou URL)</label>
+                            <input type="text" id="inp-scholar" class="form-control" placeholder="ex: JicYPdAAAAAJ ou https://scholar.google.com/citations?user=..." oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Google Scholar (ID ou URL)">
+                        </div>
+                        <div class="form-group">
                             <label for="inp-orcid" id="ui-orcid-lbl">ORCID (ID ou URL)</label>
                             <input type="text" id="inp-orcid" class="form-control" placeholder="ex: 0000-0002-1825-0097" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="ORCID (ID ou URL)">
                         </div>
@@ -1022,6 +1026,14 @@
                             <input type="text" id="inp-portfolio" class="form-control" placeholder="https://meuportfolio.dev" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Página de Portfólio / Website (URL)">
                         </div>
                         <div class="form-group">
+                            <label for="inp-languages" id="ui-imp-languages-lbl">Idiomas & Proficiência (opcional)</label>
+                            <input type="text" id="inp-languages" class="form-control" placeholder="ex: Português (Fluente), Inglês (Intermediário)" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Idiomas e Proficiência">
+                        </div>
+                        <div class="form-group">
+                            <label for="inp-awards" id="ui-imp-awards-lbl">Premiações & Certificações (opcional)</label>
+                            <input type="text" id="inp-awards" class="form-control" placeholder="ex: Menção Honrosa - SBIE 2024" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Premiações e Certificações">
+                        </div>
+                        <div class="form-group" style="grid-column: 1 / -1;">
                             <label for="inp-photo" id="ui-photo-lbl">Foto de Perfil (PNG / JPG / WebP)</label>
                             <input type="file" id="inp-photo" accept="image/*" class="form-control" onchange="onPhotoSelected(event)" aria-label="Foto de Perfil">
                         </div>
@@ -1159,9 +1171,17 @@
                                 <label for="inp-man-photo" id="ui-man-photo-lbl">Foto de Perfil (PNG / JPG)</label>
                                 <input type="file" id="inp-man-photo" accept="image/*" class="form-control" onchange="onPhotoSelected(event)" aria-label="Foto de Perfil">
                             </div>
-                            <div class="form-group" style="margin-bottom:0;">
+                            <div class="form-group" style="margin-bottom:0.5rem;">
                                 <label for="inp-man-github" id="ui-man-gh-lbl">GitHub</label>
                                 <input type="text" id="inp-man-github" class="form-control" placeholder="usuario ou URL" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="GitHub">
+                            </div>
+                            <div class="form-group" style="margin-bottom:0.5rem;">
+                                <label for="inp-man-scholar" id="ui-man-scholar-lbl">Google Scholar</label>
+                                <input type="text" id="inp-man-scholar" class="form-control" placeholder="ID ou URL do Scholar" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Google Scholar">
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label for="inp-man-orcid" id="ui-man-orcid-lbl">ORCID</label>
+                                <input type="text" id="inp-man-orcid" class="form-control" placeholder="ex: 0000-0002-1825-0097" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="ORCID">
                             </div>
                             <div class="form-group" style="margin-bottom:0;">
                                 <label for="inp-man-linkedin" id="ui-man-li-lbl">LinkedIn</label>
@@ -1531,10 +1551,13 @@
                 btnAddAward: "+ Adicionar Prêmio / Certificação",
                 manRawModeSummary: "📝 Modo Rápido / Colar em Texto Puro (Importação em Lote / Avançado)",
                 ghLbl: "GitHub (usuário ou URL)",
+                scholarLbl: "Google Scholar (ID ou URL)",
                 orcidLbl: "ORCID (ID ou URL)",
                 liLbl: "LinkedIn (nick ou URL)",
                 lattesLbl: "Currículo Lattes (ID de 16 dígitos ou URL)",
                 portLbl: "Página de Portfólio / Website (URL)",
+                impLangLbl: "Idiomas & Proficiência (opcional)",
+                impAwardsLbl: "Premiações & Certificações (opcional)",
                 photoLbl: "Foto de Perfil (PNG / JPG / WebP)",
                 extraSummary: "📎 Anexar XML/ZIP do Lattes, PDF do LinkedIn ou Notas Extras",
                 lattesFileLbl: "Arquivo Lattes (XML, ZIP ou PDF)",
@@ -1632,10 +1655,13 @@
                 btnAddAward: "+ Add Award / Certification",
                 manRawModeSummary: "📝 Quick Mode / Paste Raw Text (Batch Import / Advanced)",
                 ghLbl: "GitHub (username or URL)",
+                scholarLbl: "Google Scholar (ID or URL)",
                 orcidLbl: "ORCID (ID or URL)",
                 liLbl: "LinkedIn (username or URL)",
                 lattesLbl: "Lattes CV (16-digit ID or URL)",
                 portLbl: "Portfolio Page / Website (URL)",
+                impLangLbl: "Languages & Proficiency (optional)",
+                impAwardsLbl: "Awards & Certifications (optional)",
                 photoLbl: "Profile Photo (PNG / JPG / WebP)",
                 extraSummary: "📎 Attach Lattes XML/ZIP, LinkedIn PDF, or Additional Notes",
                 lattesFileLbl: "Lattes File (XML, ZIP, or PDF)",
@@ -2201,10 +2227,15 @@
             document.getElementById("ui-scol-lbl").textContent = t.scolLbl;
             document.getElementById("ui-step3-title").textContent = t.step3;
             document.getElementById("ui-gh-lbl").textContent = t.ghLbl;
+            if (document.getElementById("ui-scholar-lbl")) document.getElementById("ui-scholar-lbl").textContent = t.scholarLbl;
             document.getElementById("ui-orcid-lbl").textContent = t.orcidLbl;
             document.getElementById("ui-li-lbl").textContent = t.liLbl;
             document.getElementById("ui-lattes-lbl").textContent = t.lattesLbl;
             document.getElementById("ui-port-lbl").textContent = t.portLbl;
+            if (document.getElementById("ui-imp-languages-lbl")) document.getElementById("ui-imp-languages-lbl").textContent = t.impLangLbl;
+            if (document.getElementById("ui-imp-awards-lbl")) document.getElementById("ui-imp-awards-lbl").textContent = t.impAwardsLbl;
+            if (document.getElementById("ui-man-scholar-lbl")) document.getElementById("ui-man-scholar-lbl").textContent = t.scholarLbl;
+            if (document.getElementById("ui-man-orcid-lbl")) document.getElementById("ui-man-orcid-lbl").textContent = t.orcidLbl;
             document.getElementById("ui-photo-lbl").textContent = t.photoLbl;
             document.getElementById("ui-extra-files-summary").textContent = t.extraSummary;
             document.getElementById("ui-lattes-file-lbl").textContent = t.lattesFileLbl;
@@ -2559,7 +2590,12 @@
             const liVal = (state.dataMode === "manual"
                 ? (document.getElementById("inp-man-linkedin")?.value || document.getElementById("inp-linkedin")?.value || "")
                 : (document.getElementById("inp-linkedin")?.value || "")).trim();
-            const orcidVal = (document.getElementById("inp-orcid")?.value || "").trim();
+            const orcidVal = (state.dataMode === "manual"
+                ? (document.getElementById("inp-man-orcid")?.value || document.getElementById("inp-orcid")?.value || "")
+                : (document.getElementById("inp-orcid")?.value || "")).trim();
+            const scholarVal = (state.dataMode === "manual"
+                ? (document.getElementById("inp-man-scholar")?.value || document.getElementById("inp-scholar")?.value || "")
+                : (document.getElementById("inp-scholar")?.value || "")).trim();
             const lattesVal = (document.getElementById("inp-lattes")?.value || "").trim();
 
             function extractNick(v, defVal) {
@@ -2570,13 +2606,14 @@
             }
             function extractId(v, defVal) {
                 if (!v) return defVal;
-                let s = v.replace(/^https?:\/\/(?:orcid\.org\/|lattes\.cnpq\.br\/)/i, '').replace(/\/+$/, '');
+                let s = v.replace(/^https?:\/\/(?:orcid\.org\/|lattes\.cnpq\.br\/|scholar\.google\.[a-z\.]+\/citations\?user=)/i, '').replace(/\/+$/, '');
                 return s || defVal;
             }
 
             const ghNick = extractNick(ghVal, "octocat");
             const liNick = extractNick(liVal, "lucassilva");
             const orcidId = extractId(orcidVal, "0000-0002-1825-0097");
+            const scholarId = extractId(scholarVal, "JicYPdAAAAAJ");
             const lattesId = extractId(lattesVal, "1234567890123456");
 
             const nameParts = nameVal.split(" ");
@@ -3234,6 +3271,27 @@
                         awards: sAwards.length > 0 ? sAwards : (document.getElementById("inp-man-awards")?.value || "").trim(),
                         publications: sPubs.length > 0 ? sPubs : (document.getElementById("inp-man-publications")?.value || "").trim(),
                     };
+                } else {
+                    const impLangs = (document.getElementById("inp-languages")?.value || "").trim();
+                    const impAwards = (document.getElementById("inp-awards")?.value || "").trim();
+                    const sEdu = collectStructuredEducation();
+                    const sExp = collectStructuredExperience();
+                    const sProj = collectStructuredProjects();
+                    const sPubs = collectStructuredPublications();
+                    const sAwards = collectStructuredAwards();
+
+                    const suppData = {};
+                    if (impLangs) suppData.languages = impLangs;
+                    if (impAwards) suppData.awards = impAwards;
+                    else if (sAwards.length > 0) suppData.awards = sAwards;
+                    if (sEdu.length > 0) suppData.education = sEdu;
+                    if (sExp.length > 0) suppData.experience = sExp;
+                    if (sProj.length > 0) suppData.projects = sProj;
+                    if (sPubs.length > 0) suppData.publications = sPubs;
+
+                    if (Object.keys(suppData).length > 0) {
+                        manualData = suppData;
+                    }
                 }
                 const lattesData = await readFileAsBase64(document.getElementById("inp-lattes-file").files[0]);
                 const liPdfData = await readFileAsBase64(document.getElementById("inp-linkedin-pdf").files[0]);
@@ -3256,7 +3314,8 @@
                     primary_color: document.getElementById("primary-color").value,
                     secondary_color: document.getElementById("secondary-color").value,
                     github: (state.dataMode === "manual" ? (document.getElementById("inp-man-github")?.value || document.getElementById("inp-github")?.value) : document.getElementById("inp-github")?.value) || "",
-                    orcid: document.getElementById("inp-orcid").value,
+                    scholar: (state.dataMode === "manual" ? (document.getElementById("inp-man-scholar")?.value || document.getElementById("inp-scholar")?.value) : document.getElementById("inp-scholar")?.value) || "",
+                    orcid: (state.dataMode === "manual" ? (document.getElementById("inp-man-orcid")?.value || document.getElementById("inp-orcid")?.value) : document.getElementById("inp-orcid")?.value) || "",
                     linkedin: (state.dataMode === "manual" ? (document.getElementById("inp-man-linkedin")?.value || document.getElementById("inp-linkedin")?.value) : document.getElementById("inp-linkedin")?.value) || "",
                     lattes: document.getElementById("inp-lattes").value,
                     portfolio: (state.dataMode === "manual" ? (document.getElementById("inp-man-portfolio")?.value || document.getElementById("inp-portfolio")?.value) : document.getElementById("inp-portfolio")?.value) || "",
