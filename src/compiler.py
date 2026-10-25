@@ -230,7 +230,48 @@ def sanitize_latex_layout(tex: str) -> str:
 
         fixed_lines.append(line)
 
-    return "\n".join(fixed_lines)
+    cleaned = "\n".join(fixed_lines)
+    return clean_latex_project_verbs(cleaned)
+
+
+def clean_latex_project_verbs(tex: str) -> str:
+    """Higieniza itens na seção de projetos para iniciarem com substantivos e não verbos no passado."""
+    if not tex or not tex.strip():
+        return tex
+
+    proj_sec_pattern = re.compile(
+        r"(\\section\*?\{[^}]*(?:Projetos|Projects)[^}]*\}|"
+        r"\\cvsection\{[^}]*(?:Projetos|Projects)[^}]*\}|"
+        r"\\textbf\{[^}]*(?:Projetos|Projects)[^}]*\}|"
+        r"\{\\large\\bfseries\\color\{accent\}\s*(?:TECHNICAL PROJECTS|PROJETOS TÉCNICOS|PROJETOS)[^}]*\})"
+        r"(.*?)"
+        r"(?=(\\(?:section\*?|cvsection|subsection)\b|\{\\large\\bfseries|\\end\{document\}|\Z))",
+        re.IGNORECASE | re.DOTALL,
+    )
+
+    pt_verbs = r"(?:Desenvolveu|Criou|Implementou|Reuniu|Construiu|Elaborou|Projetou|Estruturou|Idealizou|Programou|Confeccionou|Organizou)"
+    en_verbs = r"(?:Developed|Created|Implemented|Built|Designed|Engineered|Crafted|Constructed|Programmed|Gathered|Assembled|Authored)"
+
+    item_pattern_pt = re.compile(rf"(\\item\s+)(?:{pt_verbs})\s+(?:(?:um|uma|o|a|os|as)\s+)?([A-Za-zÀ-ÖØ-öø-ÿ])", re.IGNORECASE)
+    colon_pattern_pt = re.compile(rf"(:\s+)(?:{pt_verbs})\s+(?:(?:um|uma|o|a|os|as)\s+)?([A-Za-zÀ-ÖØ-öø-ÿ])", re.IGNORECASE)
+    small_pattern_pt = re.compile(rf"(\{{\\small\s+)(?:{pt_verbs})\s+(?:(?:um|uma|o|a|os|as)\s+)?([A-Za-zÀ-ÖØ-öø-ÿ])", re.IGNORECASE)
+
+    item_pattern_en = re.compile(rf"(\\item\s+)(?:{en_verbs})\s+(?:(?:a|an|the)\s+)?([A-Za-z])", re.IGNORECASE)
+    colon_pattern_en = re.compile(rf"(:\s+)(?:{en_verbs})\s+(?:(?:a|an|the)\s+)?([A-Za-z])", re.IGNORECASE)
+    small_pattern_en = re.compile(rf"(\{{\\small\s+)(?:{en_verbs})\s+(?:(?:a|an|the)\s+)?([A-Za-z])", re.IGNORECASE)
+
+    def repl_sec(match):
+        header = match.group(1)
+        body = match.group(2)
+        b = item_pattern_pt.sub(lambda m: f"{m.group(1)}{m.group(2).upper()}", body)
+        b = colon_pattern_pt.sub(lambda m: f"{m.group(1)}{m.group(2).upper()}", b)
+        b = small_pattern_pt.sub(lambda m: f"{m.group(1)}{m.group(2).upper()}", b)
+        b = item_pattern_en.sub(lambda m: f"{m.group(1)}{m.group(2).upper()}", b)
+        b = colon_pattern_en.sub(lambda m: f"{m.group(1)}{m.group(2).upper()}", b)
+        b = small_pattern_en.sub(lambda m: f"{m.group(1)}{m.group(2).upper()}", b)
+        return f"{header}{b}"
+
+    return proj_sec_pattern.sub(repl_sec, tex)
 
 
 def compile_latex_to_pdf(

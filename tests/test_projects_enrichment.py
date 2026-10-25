@@ -167,3 +167,89 @@ def test_russell_and_awesome_cv_single_stack_listing_and_no_duplicate_smallcaps(
     # Must NOT have Python, LaTeX... twice in the same cventry
     occurrences = tex.count("Python, LaTeX, Flask, Docker, Jinja2")
     assert occurrences == 1, f"Expected tech stack to appear exactly once, but found {occurrences} times"
+
+
+
+def test_sanitize_project_description_replaces_verbs_with_nouns():
+    """Valida se descrições de projetos iniciam estritamente com substantivos (Gerador, Utilitário, etc.) e nunca verbos (Desenvolveu, Implementou)."""
+    from src.extractors import sanitize_project_description
+
+    # Caso do usuário: Minecraft
+    desc_mc = "Implementou utilitário automatizado de conversão e ponte para suprir lacunas estruturais entre Minecraft Java Edition e Minecraft Bedrock."
+    res_mc = sanitize_project_description(desc_mc, lang="pt-br")
+    assert res_mc.startswith("Utilitário automatizado de conversão")
+    assert not res_mc.startswith("Implementou")
+
+    # Caso: latex-resume
+    desc_lr = "Desenvolveu gerador automático de currículos acadêmicos e profissionais em LaTeX + PDF."
+    res_lr = sanitize_project_description(desc_lr, lang="pt-br")
+    assert res_lr.startswith("Gerador automático de currículos")
+    assert not res_lr.startswith("Desenvolveu")
+
+    # Caso: jluckmay.github.io
+    desc_io = "Criou portfólio pessoal e acadêmico como página estática otimizada."
+    res_io = sanitize_project_description(desc_io, lang="pt-br")
+    assert res_io.startswith("Portfólio pessoal e acadêmico")
+    assert not res_io.startswith("Criou")
+
+    # Caso: C-Codes
+    desc_cc = "Reuniu implementações manuais de funções matemáticas e manipuladores de string."
+    res_cc = sanitize_project_description(desc_cc, lang="pt-br")
+    assert res_cc.startswith("Implementações manuais de funções")
+    assert not res_cc.startswith("Reuniu")
+
+    # Caso: Quadro-Branco
+    desc_qb = "Desenvolveu aplicação web multiusuária para criação e edição de conteúdo."
+    res_qb = sanitize_project_description(desc_qb, lang="pt-br")
+    assert res_qb.startswith("Aplicação web multiusuária")
+    assert not res_qb.startswith("Desenvolveu")
+
+    # Caso: MineMan
+    desc_mm = "Criou jogo de exploração de labirintos inspirado no universo de Minecraft."
+    res_mm = sanitize_project_description(desc_mm, lang="pt-br")
+    assert res_mm.startswith("Jogo de exploração de labirintos")
+    assert not res_mm.startswith("Criou")
+
+    # Caso: Desenvolvido em Python para...
+    desc_py = "Desenvolvido em Python para automação de tarefas acadêmicas."
+    res_py = sanitize_project_description(desc_py, lang="pt-br")
+    assert res_py.startswith("Ferramenta para automação de tarefas acadêmicas")
+
+    # Caso: Inglês
+    desc_en = "Implemented automated conversion utility and bridge between Minecraft Java Edition and Bedrock."
+    res_en = sanitize_project_description(desc_en, lang="en-us")
+    assert res_en.startswith("Automated conversion utility")
+    assert not res_en.startswith("Implemented")
+
+
+def test_clean_latex_project_verbs_preserves_experience_verbs():
+    """Valida se clean_latex_project_verbs remove verbos apenas na seção de projetos, preservando a de experiência."""
+    from src.compiler import clean_latex_project_verbs
+
+    sample_latex = """
+\\section*{Experiência Profissional}
+\\begin{itemize}
+    \\item Desenvolveu sistemas distribuídos de alta disponibilidade.
+    \\item Implementou pipelines de CI/CD automatizados.
+\\end{itemize}
+
+\\section*{Projetos de Destaque e Open Source}
+\\begin{itemize}
+    \\item Desenvolveu gerador automático de currículos acadêmicos.
+    \\item Implementou utilitário automatizado de conversão de mapas.
+    \\item Criou jogo de exploração em Python.
+\\end{itemize}
+"""
+    cleaned = clean_latex_project_verbs(sample_latex)
+
+    # Experiência deve PRESERVAR verbos de ação
+    assert "\\item Desenvolveu sistemas distribuídos de alta disponibilidade." in cleaned
+    assert "\\item Implementou pipelines de CI/CD automatizados." in cleaned
+
+    # Projetos deve CONVERTER para substantivos
+    assert "\\item Gerador automático de currículos acadêmicos." in cleaned
+    assert "\\item Utilitário automatizado de conversão de mapas." in cleaned
+    assert "\\item Jogo de exploração em Python." in cleaned
+    assert "Desenvolveu gerador" not in cleaned
+    assert "Implementou utilitário" not in cleaned
+    assert "Criou jogo" not in cleaned

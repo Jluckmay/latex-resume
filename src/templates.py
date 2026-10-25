@@ -18,6 +18,7 @@ from .extractors import (
     parse_lattes_input,
     parse_linkedin_input,
     parse_orcid_input,
+    sanitize_project_description,
 )
 
 BUILTIN_TEMPLATES: Dict[str, Dict[str, str]] = {
@@ -825,7 +826,7 @@ def _build_projects_block(projects: List[Dict[str, Any]], resume_type: str, lang
         nm = escape_latex(pj.get("name"))
         tech = escape_latex(pj.get("tech"))
         url = (pj.get("url") or "").strip()
-        desc = escape_latex(pj.get("description"))
+        desc = escape_latex(sanitize_project_description(pj.get("description"), lang))
         if url and url.startswith("http"):
             head = rf"\href{{{escape_url(url)}}}{{\textbf{{{nm}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
         else:
@@ -1285,7 +1286,7 @@ def _build_acv_sections(
         nm = escape_latex(pj.get("name"))
         tech = escape_latex(pj.get("tech"))
         url = (pj.get("url") or "").strip()
-        desc = escape_latex(pj.get("description"))
+        desc = escape_latex(sanitize_project_description(pj.get("description"), lang))
         if url and url.startswith("http"):
             nm_tex = rf"\href{{{escape_url(url)}}}{{\textbf{{{nm}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
         else:
@@ -1764,7 +1765,7 @@ def _render_overleaf_single_page_keywords(
         nm = escape_latex(pj.get("name"))
         tech = escape_latex(pj.get("tech"))
         url = (pj.get("url") or "").strip()
-        desc = escape_latex(pj.get("description"))
+        desc = escape_latex(sanitize_project_description(pj.get("description"), lang))
         if url and url.startswith("http"):
             nm_head = rf"\href{{{escape_url(url)}}}{{\textbf{{{nm}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
         else:
@@ -2066,7 +2067,7 @@ def _render_google_standard(
             nm = escape_latex(pj.get("name"))
             tech = escape_latex(pj.get("tech"))
             url = (pj.get("url") or "").strip()
-            desc = escape_latex(pj.get("description"))
+            desc = escape_latex(sanitize_project_description(pj.get("description"), lang))
             if url and url.startswith("http"):
                 nm_head = rf"\href{{{escape_url(url)}}}{{\textbf{{{nm}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
             else:
@@ -2295,7 +2296,7 @@ def _render_ai_ats_max(
             nm = escape_latex(pj.get("name"))
             tech = escape_latex(pj.get("tech"))
             url = (pj.get("url") or "").strip()
-            desc = escape_latex(pj.get("description"))
+            desc = escape_latex(sanitize_project_description(pj.get("description"), lang))
             if url and url.startswith("http"):
                 nm_head = rf"\href{{{escape_url(url)}}}{{\textbf{{{nm}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
             else:
@@ -2585,7 +2586,7 @@ def _render_nico_krieger(
             nm = escape_latex(pj.get("name"))
             tech = escape_latex(pj.get("tech"))
             url = (pj.get("url") or "").strip()
-            desc = escape_latex(pj.get("description"))
+            desc = escape_latex(sanitize_project_description(pj.get("description"), lang))
             if url and url.startswith("http"):
                 nm_head = rf"\textbf{{\large \href{{{escape_url(url)}}}{{{nm}\ \small\faIcon{{external-link-alt}}}}}}"
             else:

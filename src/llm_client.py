@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Tuple
 
 from ._vault import dispatch_secure_llm_chat
 from .compiler import sanitize_latex_layout
+from .extractors import sanitize_project_description
 from .config import DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDERS_CONFIG
 from .templates import (
     deduplicate_and_sort_awards,
@@ -307,11 +308,12 @@ class LLMResumeGenerator:
             "5. MACRO PRESERVATION: Preserve existing template structure, commands, and styling macros (e.g. \\cventry, \\cvsection, \\cvskill, \\textbf, \\textit, \\href, \\color).\n"
             "6. HEADER CONTACT DISCIPLINE: In contact line / header, NEVER use prefixes 'Local:', 'Location:', 'Portfólio:', or 'Portfolio:'. Location MUST be the last item in the contact list.\n\n"
             "PART 2: TEXT & CONTENT ENHANCEMENT\n"
-            "1. ACTION VERBS & METRICS: Polish bullet points with high-impact, punchy action verbs and clear accomplishments in the target language.\n"
-            "2. EXECUTIVE SUMMARY: If the summary/resumo section is sparse, missing, or contains generic website metadata (e.g. starting with 'Portfólio profissional de...'), synthesize a concise 2-3 sentence executive technical overview highlighting candidate's core expertise, academic background, and technical focus based strictly on their actual data.\n"
-            "3. STRICT TRUTHFULNESS & ZERO INVENTIONS: Keep all institutions, degrees, dates, metrics, and names 100% truthful to source facts. NEVER invent or hallucinate new projects, external URLs, project links, publications, DOI links, experiences, awards, or credentials not already present in the provided LaTeX code. Only enhance existing entries.\n"
-            "4. PUBLICATIONS & AWARDS LISTING: Preserve and list ALL publications and awards individually. NEVER collapse them into a single line or summary. Each publication must include title, authors, venue, year, and DOI link. Each award must be an individual item.\n"
-            "5. EXACT PERIODS: Never change explicit academic or work periods into 'Período não especificado', 'Em andamento', or 'Concluído'. Keep exact years and periods (e.g. 2026 - Atual, 2019 - 2025, 2023 - 2024).\n\n"
+            "1. ACTION VERBS & METRICS (WORK EXPERIENCE): Polish work experience bullet points with high-impact, punchy action verbs and clear accomplishments in the target language.\n"
+            "2. NOUN-FIRST PROJECT DESCRIPTIONS: Project descriptions MUST start with a descriptive NOUN (e.g., 'Gerador...', 'Aplicação...', 'Página...', 'Implementação...', 'Portfólio...', 'Utilitário...', 'Jogo...', 'Plataforma...', 'Ferramenta...') or in English ('Automated generator...', 'Web application...', 'Personal portfolio...', 'Manual implementations...', 'Utility...', 'Exploration game...'). NEVER begin project descriptions with past-tense action verbs (e.g. NEVER use 'Desenvolveu', 'Criou', 'Implementou', 'Reuniu', 'Construiu', or in English 'Developed', 'Created', 'Implemented', 'Built'). Reserve action verbs ONLY for work experience bullet points.\n"
+            "3. EXECUTIVE SUMMARY: If the summary/resumo section is sparse, missing, or contains generic website metadata (e.g. starting with 'Portfólio profissional de...'), synthesize a concise 2-3 sentence executive technical overview highlighting candidate's core expertise, academic background, and technical focus based strictly on their actual data.\n"
+            "4. STRICT TRUTHFULNESS & ZERO INVENTIONS: Keep all institutions, degrees, dates, metrics, and names 100% truthful to source facts. NEVER invent or hallucinate new projects, external URLs, project links, publications, DOI links, experiences, awards, or credentials not already present in the provided LaTeX code. Only enhance existing entries.\n"
+            "5. PUBLICATIONS & AWARDS LISTING: Preserve and list ALL publications and awards individually. NEVER collapse them into a single line or summary. Each publication must include title, authors, venue, year, and DOI link. Each award must be an individual item.\n"
+            "6. EXACT PERIODS: Never change explicit academic or work periods into 'Período não especificado', 'Em andamento', or 'Concluído'. Keep exact years and periods (e.g. 2026 - Atual, 2019 - 2025, 2023 - 2024).\n\n"
             "PART 3: OUTPUT FORMAT\n"
             "Return ONLY the audited, polished LaTeX body from \\begin{document} to \\end{document}. "
             "Zero prose commentary, zero markdown code fences."
@@ -320,7 +322,7 @@ class LLMResumeGenerator:
         user_prompt = (
             f"{instruction_line}"
             "DUAL REVIEW MANDATE: Review both the LaTeX code (syntax, balanced braces, special character escaping %, &, $, #, _, entry isolation) "
-            "and the text content (punchy action verbs, high-impact phrasing, strict truthfulness).\n"
+            "and the text content. IMPORTANT: Start project descriptions with NOUNS (Gerador, Aplicação, Utilitário, Implementação, Jogo, Portfólio...), NEVER action verbs (Desenvolveu, Criou, Implementou, Reuniu).\n"
             "Ensure every education, experience, and project entry is isolated with \\par\\vspace{3pt} or blank lines.\n\n"
             f"LATEX_BODY_TO_REVIEW:\n{target}\n\n"
             "Return the audited and improved LaTeX body from \\begin{document} to \\end{document}."
@@ -462,6 +464,9 @@ class LLMResumeGenerator:
             p for p in (cv.get("projects") or [])
             if (p.get("name") or "").strip() or (p.get("description") or "").strip()
         ]
+        for p in cv["projects"]:
+            if "description" in p:
+                p["description"] = sanitize_project_description(p["description"], lang)
         cv["publications"] = [
             pb for pb in (cv.get("publications") or [])
             if (pb.get("title") or "").strip()

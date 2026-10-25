@@ -36,7 +36,7 @@ from typing import Any, Dict, List, Tuple
 
 from .i18n import normalize_lang
 
-from .extractors import extract_languages_from_text
+from .extractors import extract_languages_from_text, sanitize_project_description
 
 from .templates import (
 
@@ -910,7 +910,7 @@ def build_structured_cv_deterministically(
 
                 "url": r_url,
 
-                "description": r_desc,
+                "description": sanitize_project_description(r_desc, lang),
 
             })
 
@@ -936,7 +936,7 @@ def build_structured_cv_deterministically(
 
                 "url": "",
 
-                "description": p_desc,
+                "description": sanitize_project_description(p_desc, lang),
 
             })
 
@@ -1207,7 +1207,11 @@ def build_structured_cv_deterministically(
 
     if manual.get("projects"):
 
-        projects = list(manual["projects"])
+        projects = []
+        for p in manual["projects"]:
+            p_item = dict(p) if isinstance(p, dict) else {"name": str(p), "description": ""}
+            p_item["description"] = sanitize_project_description(p_item.get("description", ""), lang)
+            projects.append(p_item)
 
     if manual.get("publications"):
 

@@ -303,6 +303,62 @@ def clean_markdown_text(raw: str) -> str:
     return text
 
 
+def sanitize_project_description(desc: str, lang: str = "pt-br") -> str:
+    """Padroniza descrições de projetos para iniciarem com substantivos descritivos.
+
+    Elimina verbos no passado (ex: 'Desenvolveu', 'Criou', 'Implementou', 'Reuniu')
+    e converte para substantivos diretos (ex: 'Gerador', 'Aplicação', 'Utilitário', 'Portfólio').
+    """
+    if not desc or not desc.strip():
+        return ""
+    text = desc.strip()
+    is_en = str(lang).lower().startswith("en")
+
+    # Detecta se a frase está em inglês mesmo se lang não foi especificado
+    if not is_en and re.match(r"^(?:Developed|Created|Implemented|Built|Designed|Engineered)", text, re.IGNORECASE):
+        is_en = True
+
+    if not is_en:
+        # Padrão: 'Desenvolvido em Python para automação...' -> 'Ferramenta para automação... desenvolvida em Python.'
+        m_dev_em = re.match(r"^(?:Desenvolvido|Criado|Constru[ií]do)\s+em\s+([^,]+?)\s+para\s+(.*)$", text, re.IGNORECASE)
+        if m_dev_em:
+            tech_part, rest = m_dev_em.group(1), m_dev_em.group(2)
+            clean_rest = rest.rstrip(".")
+            return f"Ferramenta para {clean_rest} desenvolvida em {tech_part}."
+
+        # Padrão: 'Desenvolvido para automação...' -> 'Ferramenta para automação...'
+        m_dev_para = re.match(r"^(?:Desenvolvido|Criado|Constru[ií]do)\s+para\s+(.*)$", text, re.IGNORECASE)
+        if m_dev_para:
+            return f"Ferramenta para {m_dev_para.group(1)}"
+
+        # Padrão: 'Desenvolveu gerador...', 'Criou portfólio...', 'Implementou utilitário...', 'Reuniu implementações...'
+        pt_verbs = r"(?:Desenvolveu|Criou|Implementou|Reuniu|Construiu|Elaborou|Projetou|Estruturou|Idealizou|Programou|Confeccionou|Organizou)"
+        m_verb = re.match(rf"^{pt_verbs}\s+(?:(?:um|uma|o|a|os|as)\s+)?([A-Za-zÀ-ÖØ-öø-ÿ].*)$", text, re.IGNORECASE)
+        if m_verb:
+            noun_rest = m_verb.group(1).strip()
+            return noun_rest[0].upper() + noun_rest[1:]
+
+    else:
+        # Padrões em inglês
+        m_dev_in = re.match(r"^(?:Developed|Created|Built)\s+in\s+([^,]+?)\s+for\s+(.*)$", text, re.IGNORECASE)
+        if m_dev_in:
+            tech_part, rest = m_dev_in.group(1), m_dev_in.group(2)
+            clean_rest = rest.rstrip(".")
+            return f"Tool for {clean_rest} developed in {tech_part}."
+
+        m_dev_for = re.match(r"^(?:Developed|Created|Built)\s+for\s+(.*)$", text, re.IGNORECASE)
+        if m_dev_for:
+            return f"Tool for {m_dev_for.group(1)}"
+
+        en_verbs = r"(?:Developed|Created|Implemented|Built|Designed|Engineered|Crafted|Constructed|Programmed|Gathered|Assembled|Authored)"
+        m_verb_en = re.match(rf"^{en_verbs}\s+(?:(?:a|an|the)\s+)?([A-Za-z].*)$", text, re.IGNORECASE)
+        if m_verb_en:
+            noun_rest = m_verb_en.group(1).strip()
+            return noun_rest[0].upper() + noun_rest[1:]
+
+    return text
+
+
 def extract_project_info_from_readme(
     readme_text: str,
     repo_lang: str = "",
@@ -315,7 +371,7 @@ def extract_project_info_from_readme(
         primary = repo_lang.strip()
         if primary.lower() == "html": primary = "HTML5"
         elif primary.lower() == "css": primary = "CSS3"
-        return fallback_desc, primary
+        return sanitize_project_description(fallback_desc, target_lang), primary
 
     is_en = target_lang.lower().startswith("en")
 
@@ -406,7 +462,7 @@ def extract_project_info_from_readme(
             detected_tech.append(name)
             seen.add(name.lower())
 
-    return best_summary, ", ".join(detected_tech[:6])
+    return sanitize_project_description(best_summary, target_lang), ", ".join(detected_tech[:6])
 
 
 def extract_github(github_input: str, target_lang: str = "pt-br") -> Dict[str, Any]:
@@ -496,7 +552,7 @@ def extract_github(github_input: str, target_lang: str = "pt-br") -> Dict[str, A
             repos_summary.append(
                 {
                     "name": repo_name,
-                    "description": desc,
+                    "description": sanitize_project_description(desc, target_lang),
                     "language": lang,
                     "tech": tech,
                     "stars": repo.get("stargazers_count") or 0,
