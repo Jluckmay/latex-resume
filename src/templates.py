@@ -256,6 +256,7 @@ PLACEHOLDER_PATTERN = re.compile(
 
 def sanitize_awards(awards: Any) -> List[str]:
     """Higieniza a lista de prêmios/títulos/certificações:
+    - Normaliza dicionários estruturados para texto limpo
     - Remove entradas nulas, vazias ou puramente de espaços
     - Remove rigorosamente identificadores e links de ORCID, Lattes, GitHub e LinkedIn
     - Remove placeholders como N/A, None, Nenhum, Sem Prêmios
@@ -267,7 +268,20 @@ def sanitize_awards(awards: Any) -> List[str]:
     for raw in awards:
         if raw is None:
             continue
-        val = str(raw).strip()
+        if isinstance(raw, dict):
+            title = str(raw.get("title") or raw.get("name") or "").strip()
+            yr = str(raw.get("year") or raw.get("date") or "").strip()
+            det = str(raw.get("details") or raw.get("institution") or "").strip()
+            parts: List[str] = []
+            if title:
+                parts.append(title)
+            if yr:
+                parts.append(f"({yr})")
+            if det:
+                parts.append(f"- {det}")
+            val = " ".join(parts).strip()
+        else:
+            val = str(raw).strip()
         if not val:
             continue
         if ORCID_PATTERN.search(val):

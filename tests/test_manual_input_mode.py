@@ -282,4 +282,72 @@ def test_multiple_generation_memory_cleanup_and_dom_isolation():
     assert 'id="inp-man-summary" class="form-control" rows="3" placeholder="Ex: Especialista em tecnologia com sólida trajetória..." oninput="renderLivePreview()" autocomplete="off" data-lpignore="true"' in html
     assert 'id="inp-man-education" class="form-control" rows="3" placeholder="Bacharelado em Ciência da Computação | USP | 2018 - 2022 | Foco em IA&#10;Mestrado em Engenharia | UNICAMP | 2022 - 2024" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true"' in html
 
+def test_structured_manual_inputs_ui_components():
+    """Valida a presença de componentes estruturados de formulário com botões de adicionar e campos individuais."""
+    html = Path("index.html").read_text(encoding="utf-8")
+    
+    # 1. Containers de listas dinâmicas e botões de adicionar
+    assert 'id="list-struct-education"' in html
+    assert 'id="btn-add-education"' in html
+    assert 'id="list-struct-experience"' in html
+    assert 'id="btn-add-experience"' in html
+    assert 'id="list-struct-projects"' in html
+    assert 'id="btn-add-project"' in html
+    assert 'id="list-struct-publications"' in html
+    assert 'id="btn-add-publication"' in html
+    assert 'id="list-struct-awards"' in html
+    assert 'id="btn-add-award"' in html
+
+    # 2. Funções JavaScript para gerenciamento dinâmico de cards estruturados
+    assert "function addStructuredEducation" in html
+    assert "function removeStructuredEducation" in html
+    assert "function addStructuredExperience" in html
+    assert "function removeStructuredExperience" in html
+    assert "function addStructuredProject" in html
+    assert "function removeStructuredProject" in html
+    assert "function addStructuredPublication" in html
+    assert "function removeStructuredPublication" in html
+    assert "function addStructuredAward" in html
+    assert "function removeStructuredAward" in html
+    assert "function collectStructuredEducation" in html
+    assert "function collectStructuredExperience" in html
+    assert "function collectStructuredProjects" in html
+    assert "function collectStructuredPublications" in html
+    assert "function collectStructuredAwards" in html
+    assert "function initStructuredManualInputs" in html
+
+    # 3. Streamlit app.py: contadores de session state e botões de adicionar/remover
+    app_py = Path("app.py").read_text(encoding="utf-8")
+    assert "man_edu_count" in app_py
+    assert "btn_add_edu" in app_py
+    assert "man_exp_count" in app_py
+    assert "btn_add_exp" in app_py
+    assert "man_proj_count" in app_py
+    assert "btn_add_proj" in app_py
+    assert "man_pubs_count" in app_py
+    assert "btn_add_pub" in app_py
+    assert "man_awards_count" in app_py
+    assert "btn_add_award" in app_py
+
+
+def test_sanitize_awards_with_structured_dictionaries():
+    """Garante que a higienização de premiações converte dicionários estruturados em strings limpas formatadas."""
+    from src.templates import sanitize_awards
+    
+    raw_awards = [
+        {"title": "Melhor Artigo em IA Aplicada", "year": "2023", "details": "Conferência Brasileira de IA"},
+        {"title": "AWS Certified Solutions Architect", "year": "2024", "details": "Amazon Web Services"},
+        {"title": "1º Lugar Hackathon", "details": "Tech Challenge"},
+        "Prêmio Mérito Acadêmico - USP (2022)",
+        None,
+        "",
+        {"title": "N/A"},
+    ]
+    
+    clean = sanitize_awards(raw_awards)
+    assert len(clean) == 4
+    assert clean[0] == "Melhor Artigo em IA Aplicada (2023) - Conferência Brasileira de IA"
+    assert clean[1] == "AWS Certified Solutions Architect (2024) - Amazon Web Services"
+    assert clean[2] == "1º Lugar Hackathon - Tech Challenge"
+    assert clean[3] == "Prêmio Mérito Acadêmico - USP (2022)"
 

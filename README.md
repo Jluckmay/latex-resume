@@ -1,4 +1,4 @@
-# 📄 Gerador Automático de Currículos LaTeX / Automatic LaTeX Resume Generator (Multi-Provider AI: NVIDIA NIM, Gemini, Claude, OpenAI, DeepSeek)
+# 📄 Gerador Automático de Currículos LaTeX / Automatic LaTeX Resume Generator
 
 > 🌐 **Idioma / Language:** [🇧🇷 Português (pt-BR)](#-português-pt-br) | [🇺🇸 English (en-US)](#-english-en-us)
 
@@ -69,10 +69,15 @@ Para executar o gerador e compilar os currículos em PDF, o ambiente deve atende
      - **Lattes**: parser nativo para o arquivo oficial `XML`/`ZIP` exportado do CNPq (`CURRICULO-VITAE`), além de suporte a PDF, HTML, URL ou ID de 16 dígitos / texto complementar.
      - **LinkedIn**: suporte a URL do perfil ou username, upload do PDF oficial exportado pelo LinkedIn (*Salvar como PDF*) e texto complementar.
      - **Foto de Perfil**: normalização automática de imagem (`PNG`/`JPG`/`WebP`) via Pillow para inclusão no LaTeX (`\includegraphics`).
-   - **Modo Inserção Manual (Preenchimento Direto)**:
-     - Permite que candidatos sem perfis públicos ou que prefiram controle editorial completo insiram seus dados diretamente em campos dedicados.
-     - Seções estruturadas para: **Resumo Profissional**, **Formação Acadêmica**, **Experiência Profissional**, **Competências Técnicas & Palavras-chave**, **Projetos de Destaque**, **Idiomas & Fluência**, **Prêmios & Reconhecimentos** e **Publicações**.
-     - Suporta sintaxe intuitiva linha por linha separada por barras verticais (`|`) ou objetos JSON, com higienização tipográfica automática para LaTeX.
+   - **Modo Inserção Manual (Preenchimento Direto & Cards Estruturados)**:
+     - Permite que candidatos sem perfis públicos ou que prefiram controle editorial completo insiram seus dados diretamente em formulários estruturados na interface.
+     - **Cards Dinâmicos com Botões de Adicionar/Remover**: formulários estruturados com botões `+ Adicionar` e `Remover` com campos dedicados para:
+       - **Formação Acadêmica**: Grau/Curso, Instituição de Ensino, Período e Detalhes/Ênfase/Tese.
+       - **Experiência Profissional**: Cargo/Título, Empresa/Organização, Período, Localização e Descrição/Realizações.
+       - **Projetos Relevantes**: Nome do Projeto, Tecnologias Utilizadas, Link/Repositório (URL) e Descrição.
+       - **Publicações & Artigos**: Título da Publicação, Periódico/Conferência, Ano, Autores e DOI/Link.
+       - **Prêmios & Certificações**: Título/Certificação, Ano e Instituição/Detalhes.
+     - **Modo Rápido / Texto em Lote (Expansível)**: mantém suporte opcional a sintaxe linha por linha separada por barras verticais (`|`) ou objetos JSON para colar múltiplos itens em bloco.
      - Preserva campos opcionais de links (GitHub, LinkedIn, Portfólio, ORCID, Lattes e Foto) para enriquecer o cabeçalho do currículo.
 4. **10 Modelos LaTeX Integrados (incluindo Padrão Google, Otimizado para IA & ATS, Modelo Russell, Awesome CV, Single Page + Keywords e Modelo Nico Krieger) + Suporte a Template `.tex` Customizado**:
    - `ai_ats_max`: **Otimizado para IA & ATS (Máxima Legibilidade por LLMs)** — Desenvolvido especificamente para triagem automatizada por LLMs (Gemini, Claude, GPT) e sistemas ATS neurais (Workday, Greenhouse, Lever). Fluxo textual 100% linear em coluna única, metadados semânticos explícitos (tags textuais ASCII: Location, Email, Phone, LinkedIn, GitHub, Portfolio), matriz de competências e palavras-chave (Core Competencies & Keywords) dedicada para match semântico e compatibilidade Unicode nativa (`glyphtounicode`).
@@ -462,10 +467,15 @@ To run the generator and compile resumes into PDF, your environment must meet th
      - **Lattes**: native parser for official CNPq `XML`/`ZIP` exports (`CURRICULO-VITAE`), plus PDF, HTML, URL or 16-digit ID / supplementary text.
      - **LinkedIn**: supports profile URLs or usernames, official LinkedIn exported PDFs (*Save to PDF*), and supplementary text.
      - **Profile Photo**: automatic image normalization (`PNG`/`JPG`/`WebP`) via Pillow for seamless LaTeX inclusion (`\includegraphics`).
-   - **Manual Entry Mode (Direct Structured Inputs)**:
-     - Allows candidates without external profiles or who prefer full editorial control to type or paste data directly into dedicated sections.
-     - Structured sections for: **Professional Summary**, **Education**, **Work Experience**, **Core Competencies & Keywords**, **Featured Projects**, **Languages & Proficiency**, **Awards & Honors**, and **Publications**.
-     - Supports intuitive line-by-line pipe-delimited syntax (`|`) or structured JSON with automatic LaTeX typography escaping and sanitization.
+   - **Manual Entry Mode (Direct Structured Inputs & Dynamic Cards)**:
+     - Allows candidates without external profiles or who prefer full editorial control to type data directly into structured form cards.
+     - **Dynamic Cards with Add/Remove Buttons**: dedicated cards with `+ Add` and `Remove` buttons containing individual input fields for:
+       - **Education**: Degree/Major, Institution, Period, and Details/Honors/Thesis.
+       - **Work Experience**: Role/Title, Company/Organization, Period, Location, and Description/Achievements.
+       - **Relevant Projects**: Project Name, Technologies Used, Link/Repository (URL), and Description.
+       - **Publications & Papers**: Publication Title, Journal/Conference, Year, Authors, and DOI/URL.
+       - **Awards & Certifications**: Title/Certification, Year, and Issuing Institution/Details.
+     - **Quick Mode / Batch Paste (Collapsible)**: preserves optional support for line-by-line pipe-delimited syntax (`|`) or structured JSON to paste multiple items at once.
      - Preserves optional header profile links (GitHub, LinkedIn, Portfolio, ORCID, Lattes, and photo).
 4. **10 Built-in LaTeX Templates (including Google Standard, AI/ATS-Optimized, Modelo Russell, Awesome CV, Single Page + Keywords, and Modelo Nico Krieger) + Custom `.tex` Template Support**:
    - `ai_ats_max`: **AI & ATS Max-Readability (LLM & Neural ATS Evaluators)** — Engineered specifically for automated screening by LLMs (Gemini, Claude, GPT) and neural ATS parsers (Workday, Greenhouse, Lever). Strict 100% linear single-column text stream, explicit semantic ASCII metadata tags (Location, Email, Phone, LinkedIn, GitHub, Portfolio), dedicated Core Competencies & Keywords matrix, and native Unicode mapping (`glyphtounicode`).

@@ -405,6 +405,86 @@
             color: var(--text-main);
             box-shadow: 0 2px 6px rgba(0,0,0,0.08);
         }
+        /* Structured Manual Input Forms & Dynamic Cards */
+        .struct-section {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.85rem;
+            margin-top: 0.85rem;
+        }
+        .struct-section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.65rem;
+        }
+        .struct-section-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .struct-card {
+            background-color: var(--bg-subtle);
+            border: 1px solid var(--border);
+            border-left: 3.5px solid var(--accent);
+            border-radius: 9px;
+            padding: 0.75rem;
+            margin-bottom: 0.65rem;
+            transition: border-color 0.15s ease;
+        }
+        .struct-card:hover {
+            border-color: var(--accent);
+        }
+        .struct-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        .struct-card-badge {
+            font-size: 0.76rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+        .btn-remove-card {
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            background-color: transparent;
+            color: #ef4444;
+            padding: 0.2rem 0.55rem;
+            border-radius: 6px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-remove-card:hover {
+            background-color: rgba(239, 68, 68, 0.1);
+            border-color: #ef4444;
+        }
+        .btn-add-item {
+            padding: 0.35rem 0.75rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            min-height: 32px;
+            border-radius: 8px;
+            border: 1px dashed var(--accent);
+            background-color: transparent;
+            color: var(--accent);
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .btn-add-item:hover {
+            background-color: var(--bg-subtle);
+            border-style: solid;
+        }
+
         /* Template Cards Selector */
         .tpl-grid {
             display: grid;
@@ -949,36 +1029,102 @@
                         <label for="inp-man-summary" id="ui-man-summary-lbl">Resumo Profissional / Perfil</label>
                         <textarea id="inp-man-summary" class="form-control" rows="3" placeholder="Ex: Especialista em tecnologia com sólida trajetória..." oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Resumo Profissional / Perfil"></textarea>
                     </div>
+
                     <div class="grid-2">
                         <div class="form-group">
-                            <label for="inp-man-education" id="ui-man-edu-lbl">Formação Acadêmica (Grau | Instituição | Período | Detalhes)</label>
-                            <textarea id="inp-man-education" class="form-control" rows="3" placeholder="Bacharelado em Ciência da Computação | USP | 2018 - 2022 | Foco em IA&#10;Mestrado em Engenharia | UNICAMP | 2022 - 2024" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Formação Acadêmica"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="inp-man-experience" id="ui-man-exp-lbl">Experiência Profissional (Cargo | Empresa | Período | Local | Descrição)</label>
-                            <textarea id="inp-man-experience" class="form-control" rows="3" placeholder="Engenheiro de Software Sênior | Tech Corp | 2022 - Atual | SP | Arquitetura de nuvem e microsserviços." oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false"></textarea>
-                        </div>
-                        <div class="form-group">
                             <label for="inp-man-skills" id="ui-man-skills-lbl">Habilidades & Competências (Categoria: Tecnologias / Itens)</label>
-                            <textarea id="inp-man-skills" class="form-control" rows="3" placeholder="Linguagens: Python, Go, TypeScript&#10;Cloud & DevOps: Docker, Kubernetes, AWS" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="inp-man-projects" id="ui-man-proj-lbl">Projetos Relevantes (Nome | Tech | Link | Descrição)</label>
-                            <textarea id="inp-man-projects" class="form-control" rows="3" placeholder="LaTeX Resume Enclave | Python, Flask | https://github.com/usuario/latex-resume | Plataforma zero-storage." oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Projetos Relevantes"></textarea>
+                            <textarea id="inp-man-skills" class="form-control" rows="3" placeholder="Linguagens: Python, Go, TypeScript&#10;Cloud & DevOps: Docker, Kubernetes, AWS" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Habilidades e Competências"></textarea>
                         </div>
                         <div class="form-group">
                             <label for="inp-man-languages" id="ui-man-lang-lbl">Idiomas (Idioma e Nível, separados por vírgula)</label>
                             <input type="text" id="inp-man-languages" class="form-control" placeholder="Português (Nativo), Inglês (Fluente), Espanhol (Intermediário)" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Idiomas">
                         </div>
-                        <div class="form-group">
-                            <label for="inp-man-awards" id="ui-man-awards-lbl">Prêmios & Certificações (Título | Ano | Detalhes)</label>
-                            <textarea id="inp-man-awards" class="form-control" rows="2" placeholder="AWS Certified Solutions Architect | 2023 | Amazon Web Services" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Prêmios e Certificações"></textarea>
+                    </div>
+
+                    <!-- 1. Formação Acadêmica Estruturada -->
+                    <div class="struct-section">
+                        <div class="struct-section-header">
+                            <span class="struct-section-title" id="ui-struct-edu-title">🎓 Formação Acadêmica</span>
+                            <button type="button" class="btn-add-item" id="btn-add-education" onclick="addStructuredEducation()" aria-label="Adicionar nova formação acadêmica">
+                                <span id="ui-btn-add-edu">+ Adicionar Formação</span>
+                            </button>
                         </div>
+                        <div id="list-struct-education"></div>
                     </div>
-                    <div class="form-group">
-                        <label for="inp-man-publications" id="ui-man-pubs-lbl">Publicações & Artigos (Título | Periódico/Conferência | Ano | Autores | DOI)</label>
-                        <textarea id="inp-man-publications" class="form-control" rows="2" placeholder="Neural Parsing of Technical Resumes | IEEE | 2023 | Silva, L. | 10.1109/CVPR.2023.1001" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Publicações e Artigos"></textarea>
+
+                    <!-- 2. Experiência Profissional Estruturada -->
+                    <div class="struct-section">
+                        <div class="struct-section-header">
+                            <span class="struct-section-title" id="ui-struct-exp-title">💼 Experiência Profissional</span>
+                            <button type="button" class="btn-add-item" id="btn-add-experience" onclick="addStructuredExperience()" aria-label="Adicionar nova experiência profissional">
+                                <span id="ui-btn-add-exp">+ Adicionar Experiência</span>
+                            </button>
+                        </div>
+                        <div id="list-struct-experience"></div>
                     </div>
+
+                    <!-- 3. Projetos Relevantes Estruturados -->
+                    <div class="struct-section">
+                        <div class="struct-section-header">
+                            <span class="struct-section-title" id="ui-struct-proj-title">🚀 Projetos Relevantes</span>
+                            <button type="button" class="btn-add-item" id="btn-add-project" onclick="addStructuredProject()" aria-label="Adicionar novo projeto relevante">
+                                <span id="ui-btn-add-proj">+ Adicionar Projeto</span>
+                            </button>
+                        </div>
+                        <div id="list-struct-projects"></div>
+                    </div>
+
+                    <!-- 4. Publicações & Artigos Estruturados -->
+                    <div class="struct-section">
+                        <div class="struct-section-header">
+                            <span class="struct-section-title" id="ui-struct-pubs-title">📄 Publicações & Artigos</span>
+                            <button type="button" class="btn-add-item" id="btn-add-publication" onclick="addStructuredPublication()" aria-label="Adicionar nova publicação ou artigo">
+                                <span id="ui-btn-add-pub">+ Adicionar Publicação</span>
+                            </button>
+                        </div>
+                        <div id="list-struct-publications"></div>
+                    </div>
+
+                    <!-- 5. Prêmios & Certificações Estruturados -->
+                    <div class="struct-section">
+                        <div class="struct-section-header">
+                            <span class="struct-section-title" id="ui-struct-awards-title">🏆 Prêmios & Certificações</span>
+                            <button type="button" class="btn-add-item" id="btn-add-award" onclick="addStructuredAward()" aria-label="Adicionar novo prêmio ou certificação">
+                                <span id="ui-btn-add-award">+ Adicionar Prêmio / Certificação</span>
+                            </button>
+                        </div>
+                        <div id="list-struct-awards"></div>
+                    </div>
+
+                    <!-- Modo Rápido / Colar em Texto Puro (Compatibilidade e Entrada em Bloco) -->
+                    <details class="collapsible" id="details-manual-raw-text" style="margin-top:1rem;">
+                        <summary id="ui-man-raw-summary">📝 Modo Rápido / Colar em Texto Puro (Importação em Lote / Avançado)</summary>
+                        <div style="margin-top:0.75rem;">
+                            <div class="grid-2">
+                                <div class="form-group">
+                                    <label for="inp-man-education" id="ui-man-edu-lbl">Formação Acadêmica (Grau | Instituição | Período | Detalhes)</label>
+                                    <textarea id="inp-man-education" class="form-control" rows="3" placeholder="Bacharelado em Ciência da Computação | USP | 2018 - 2022 | Foco em IA&#10;Mestrado em Engenharia | UNICAMP | 2022 - 2024" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Formação Acadêmica"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="inp-man-experience" id="ui-man-exp-lbl">Experiência Profissional (Cargo | Empresa | Período | Local | Descrição)</label>
+                                    <textarea id="inp-man-experience" class="form-control" rows="3" placeholder="Engenheiro de Software Sênior | Tech Corp | 2022 - Atual | SP | Arquitetura de nuvem e microsserviços." oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Experiência Profissional"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="inp-man-projects" id="ui-man-proj-lbl">Projetos Relevantes (Nome | Tech | Link | Descrição)</label>
+                                    <textarea id="inp-man-projects" class="form-control" rows="3" placeholder="LaTeX Resume Enclave | Python, Flask | https://github.com/usuario/latex-resume | Plataforma zero-storage." oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Projetos Relevantes"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="inp-man-awards" id="ui-man-awards-lbl">Prêmios & Certificações (Título | Ano | Detalhes)</label>
+                                    <textarea id="inp-man-awards" class="form-control" rows="2" placeholder="AWS Certified Solutions Architect | 2023 | Amazon Web Services" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Prêmios e Certificações"></textarea>
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label for="inp-man-publications" id="ui-man-pubs-lbl">Publicações & Artigos (Título | Periódico/Conferência | Ano | Autores | DOI)</label>
+                                <textarea id="inp-man-publications" class="form-control" rows="2" placeholder="Neural Parsing of Technical Resumes | IEEE | 2023 | Silva, L. | 10.1109/CVPR.2023.1001" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Publicações e Artigos"></textarea>
+                            </div>
+                        </div>
+                    </details>
+
                     <div style="background-color:var(--bg-subtle);border:1px solid var(--border);border-radius:8px;padding:0.75rem;margin-top:0.75rem;">
                         <span style="font-size:0.82rem;font-weight:600;color:var(--text-main);" id="ui-man-links-title">🔗 Links Opcionais e Foto de Perfil:</span>
                         <div class="grid-2" style="margin-top:0.5rem;">
@@ -1000,7 +1146,7 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>                </div>
             </div>
 
             <!-- Step 4: Dados Pessoais & Motor de IA Multi-Provedor -->
@@ -1350,6 +1496,17 @@
                 manAwardsLbl: "Prêmios & Certificações (Título | Ano | Detalhes)",
                 manPubsLbl: "Publicações & Artigos (Título | Periódico/Conferência | Ano | Autores | DOI)",
                 manLinksTitle: "🔗 Links Opcionais e Foto de Perfil:",
+                structEduTitle: "🎓 Formação Acadêmica",
+                btnAddEdu: "+ Adicionar Formação",
+                structExpTitle: "💼 Experiência Profissional",
+                btnAddExp: "+ Adicionar Experiência",
+                structProjTitle: "🚀 Projetos Relevantes",
+                btnAddProj: "+ Adicionar Projeto",
+                structPubsTitle: "📄 Publicações & Artigos",
+                btnAddPub: "+ Adicionar Publicação",
+                structAwardsTitle: "🏆 Prêmios & Certificações",
+                btnAddAward: "+ Adicionar Prêmio / Certificação",
+                manRawModeSummary: "📝 Modo Rápido / Colar em Texto Puro (Importação em Lote / Avançado)",
                 ghLbl: "GitHub (usuário ou URL)",
                 orcidLbl: "ORCID (ID ou URL)",
                 liLbl: "LinkedIn (nick ou URL)",
@@ -1440,6 +1597,17 @@
                 manAwardsLbl: "Awards & Certifications (Title | Year | Details)",
                 manPubsLbl: "Publications & Articles (Title | Venue | Year | Authors | DOI)",
                 manLinksTitle: "🔗 Optional Profile Links and Photo:",
+                structEduTitle: "🎓 Education",
+                btnAddEdu: "+ Add Education",
+                structExpTitle: "💼 Work Experience",
+                btnAddExp: "+ Add Experience",
+                structProjTitle: "🚀 Relevant Projects",
+                btnAddProj: "+ Add Project",
+                structPubsTitle: "📄 Publications & Papers",
+                btnAddPub: "+ Add Publication",
+                structAwardsTitle: "🏆 Awards & Certifications",
+                btnAddAward: "+ Add Award / Certification",
+                manRawModeSummary: "📝 Quick Mode / Paste Raw Text (Batch Import / Advanced)",
                 ghLbl: "GitHub (username or URL)",
                 orcidLbl: "ORCID (ID or URL)",
                 liLbl: "LinkedIn (username or URL)",
@@ -1492,6 +1660,431 @@
             photoDataUrl: null
         };
 
+        let structIdSequence = 0;
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function addStructuredEducation(data = {}) {
+            structIdSequence++;
+            const id = structIdSequence;
+            const list = document.getElementById("list-struct-education");
+            if (!list) return;
+            const isEn = state.uiLang === "en-us";
+            const count = list.children.length + 1;
+            const card = document.createElement("div");
+            card.className = "struct-card card-struct-edu";
+            card.id = `card-struct-edu-${id}`;
+            card.innerHTML = `
+                <div class="struct-card-header">
+                    <span class="struct-card-badge">${isEn ? 'Education' : 'Formação'} #${count}</span>
+                    <button type="button" class="btn-remove-card" onclick="removeStructuredEducation(${id})" aria-label="${isEn ? 'Remove education entry' : 'Remover esta formação'}">✕ ${isEn ? 'Remove' : 'Remover'}</button>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group" style="margin-bottom:0.45rem;">
+                        <label for="inp-struct-edu-deg-${id}">${isEn ? 'Degree / Major' : 'Grau / Curso'}</label>
+                        <input type="text" id="inp-struct-edu-deg-${id}" class="form-control struct-field" placeholder="${isEn ? 'e.g. B.Sc. in Computer Science' : 'ex: Bacharelado em Ciência da Computação'}" value="${escapeHtml(data.degree || '')}" oninput="onStructuredInputChanged()" autocomplete="off" data-lpignore="true" aria-label="${isEn ? 'Degree or Major' : 'Grau ou Curso'}">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0.45rem;">
+                        <label for="inp-struct-edu-inst-${id}">${isEn ? 'Institution' : 'Instituição de Ensino'}</label>
+                        <input type="text" id="inp-struct-edu-inst-${id}" class="form-control struct-field" placeholder="${isEn ? 'e.g. University of São Paulo' : 'ex: Universidade de São Paulo (USP)'}" value="${escapeHtml(data.institution || '')}" oninput="onStructuredInputChanged()" autocomplete="off" data-lpignore="true" aria-label="${isEn ? 'Educational Institution' : 'Instituição de Ensino'}">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0.45rem;">
+                        <label for="inp-struct-edu-per-${id}">${isEn ? 'Period' : 'Período'}</label>
+                        <input type="text" id="inp-struct-edu-per-${id}" class="form-control struct-field" placeholder="${isEn ? 'e.g. 2018 - 2022' : 'ex: 2018 - 2022'}" value="${escapeHtml(data.period || '')}" oninput="onStructuredInputChanged()" autocomplete="off" data-lpignore="true" aria-label="${isEn ? 'Period of Study' : 'Período'}">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0.45rem;">
+                        <label for="inp-struct-edu-det-${id}">${isEn ? 'Details / Honors / Thesis' : 'Detalhes / Ênfase / Tese'}</label>
+                        <input type="text" id="inp-struct-edu-det-${id}" class="form-control struct-field" placeholder="${isEn ? 'e.g. Focus on AI & Distributed Systems' : 'ex: Foco em Inteligência Artificial'}" value="${escapeHtml(data.details || '')}" oninput="onStructuredInputChanged()" autocomplete="off" data-lpignore="true" aria-label="${isEn ? 'Details or Honors' : 'Detalhes ou Tese'}">
+                    </div>
+                </div>
+            `;
+            list.appendChild(card);
+            updateStructuredCardBadges("list-struct-education", isEn ? "Education" : "Formação");
+            onStructuredInputChanged();
+        }
+
+        function removeStructuredEducation(id) {
+            const card = document.getElementById(`card-struct-edu-${id}`);
+            if (card) card.remove();
+            updateStructuredCardBadges("list-struct-education", state.uiLang === "en-us" ? "Education" : "Formação");
+            onStructuredInputChanged();
+        }
+
+        function addStructuredExperience(data = {}) {
+            structIdSequence++;
+            const id = structIdSequence;
+            const list = document.getElementById("list-struct-experience");
+            if (!list) return;
+            const isEn = state.uiLang === "en-us";
+            const count = list.children.length + 1;
+            const card = document.createElement("div");
+            card.className = "struct-card card-struct-exp";
+            card.id = `card-struct-exp-${id}`;
+            card.innerHTML = `
+                <div class="struct-card-header">
+                    <span class="struct-card-badge">${isEn ? 'Experience' : 'Experiência'} #${count}</span>
+                    <button type="button" class="btn-remove-card" onclick="removeStructuredExperience(${id})" aria-label="${isEn ? 'Remove experience entry' : 'Remover esta experiência'}">✕ ${isEn ? 'Remove' : 'Remover'}</button>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group" style="margin-bottom:0.45rem;">
+                        <label for="inp-struct-exp-role-${id}">${isEn ? 'Role / Title' : 'Cargo / Título'}</label>
+                        <input type="text" id="inp-struct-exp-role-${id}" class="form-control struct-field" placeholder="${isEn ? 'e.g. Senior Software Engineer' : 'ex: Engenheiro de Software Sênior'}" value="${escapeHtml(data.role || '')}" oninput="onStructuredInputChanged()" autocomplete="off" data-lpignore="true" aria-label="${isEn ? 'Professional Role or Title' : 'Cargo ou Título'}">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0.45rem;">
+                        <label for="inp-struct-exp-org-${id}">${isEn ? 'Company / Organization' : 'Empresa / Organização'}</label>
+                        <input type="text" id="inp-struct-exp-org-${id}" class="form-control struct-field" placeholder="${isEn ? 'e.g. Tech Corp' : 'ex: Tech Corp'}" value="${escapeHtml(data.organization || '')}" oninput="onStructuredInputChanged()" autocomplete="off" data-lpignore="true" aria-label="${isEn ? 'Company or Organization' : 'Empresa ou Organização'}">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0.45rem;">
+                        <label for="inp-struct-exp-per-${id}">${isEn ? 'Period' : 'Período'}</label>
+                        <input type="text" id="inp-struct-exp-per-${id}" class="form-control struct-field" placeholder="${isEn ? 'e.g. 2022 - Present' : 'ex: 2022 - Atual'}" value="${escapeHtml(data.period || '')}" oninput="onStructuredInputChanged()" autocomplete="off" data-lpignore="true" aria-label="${isEn ? 'Period of Employment' : 'Período'}">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0.45rem;">
+                        <label for="inp-struct-exp-loc-${id}">${isEn ? 'Location' : 'Localização'}</label>
+                        <input type="text" id="inp-struct-exp-loc-${id}" class="form-control struct-field" placeholder="${isEn ? 'e.g. San Francisco, CA (or Remote)' : 'ex: São Paulo, SP (ou Remoto)'}" value="${escapeHtml(data.location || '')}" oninput="onStructuredInputChanged()" autocomplete="off" data-lpignore="true" aria-label="${isEn ? 'Location' : 'Localização'}">
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label for="inp-struct-exp-desc-${id}">${isEn ? 'Description / Achievements' : 'Descrição / Realizações'}</label>
+                    <textarea id="inp-struct-exp-desc-${id}" class="form-control struct-field" rows="2" placeholder="${isEn ? 'e.g. Led technical architecture of cloud microservices and latency optimization.' : 'ex: Liderança técnica na arquitetura de nuvem e microsserviços.'}" oninput="onStructuredInputChanged()" autocomplete="off" data-lpignore="true" aria-label="${isEn ? 'Description of responsibilities and achievements' : 'Descrição e Realizações'}">${escapeHtml(data.description || '')}</textarea>
+                </div>
+            `;
+            list.appendChild(card);
+            updateStructuredCardBadges("list-struct-experience", isEn ? "Experience" : "Experiência");
+            onStructuredInputChanged();
+        }
+
+        function removeStructuredExperience(id) {
+            const card = document.getElementById(`card-struct-exp-${id}`);
+            if (card) card.remove();
+            updateStructuredCardBadges("list-struct-experience", state.uiLang === "en-us" ? "Experience" : "Experiência");
+            onStructuredInputChanged();
+        }
+
+        function addStructuredProject(data = {}) {
+            structIdSequence++;
+            const id = structIdSequence;
+            const list = document.getElementById("list-struct-projects");
+            if (!list) return;
+            const isEn = state.uiLang === "en-us";
+            const count = list.children.length + 1;
+            const card = document.createElement("div");
+            card.className = "struct-card card-struct-proj";
+            card.id = `card-struct-proj-${id}`;
+            card.innerHTML = `
+                <div class="struct-card-header">
+                    <span class="struct-card-badge">${isEn ? 'Project' : 'Projeto'} #${count}</span>
+                    <button type="button" class="btn-remove-card" onclick="removeStructuredProject(${id})" aria-label="${isEn ? 'Remove project' : 'Remover este projeto'}">✕ ${isEn ? 'Remove' : 'Remover'}</button>
+                </div>
+                <div class="grid-2">
+                    <div class="form-group" style="margin-bottom:0.45rem;">
+                        <label for="inp-struct-proj-name-${id}">${isEn ? 'Project Name' : 'Nome do Projeto'}</label>
+                        <input type="text" id="inp-struct-proj-name-${id}" class="form-control struct-field" placeholder="${isEn ? 'e.g. LaTeX Resume Enclave' : 'ex: LaTeX Resume Enclave'}" value="${escapeHtml(data.name || '')}" oninput="onStructuredInputChanged()" autocomplete="off" data-lpignore="true" aria-label="${isEn ? 'Project Name' : 'Nome do Projeto'}">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0.45rem;">
+                        <label for="inp-struct-proj-tech-${id}">${isEn ? 'Technologies Used' : 'Tecnologias Utilizadas'}</label>
+                        <input type="text" id="inp-struct-proj-tech-${id}" class="form-control struct-field" placeholder="${isEn ? 'e.g. Python, Flask, Docker' : 'ex: Python, Flask, Docker'}" value="${escapeHtml(data.tech || '')}" oninput="onStructuredInputChanged()" autocomplete="off" data-lpignore="true" aria-label="${isEn ? 'Technologies Used' : 'Tecnologias Utilizadas'}">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0.45rem;grid-column:1 / -1;">
+                        <label for="inp-struct-proj-url-${id}">${isEn ? 'Link / Repository (URL)' : 'Link / Repositório (URL)'}</label>
+                        <input type="text" id="inp-struct-proj-url-${id}" class="form-control struct-field" placeholder="${isEn ? 'https://github.com/user/project' : 'https://github.com/usuario/projeto'}" value="${escapeHtml(data.url || '')}" oninput="onStructuredInputChanged()" autocomplete="off" data-lpignore="true" aria-label="${isEn ? 'Project URL or Repository' : 'Link ou Repositório'}">
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom:0;">
+                    <label for="inp-struct-proj-desc-${id}">${isEn ? 'Project Description' : 'Descrição do Projeto'}</label>
+                    <textarea id="inp-struct-proj-desc-${id}" class="form-control struct-field" rows="2" placeholder="${isEn ? 'e.g. Zero-storage encrypted resume synthesis platform.' : 'ex: Plataforma zero-storage de síntese de currículos.'}" oninput="onStructuredInputChanged()" autocomplete="off" data-lpignore="true" aria-label="${isEn ? 'Project Description' : 'Descrição do Projeto'}">${escapeHtml(data.description || '')}</textarea>
+                </div>
+            `;
+            list.appendChild(card);
+            updateStructuredCardBadges("list-struct-projects", isEn ? "Project" : "Projeto");
+            onStructuredInputChanged();
+        }
+
+        function removeStructuredProject(id) {
+            const card = document.getElementById(`card-struct-proj-${id}`);
+            if (card) card.remove();
+            updateStructuredCardBadges("list-struct-projects", state.uiLang === "en-us" ? "Project" : "Projeto");
+            onStructuredInputChanged();
+        }
+
+        function addStructuredPublication(data = {}) {
+            structIdSequence++;
+            const id = structIdSequence;
+            const list = document.getElementById("list-struct-publications");
+            if (!list) return;
+            const isEn = state.uiLang === "en-us";
+            const count = list.children.length + 1;
+            const card = document.createElement("div");
+            card.className = "struct-card card-struct-pub";
+            card.id = `card-struct-pub-${id}`;
+            card.innerHTML = `
+                <div class="struct-card-header">
+                    <span class="struct-card-badge">${isEn ? 'Publication' : 'Publicação'} #${count}</span>
+                    <button type="button" class="btn-remove-card" onclick="removeStructuredPublication(${id})" aria-label="${isEn ? 'Remove publication' : 'Remover esta publicação'}">✕ ${isEn ? 'Remove' : 'Remover'}</button>
+                </div>
+                <div class="form-group" style="margin-bottom:0.45rem;">
+                    <label for="inp-struct-pub-title-${id}">${isEn ? 'Publication Title' : 'Título da Publicação'}</label>
+                    <input type="text" id="inp-struct-pub-title-${id}" class="form-control struct-field" placeholder="${isEn ? 'e.g. Neural Parsing of Technical Resumes' : 'ex: Neural Parsing of Technical Resumes'}" value="${escapeHtml(data.title || '')}" oninput="onStructuredInputChanged()" autocomplete="off" data-lpignore="true" aria-label="${isEn ? 'Publication Title' : 'Título da Publicação'}">
+                </div>
+                <div class="grid-2">
+                    <div class="form-group" style="margin-bottom:0.45rem;">
+                        <label for="inp-struct-pub-ven-${id}">${isEn ? 'Journal / Conference' : 'Periódico / Conferência'}</label>
+                        <input type="text" id="inp-struct-pub-ven-${id}" class="form-control struct-field" placeholder="${isEn ? 'e.g. IEEE Transactions on AI' : 'ex: IEEE Transactions on AI'}" value="${escapeHtml(data.venue || '')}" oninput="onStructuredInputChanged()" autocomplete="off" data-lpignore="true" aria-label="${isEn ? 'Journal or Conference' : 'Periódico ou Conferência'}">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0.45rem;">
+                        <label for="inp-struct-pub-yr-${id}">${isEn ? 'Year' : 'Ano'}</label>
+                        <input type="text" id="inp-struct-pub-yr-${id}" class="form-control struct-field" placeholder="2023" value="${escapeHtml(data.year || '')}" oninput="onStructuredInputChanged()" autocomplete="off" data-lpignore="true" aria-label="${isEn ? 'Year of Publication' : 'Ano'}">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0.45rem;">
+                        <label for="inp-struct-pub-auth-${id}">${isEn ? 'Authors' : 'Autores'}</label>
+                        <input type="text" id="inp-struct-pub-auth-${id}" class="form-control struct-field" placeholder="Silva, L.; Santos, M." value="${escapeHtml(data.authors || '')}" oninput="onStructuredInputChanged()" autocomplete="off" data-lpignore="true" aria-label="${isEn ? 'Authors' : 'Autores'}">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0.45rem;">
+                        <label for="inp-struct-pub-doi-${id}">${isEn ? 'DOI or URL' : 'DOI ou Link'}</label>
+                        <input type="text" id="inp-struct-pub-doi-${id}" class="form-control struct-field" placeholder="10.1109/CVPR.2023.1001" value="${escapeHtml(data.doi || '')}" oninput="onStructuredInputChanged()" autocomplete="off" data-lpignore="true" aria-label="${isEn ? 'DOI or Link' : 'DOI ou Link'}">
+                    </div>
+                </div>
+            `;
+            list.appendChild(card);
+            updateStructuredCardBadges("list-struct-publications", isEn ? "Publication" : "Publicação");
+            onStructuredInputChanged();
+        }
+
+        function removeStructuredPublication(id) {
+            const card = document.getElementById(`card-struct-pub-${id}`);
+            if (card) card.remove();
+            updateStructuredCardBadges("list-struct-publications", state.uiLang === "en-us" ? "Publication" : "Publicação");
+            onStructuredInputChanged();
+        }
+
+        function addStructuredAward(data = {}) {
+            structIdSequence++;
+            const id = structIdSequence;
+            const list = document.getElementById("list-struct-awards");
+            if (!list) return;
+            const isEn = state.uiLang === "en-us";
+            const count = list.children.length + 1;
+            const card = document.createElement("div");
+            card.className = "struct-card card-struct-award";
+            card.id = `card-struct-award-${id}`;
+            card.innerHTML = `
+                <div class="struct-card-header">
+                    <span class="struct-card-badge">${isEn ? 'Award / Certification' : 'Prêmio / Certificação'} #${count}</span>
+                    <button type="button" class="btn-remove-card" onclick="removeStructuredAward(${id})" aria-label="${isEn ? 'Remove award' : 'Remover este prêmio'}">✕ ${isEn ? 'Remove' : 'Remover'}</button>
+                </div>
+                <div class="grid-3">
+                    <div class="form-group" style="margin-bottom:0.45rem;">
+                        <label for="inp-struct-aw-title-${id}">${isEn ? 'Title / Certification' : 'Título / Certificação'}</label>
+                        <input type="text" id="inp-struct-aw-title-${id}" class="form-control struct-field" placeholder="${isEn ? 'e.g. AWS Solutions Architect' : 'ex: AWS Certified Solutions Architect'}" value="${escapeHtml(data.title || '')}" oninput="onStructuredInputChanged()" autocomplete="off" data-lpignore="true" aria-label="${isEn ? 'Award or Certification Title' : 'Título ou Certificação'}">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0.45rem;">
+                        <label for="inp-struct-aw-yr-${id}">${isEn ? 'Year' : 'Ano'}</label>
+                        <input type="text" id="inp-struct-aw-yr-${id}" class="form-control struct-field" placeholder="2023" value="${escapeHtml(data.year || '')}" oninput="onStructuredInputChanged()" autocomplete="off" data-lpignore="true" aria-label="${isEn ? 'Year' : 'Ano'}">
+                    </div>
+                    <div class="form-group" style="margin-bottom:0.45rem;">
+                        <label for="inp-struct-aw-det-${id}">${isEn ? 'Institution / Details' : 'Instituição / Detalhes'}</label>
+                        <input type="text" id="inp-struct-aw-det-${id}" class="form-control struct-field" placeholder="${isEn ? 'e.g. Amazon Web Services' : 'ex: Amazon Web Services'}" value="${escapeHtml(data.details || '')}" oninput="onStructuredInputChanged()" autocomplete="off" data-lpignore="true" aria-label="${isEn ? 'Issuing Institution or Details' : 'Instituição ou Detalhes'}">
+                    </div>
+                </div>
+            `;
+            list.appendChild(card);
+            updateStructuredCardBadges("list-struct-awards", isEn ? "Award" : "Premiação");
+            onStructuredInputChanged();
+        }
+
+        function removeStructuredAward(id) {
+            const card = document.getElementById(`card-struct-award-${id}`);
+            if (card) card.remove();
+            updateStructuredCardBadges("list-struct-awards", state.uiLang === "en-us" ? "Award" : "Premiação");
+            onStructuredInputChanged();
+        }
+
+        function updateStructuredCardBadges(listId, prefix) {
+            const list = document.getElementById(listId);
+            if (!list) return;
+            Array.from(list.children).forEach((child, index) => {
+                const badge = child.querySelector(".struct-card-badge");
+                if (badge) badge.textContent = `#${index + 1} ${prefix}`;
+            });
+        }
+
+        function collectStructuredEducation() {
+            const list = document.getElementById("list-struct-education");
+            if (!list) return [];
+            const items = [];
+            Array.from(list.children).forEach(card => {
+                const deg = card.querySelector("[id^='inp-struct-edu-deg-']")?.value.trim() || "";
+                const inst = card.querySelector("[id^='inp-struct-edu-inst-']")?.value.trim() || "";
+                const per = card.querySelector("[id^='inp-struct-edu-per-']")?.value.trim() || "";
+                const det = card.querySelector("[id^='inp-struct-edu-det-']")?.value.trim() || "";
+                if (deg || inst) {
+                    items.push({ degree: deg, institution: inst, period: per, details: det });
+                }
+            });
+            return items;
+        }
+
+        function collectStructuredExperience() {
+            const list = document.getElementById("list-struct-experience");
+            if (!list) return [];
+            const items = [];
+            Array.from(list.children).forEach(card => {
+                const role = card.querySelector("[id^='inp-struct-exp-role-']")?.value.trim() || "";
+                const org = card.querySelector("[id^='inp-struct-exp-org-']")?.value.trim() || "";
+                const per = card.querySelector("[id^='inp-struct-exp-per-']")?.value.trim() || "";
+                const loc = card.querySelector("[id^='inp-struct-exp-loc-']")?.value.trim() || "";
+                const desc = card.querySelector("[id^='inp-struct-exp-desc-']")?.value.trim() || "";
+                if (role || org) {
+                    items.push({ role, organization: org, period: per, location: loc, description: desc });
+                }
+            });
+            return items;
+        }
+
+        function collectStructuredProjects() {
+            const list = document.getElementById("list-struct-projects");
+            if (!list) return [];
+            const items = [];
+            Array.from(list.children).forEach(card => {
+                const name = card.querySelector("[id^='inp-struct-proj-name-']")?.value.trim() || "";
+                const tech = card.querySelector("[id^='inp-struct-proj-tech-']")?.value.trim() || "";
+                const url = card.querySelector("[id^='inp-struct-proj-url-']")?.value.trim() || "";
+                const desc = card.querySelector("[id^='inp-struct-proj-desc-']")?.value.trim() || "";
+                if (name) {
+                    items.push({ name, tech, url, description: desc });
+                }
+            });
+            return items;
+        }
+
+        function collectStructuredPublications() {
+            const list = document.getElementById("list-struct-publications");
+            if (!list) return [];
+            const items = [];
+            Array.from(list.children).forEach(card => {
+                const title = card.querySelector("[id^='inp-struct-pub-title-']")?.value.trim() || "";
+                const venue = card.querySelector("[id^='inp-struct-pub-ven-']")?.value.trim() || "";
+                const year = card.querySelector("[id^='inp-struct-pub-yr-']")?.value.trim() || "";
+                const authors = card.querySelector("[id^='inp-struct-pub-auth-']")?.value.trim() || "";
+                const doi = card.querySelector("[id^='inp-struct-pub-doi-']")?.value.trim() || "";
+                if (title) {
+                    items.push({ title, venue, year, authors, doi });
+                }
+            });
+            return items;
+        }
+
+        function collectStructuredAwards() {
+            const list = document.getElementById("list-struct-awards");
+            if (!list) return [];
+            const items = [];
+            Array.from(list.children).forEach(card => {
+                const title = card.querySelector("[id^='inp-struct-aw-title-']")?.value.trim() || "";
+                const year = card.querySelector("[id^='inp-struct-aw-yr-']")?.value.trim() || "";
+                const details = card.querySelector("[id^='inp-struct-aw-det-']")?.value.trim() || "";
+                if (title) {
+                    items.push({ title, year, details });
+                }
+            });
+            return items;
+        }
+
+        function onStructuredInputChanged() {
+            const edus = collectStructuredEducation();
+            const exps = collectStructuredExperience();
+            const projs = collectStructuredProjects();
+            const pubs = collectStructuredPublications();
+            const awards = collectStructuredAwards();
+
+            if (edus.length > 0) {
+                const rawEduEl = document.getElementById("inp-man-education");
+                if (rawEduEl) {
+                    rawEduEl.value = edus.map(e => [e.degree, e.institution, e.period, e.details].filter(Boolean).join(" | ")).join("\n");
+                }
+            }
+            if (exps.length > 0) {
+                const rawExpEl = document.getElementById("inp-man-experience");
+                if (rawExpEl) {
+                    rawExpEl.value = exps.map(e => [e.role, e.organization, e.period, e.location, e.description].filter(Boolean).join(" | ")).join("\n");
+                }
+            }
+            if (projs.length > 0) {
+                const rawProjEl = document.getElementById("inp-man-projects");
+                if (rawProjEl) {
+                    rawProjEl.value = projs.map(p => [p.name, p.tech, p.url, p.description].filter(Boolean).join(" | ")).join("\n");
+                }
+            }
+            if (pubs.length > 0) {
+                const rawPubEl = document.getElementById("inp-man-publications");
+                if (rawPubEl) {
+                    rawPubEl.value = pubs.map(p => [p.title, p.venue, p.year, p.authors, p.doi].filter(Boolean).join(" | ")).join("\n");
+                }
+            }
+            if (awards.length > 0) {
+                const rawAwEl = document.getElementById("inp-man-awards");
+                if (rawAwEl) {
+                    rawAwEl.value = awards.map(a => [a.title, a.year, a.details].filter(Boolean).join(" | ")).join("\n");
+                }
+            }
+
+            renderLivePreview();
+        }
+
+        function initStructuredManualInputs() {
+            const listEdu = document.getElementById("list-struct-education");
+            if (listEdu && listEdu.children.length === 0) {
+                addStructuredEducation({
+                    degree: "Bacharelado em Ciência da Computação",
+                    institution: "USP",
+                    period: "2018 - 2022",
+                    details: "Foco em Inteligência Artificial"
+                });
+            }
+            const listExp = document.getElementById("list-struct-experience");
+            if (listExp && listExp.children.length === 0) {
+                addStructuredExperience({
+                    role: "Engenheiro de Software Sênior",
+                    organization: "Tech Corp",
+                    period: "2022 - Atual",
+                    location: "São Paulo, SP",
+                    description: "Arquitetura de nuvem, microsserviços e alta disponibilidade."
+                });
+            }
+            const listProj = document.getElementById("list-struct-projects");
+            if (listProj && listProj.children.length === 0) {
+                addStructuredProject({
+                    name: "LaTeX Resume Enclave",
+                    tech: "Python, Flask, Docker",
+                    url: "https://github.com/usuario/latex-resume",
+                    description: "Plataforma zero-storage para síntese determinística de currículos."
+                });
+            }
+            const listPub = document.getElementById("list-struct-publications");
+            if (listPub && listPub.children.length === 0) {
+                addStructuredPublication({
+                    title: "Neural Parsing of Technical Resumes",
+                    venue: "IEEE Transactions",
+                    year: "2023",
+                    authors: "Silva, L.; Santos, M.",
+                    doi: "10.1109/CVPR.2023.1001"
+                });
+            }
+            const listAw = document.getElementById("list-struct-awards");
+            if (listAw && listAw.children.length === 0) {
+                addStructuredAward({
+                    title: "AWS Certified Solutions Architect",
+                    year: "2023",
+                    details: "Amazon Web Services"
+                });
+            }
+        }
+
         function initAutoPreferences() {
             // 0. Higienização de segurança do localStorage: se existir qualquer URL de backend de produção gravada em texto plano, limpa imediatamente
             try {
@@ -1512,6 +2105,7 @@
             document.documentElement.setAttribute("data-theme", state.theme);
 
             applyTranslations();
+            initStructuredManualInputs();
             renderLivePreview();
             checkBackendStatus();
         }
@@ -1533,6 +2127,7 @@
             if (btnMan) btnMan.classList.toggle("active", mode === "manual");
             if (cImp) cImp.style.display = mode === "import" ? "block" : "none";
             if (cMan) cMan.style.display = mode === "manual" ? "block" : "none";
+            if (mode === "manual") initStructuredManualInputs();
             renderLivePreview();
         }
 
@@ -1603,6 +2198,17 @@
             if (document.getElementById("ui-man-awards-lbl")) document.getElementById("ui-man-awards-lbl").textContent = t.manAwardsLbl;
             if (document.getElementById("ui-man-pubs-lbl")) document.getElementById("ui-man-pubs-lbl").textContent = t.manPubsLbl;
             if (document.getElementById("ui-man-links-title")) document.getElementById("ui-man-links-title").textContent = t.manLinksTitle;
+            if (document.getElementById("ui-struct-edu-title")) document.getElementById("ui-struct-edu-title").textContent = t.structEduTitle;
+            if (document.getElementById("ui-btn-add-edu")) document.getElementById("ui-btn-add-edu").textContent = t.btnAddEdu;
+            if (document.getElementById("ui-struct-exp-title")) document.getElementById("ui-struct-exp-title").textContent = t.structExpTitle;
+            if (document.getElementById("ui-btn-add-exp")) document.getElementById("ui-btn-add-exp").textContent = t.btnAddExp;
+            if (document.getElementById("ui-struct-proj-title")) document.getElementById("ui-struct-proj-title").textContent = t.structProjTitle;
+            if (document.getElementById("ui-btn-add-proj")) document.getElementById("ui-btn-add-proj").textContent = t.btnAddProj;
+            if (document.getElementById("ui-struct-pubs-title")) document.getElementById("ui-struct-pubs-title").textContent = t.structPubsTitle;
+            if (document.getElementById("ui-btn-add-pub")) document.getElementById("ui-btn-add-pub").textContent = t.btnAddPub;
+            if (document.getElementById("ui-struct-awards-title")) document.getElementById("ui-struct-awards-title").textContent = t.structAwardsTitle;
+            if (document.getElementById("ui-btn-add-award")) document.getElementById("ui-btn-add-award").textContent = t.btnAddAward;
+            if (document.getElementById("ui-man-raw-summary")) document.getElementById("ui-man-raw-summary").textContent = t.manRawModeSummary;
             document.getElementById("ui-step4-title").textContent = t.step4;
             document.getElementById("ui-name-lbl").textContent = t.nameLbl;
             document.getElementById("ui-role-lbl").textContent = t.roleLbl;
@@ -2589,15 +3195,21 @@
 
                 let manualData = null;
                 if (state.dataMode === "manual") {
+                    const sEdu = collectStructuredEducation();
+                    const sExp = collectStructuredExperience();
+                    const sProj = collectStructuredProjects();
+                    const sPubs = collectStructuredPublications();
+                    const sAwards = collectStructuredAwards();
+
                     manualData = {
                         summary: (document.getElementById("inp-man-summary")?.value || "").trim(),
-                        education: (document.getElementById("inp-man-education")?.value || "").trim(),
-                        experience: (document.getElementById("inp-man-experience")?.value || "").trim(),
+                        education: sEdu.length > 0 ? sEdu : (document.getElementById("inp-man-education")?.value || "").trim(),
+                        experience: sExp.length > 0 ? sExp : (document.getElementById("inp-man-experience")?.value || "").trim(),
                         skills: (document.getElementById("inp-man-skills")?.value || "").trim(),
-                        projects: (document.getElementById("inp-man-projects")?.value || "").trim(),
+                        projects: sProj.length > 0 ? sProj : (document.getElementById("inp-man-projects")?.value || "").trim(),
                         languages: (document.getElementById("inp-man-languages")?.value || "").trim(),
-                        awards: (document.getElementById("inp-man-awards")?.value || "").trim(),
-                        publications: (document.getElementById("inp-man-publications")?.value || "").trim(),
+                        awards: sAwards.length > 0 ? sAwards : (document.getElementById("inp-man-awards")?.value || "").trim(),
+                        publications: sPubs.length > 0 ? sPubs : (document.getElementById("inp-man-publications")?.value || "").trim(),
                     };
                 }
                 const lattesData = await readFileAsBase64(document.getElementById("inp-lattes-file").files[0]);

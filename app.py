@@ -289,28 +289,158 @@ with col_left:
             height=80,
             placeholder=txt["manual_summary_ph"],
         )
-        c_m1, c_m2 = st.columns(2)
-        with c_m1:
+        sk_col1, sk_col2 = st.columns(2)
+        with sk_col1:
+            man_skills = st.text_area(
+                txt["manual_skills_label"],
+                height=80,
+                placeholder=txt["manual_skills_ph"],
+            )
+        with sk_col2:
+            man_languages = st.text_input(
+                txt["manual_languages_label"],
+                placeholder=txt["manual_languages_ph"],
+            )
+
+        # 1. Formação Acadêmica Estruturada
+        st.markdown(f"#### {txt.get('struct_edu_title', '🎓 Formação Acadêmica')}")
+        if "man_edu_count" not in st.session_state:
+            st.session_state.man_edu_count = 1
+        structured_edu = []
+        for i in range(st.session_state.man_edu_count):
+            with st.expander(f"🎓 {txt.get('struct_degree_lbl', 'Formação')} #{i + 1}", expanded=(i == 0)):
+                e1, e2 = st.columns(2)
+                with e1:
+                    deg = st.text_input(txt.get("struct_degree_lbl", "Grau / Curso"), key=f"edu_deg_{i}", placeholder=txt.get("struct_degree_ph", "Bacharelado em Ciência da Computação"))
+                    inst = st.text_input(txt.get("struct_inst_lbl", "Instituição"), key=f"edu_inst_{i}", placeholder=txt.get("struct_inst_ph", "USP / UNICAMP"))
+                with e2:
+                    period = st.text_input(txt.get("struct_period_lbl", "Período"), key=f"edu_period_{i}", placeholder=txt.get("struct_period_ph", "2018 - 2022"))
+                    details = st.text_input(txt.get("struct_details_lbl", "Detalhes / Ênfase / Tese"), key=f"edu_det_{i}", placeholder=txt.get("struct_details_ph", "Foco em Inteligência Artificial"))
+                if deg or inst:
+                    structured_edu.append({"degree": deg, "institution": inst, "period": period, "details": details})
+        b_e1, b_e2 = st.columns([0.5, 0.5])
+        with b_e1:
+            if st.button("➕ " + txt.get("btn_add_edu", "Adicionar Formação"), key="btn_add_edu"):
+                st.session_state.man_edu_count += 1
+                st.rerun()
+        with b_e2:
+            if st.session_state.man_edu_count > 1 and st.button("➖ " + txt.get("btn_rem_item", "Remover"), key="btn_rem_edu"):
+                st.session_state.man_edu_count -= 1
+                st.rerun()
+
+        # 2. Experiência Profissional Estruturada
+        st.markdown(f"#### {txt.get('struct_exp_title', '💼 Experiência Profissional')}")
+        if "man_exp_count" not in st.session_state:
+            st.session_state.man_exp_count = 1
+        structured_exp = []
+        for i in range(st.session_state.man_exp_count):
+            with st.expander(f"💼 {txt.get('struct_role_lbl', 'Experiência')} #{i + 1}", expanded=(i == 0)):
+                x1, x2 = st.columns(2)
+                with x1:
+                    role = st.text_input(txt.get("struct_role_lbl", "Cargo / Título"), key=f"exp_role_{i}", placeholder=txt.get("struct_role_ph", "Engenheiro de Software Sênior"))
+                    org = st.text_input(txt.get("struct_org_lbl", "Empresa / Organização"), key=f"exp_org_{i}", placeholder=txt.get("struct_org_ph", "Tech Corp"))
+                with x2:
+                    period = st.text_input(txt.get("struct_period_lbl", "Período"), key=f"exp_period_{i}", placeholder=txt.get("struct_period_ph", "2022 - Atual"))
+                    loc = st.text_input(txt.get("struct_loc_lbl", "Localização"), key=f"exp_loc_{i}", placeholder=txt.get("struct_loc_ph", "São Paulo, SP (ou Remoto)"))
+                desc = st.text_area(txt.get("struct_desc_lbl", "Descrição / Realizações"), key=f"exp_desc_{i}", height=70, placeholder=txt.get("struct_desc_ph", "Liderança técnica e arquitetura de microsserviços..."))
+                if role or org:
+                    structured_exp.append({"role": role, "organization": org, "period": period, "location": loc, "description": desc})
+        b_x1, b_x2 = st.columns([0.5, 0.5])
+        with b_x1:
+            if st.button("➕ " + txt.get("btn_add_exp", "Adicionar Experiência"), key="btn_add_exp"):
+                st.session_state.man_exp_count += 1
+                st.rerun()
+        with b_x2:
+            if st.session_state.man_exp_count > 1 and st.button("➖ " + txt.get("btn_rem_item", "Remover"), key="btn_rem_exp"):
+                st.session_state.man_exp_count -= 1
+                st.rerun()
+
+        # 3. Projetos Relevantes Estruturados
+        st.markdown(f"#### {txt.get('struct_proj_title', '🚀 Projetos Relevantes')}")
+        if "man_proj_count" not in st.session_state:
+            st.session_state.man_proj_count = 1
+        structured_proj = []
+        for i in range(st.session_state.man_proj_count):
+            with st.expander(f"🚀 {txt.get('struct_proj_name_lbl', 'Projeto')} #{i + 1}", expanded=(i == 0)):
+                p1, p2 = st.columns(2)
+                with p1:
+                    pname = st.text_input(txt.get("struct_proj_name_lbl", "Nome do Projeto"), key=f"proj_name_{i}", placeholder=txt.get("struct_proj_name_ph", "LaTeX Resume Enclave"))
+                    ptech = st.text_input(txt.get("struct_proj_tech_lbl", "Tecnologias"), key=f"proj_tech_{i}", placeholder=txt.get("struct_proj_tech_ph", "Python, Flask, Docker"))
+                with p2:
+                    purl = st.text_input(txt.get("struct_proj_url_lbl", "Link / Repositório (URL)"), key=f"proj_url_{i}", placeholder=txt.get("struct_proj_url_ph", "https://github.com/usuario/projeto"))
+                pdesc = st.text_area(txt.get("struct_proj_desc_lbl", "Descrição"), key=f"proj_desc_{i}", height=65, placeholder=txt.get("struct_proj_desc_ph", "Plataforma de síntese determinística..."))
+                if pname:
+                    structured_proj.append({"name": pname, "tech": ptech, "url": purl, "description": pdesc})
+        b_p1, b_p2 = st.columns([0.5, 0.5])
+        with b_p1:
+            if st.button("➕ " + txt.get("btn_add_proj", "Adicionar Projeto"), key="btn_add_proj"):
+                st.session_state.man_proj_count += 1
+                st.rerun()
+        with b_p2:
+            if st.session_state.man_proj_count > 1 and st.button("➖ " + txt.get("btn_rem_item", "Remover"), key="btn_rem_proj"):
+                st.session_state.man_proj_count -= 1
+                st.rerun()
+
+        # 4. Publicações & Artigos Estruturados
+        st.markdown(f"#### {txt.get('struct_pubs_title', '📄 Publicações & Artigos')}")
+        if "man_pubs_count" not in st.session_state:
+            st.session_state.man_pubs_count = 1
+        structured_pubs = []
+        for i in range(st.session_state.man_pubs_count):
+            with st.expander(f"📄 {txt.get('struct_pub_title_lbl', 'Publicação')} #{i + 1}", expanded=(i == 0)):
+                pub_title = st.text_input(txt.get("struct_pub_title_lbl", "Título da Publicação"), key=f"pub_title_{i}", placeholder=txt.get("struct_pub_title_ph", "Neural Parsing of Technical Resumes"))
+                pu1, pu2 = st.columns(2)
+                with pu1:
+                    pub_venue = st.text_input(txt.get("struct_pub_venue_lbl", "Periódico / Conferência"), key=f"pub_venue_{i}", placeholder=txt.get("struct_pub_venue_ph", "IEEE Transactions on AI"))
+                    pub_year = st.text_input(txt.get("struct_pub_year_lbl", "Ano"), key=f"pub_year_{i}", placeholder=txt.get("struct_pub_year_ph", "2023"))
+                with pu2:
+                    pub_authors = st.text_input(txt.get("struct_pub_authors_lbl", "Autores"), key=f"pub_authors_{i}", placeholder=txt.get("struct_pub_authors_ph", "Silva, L.; Santos, M."))
+                    pub_doi = st.text_input(txt.get("struct_pub_doi_lbl", "DOI ou Link"), key=f"pub_doi_{i}", placeholder=txt.get("struct_pub_doi_ph", "10.1109/CVPR.2023.1001"))
+                if pub_title:
+                    structured_pubs.append({"title": pub_title, "venue": pub_venue, "year": pub_year, "authors": pub_authors, "doi": pub_doi})
+        b_u1, b_u2 = st.columns([0.5, 0.5])
+        with b_u1:
+            if st.button("➕ " + txt.get("btn_add_pub", "Adicionar Publicação"), key="btn_add_pub"):
+                st.session_state.man_pubs_count += 1
+                st.rerun()
+        with b_u2:
+            if st.session_state.man_pubs_count > 1 and st.button("➖ " + txt.get("btn_rem_item", "Remover"), key="btn_rem_pub"):
+                st.session_state.man_pubs_count -= 1
+                st.rerun()
+
+        # 5. Prêmios & Certificações Estruturados
+        st.markdown(f"#### {txt.get('struct_awards_title', '🏆 Prêmios & Certificações')}")
+        if "man_awards_count" not in st.session_state:
+            st.session_state.man_awards_count = 1
+        structured_awards = []
+        for i in range(st.session_state.man_awards_count):
+            with st.expander(f"🏆 {txt.get('struct_award_title_lbl', 'Premiação')} #{i + 1}", expanded=(i == 0)):
+                aw1, aw2 = st.columns(2)
+                with aw1:
+                    aw_title = st.text_input(txt.get("struct_award_title_lbl", "Título / Certificação"), key=f"award_title_{i}", placeholder=txt.get("struct_award_title_ph", "AWS Certified Solutions Architect"))
+                    aw_year = st.text_input(txt.get("struct_award_year_lbl", "Ano"), key=f"award_year_{i}", placeholder=txt.get("struct_award_year_ph", "2023"))
+                with aw2:
+                    aw_det = st.text_input(txt.get("struct_award_det_lbl", "Instituição / Detalhes"), key=f"award_det_{i}", placeholder=txt.get("struct_award_det_ph", "Amazon Web Services"))
+                if aw_title:
+                    structured_awards.append({"title": aw_title, "year": aw_year, "details": aw_det})
+        b_a1, b_a2 = st.columns([0.5, 0.5])
+        with b_a1:
+            if st.button("➕ " + txt.get("btn_add_award", "Adicionar Prêmio / Certificação"), key="btn_add_award"):
+                st.session_state.man_awards_count += 1
+                st.rerun()
+        with b_a2:
+            if st.session_state.man_awards_count > 1 and st.button("➖ " + txt.get("btn_rem_item", "Remover"), key="btn_rem_award"):
+                st.session_state.man_awards_count -= 1
+                st.rerun()
+
+        # Modo Texto Rápido / Colar em Lote (Compatibilidade e Entrada em Bloco)
+        with st.expander(txt.get("manual_raw_text_expander", "📝 Modo Texto Rápido / Colar em Lote (Opcional / Legado)")):
+            st.caption(txt.get("manual_raw_caption", "Cole informações em formato texto com separador pipe '|' se preferir não usar os campos estruturados acima."))
             man_edu = st.text_area(
                 txt["manual_edu_label"],
                 height=100,
                 placeholder=txt["manual_edu_ph"],
             )
-            man_skills = st.text_area(
-                txt["manual_skills_label"],
-                height=100,
-                placeholder=txt["manual_skills_ph"],
-            )
-            man_languages = st.text_input(
-                txt["manual_languages_label"],
-                placeholder=txt["manual_languages_ph"],
-            )
-            man_awards = st.text_area(
-                txt["manual_awards_label"],
-                height=70,
-                placeholder=txt["manual_awards_ph"],
-            )
-        with c_m2:
             man_exp = st.text_area(
                 txt["manual_exp_label"],
                 height=100,
@@ -325,6 +455,11 @@ with col_left:
                 txt["manual_pubs_label"],
                 height=70,
                 placeholder=txt["manual_pubs_ph"],
+            )
+            man_awards = st.text_area(
+                txt["manual_awards_label"],
+                height=70,
+                placeholder=txt["manual_awards_ph"],
             )
 
         st.caption(txt["optional_links_title"])
@@ -348,13 +483,13 @@ with col_left:
 
         manual_data_dict = {
             "summary": man_summary,
-            "education": man_edu,
-            "experience": man_exp,
+            "education": structured_edu if structured_edu else man_edu,
+            "experience": structured_exp if structured_exp else man_exp,
             "skills": man_skills,
-            "projects": man_proj,
+            "projects": structured_proj if structured_proj else man_proj,
             "languages": man_languages,
-            "awards": man_awards,
-            "publications": man_pubs,
+            "awards": structured_awards if structured_awards else man_awards,
+            "publications": structured_pubs if structured_pubs else man_pubs,
         }
 
     # Seção 3: Dados Pessoais de Cabeçalho
