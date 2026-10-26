@@ -1790,18 +1790,22 @@ def _render_tech_sidebar(
 
     # 3. Formação Acadêmica na barra lateral (equilibra peso visual entre colunas)
     sidebar_edu = ""
-    edus = (cv.get("education") or [])[:2]
+    edus = cv.get("education") or []
     if edus:
         edu_lines = [rf"\section*{{{t['sec_education']}}}"]
         for ed in edus:
             deg = escape_latex(ed.get("degree"))
             inst = escape_latex(ed.get("institution"))
             per = escape_latex(ed.get("period"))
-            edu_lines.append(
-                rf"\noindent\textbf{{{deg}}}\\"
-                + rf"{{\footnotesize {inst}}}\\"
-                + rf"{{\scriptsize\color{{sidecolor!70}} {per}}}\par\vspace{{4pt}}"
-            )
+            det = escape_latex(ed.get("details"))
+            edu_entry = [rf"\noindent\textbf{{{deg}}}"]
+            if inst:
+                edu_entry.append(rf"{{\footnotesize {inst}}}")
+            if per:
+                edu_entry.append(rf"{{\scriptsize\color{{sidecolor!70}} {per}}}")
+            if det:
+                edu_entry.append(rf"{{\scriptsize {det}}}")
+            edu_lines.append(r"\\".join(edu_entry) + r"\par\vspace{3pt}")
         sidebar_edu = "\n".join(edu_lines)
 
     # 4. Competências Técnicas na barra lateral
@@ -1985,6 +1989,7 @@ def _render_tech_sidebar(
 \usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
 \usepackage{{etoolbox}}
+\usepackage{{paracol}}
 
 \input{{glyphtounicode}}
 \pdfgentounicode=1
@@ -1996,26 +2001,27 @@ def _render_tech_sidebar(
 \pagestyle{{empty}}
 \setlength{{\parindent}}{{0pt}}
 
-\titleformat{{name=\section,numberless}}{{\normalsize\bfseries\scshape\color{{accent}}}}{{}}{{0em}}{{}}[\vspace{{1pt}}\titlerule]
-\titlespacing*{{name=\section,numberless}}{{0pt}}{{6pt}}{{2pt}}
-\titleformat{{\section}}{{\normalsize\bfseries\scshape\color{{accent}}}}{{}}{{0em}}{{}}[\vspace{{1pt}}\titlerule]
-\titlespacing*{{\section}}{{0pt}}{{6pt}}{{2pt}}
+\titleformat{{name=\section,numberless}}{{\normalsize\bfseries\scshape\color{{accent}}}}{{}}{{0em}}{{}}[\vspace{{1pt}}\titlerule\nopagebreak]
+\titlespacing*{{name=\section,numberless}}{{0pt}}{{5pt}}{{2pt}}
+\titleformat{{\section}}{{\normalsize\bfseries\scshape\color{{accent}}}}{{}}{{0em}}{{}}[\vspace{{1pt}}\titlerule\nopagebreak]
+\titlespacing*{{\section}}{{0pt}}{{5pt}}{{2pt}}
+
+\setcolumnwidth{{58mm, 126mm}}
+\setlength{{\columnsep}}{{6mm}}
+\setlength{{\columnseprule}}{{0.6pt}}
 
 \begin{{document}}
-\noindent\begin{{minipage}}[t]{{0.32\textwidth}}
-\vspace{{0pt}}
+\begin{{paracol}}{{2}}
 {photo_tex}
-{{\Large\bfseries\color{{sidecolor}} {name}}}\\[3pt]
-{{\normalsize\itshape\color{{accent}} {prof_title}}}\\[8pt]
+{{\Large\bfseries\color{{sidecolor}} {name}}}\\[2pt]
+{{\normalsize\itshape\color{{accent}} {prof_title}}}\\[6pt]
 {sidebar_content}
-\end{{minipage}}%
-\hfill
-\vrule width 0.6pt
-\hfill
-\begin{{minipage}}[t]{{0.64\textwidth}}
-\vspace{{0pt}}
+
+\switchcolumn
+
 {main_body}
-\end{{minipage}}
+
+\end{{paracol}}
 \end{{document}}
 """
 

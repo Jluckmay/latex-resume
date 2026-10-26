@@ -241,25 +241,22 @@ def render_template_preview_html(
                     box-shadow:0 6px 18px rgba(15,23,42,0.08);padding:14px;font-family:'Segoe UI',system-ui,sans-serif;
                     font-size:11px;line-height:1.35;min-height:255px;display:flex;gap:12px;">
             <div style="width:33%;border-right:1.5px solid #e2e8f0;padding-right:10px;">
-                <div style="display:flex;justify-content:center;margin-bottom:8px;">{photo_circle}</div>
+                <div style="display:flex;justify-content:center;margin-bottom:6px;">{photo_circle}</div>
                 <div style="font-weight:800;font-size:13px;color:{s_col};">Lucas Silva</div>
-                <div style="font-style:italic;font-size:10px;color:{p_col};margin-bottom:8px;">{role_txt}</div>
+                <div style="font-style:italic;font-size:10px;color:{p_col};margin-bottom:6px;">{role_txt}</div>
                 <div style="font-weight:700;font-size:9px;color:{p_col};border-bottom:1px solid {p_col};padding-bottom:2px;margin-bottom:4px;">{lbl_cnt}</div>
-                <div style="font-size:9px;color:#475569;">• 📍 São Paulo, BR • 🌐 portfolio.dev<br>• 🔗 in/lucassilva • 🐙 lucassilva</div>
-                <div style="font-weight:700;font-size:9px;color:{p_col};border-bottom:1px solid {p_col};padding-bottom:2px;margin:8px 0 4px 0;">{lbl_sk}</div>
-                <div style="font-size:9px;color:#475569;">Python, LaTeX, PyTorch, Cloud, Docker</div>
+                <div style="font-size:8.5px;color:#475569;margin-bottom:6px;">• 📍 São Paulo, BR<br>• 🌐 portfolio.dev<br>• 🔗 in/lucassilva</div>
+                <div style="font-weight:700;font-size:9px;color:{p_col};border-bottom:1px solid {p_col};padding-bottom:2px;margin-bottom:4px;">{lbl_edu}</div>
+                <div style="font-size:8.5px;color:#334155;margin-bottom:6px;"><b>M.Sc. Computer Science</b><br><span style="color:#64748b;">USP · 2021–2023</span></div>
+                <div style="font-weight:700;font-size:9px;color:{p_col};border-bottom:1px solid {p_col};padding-bottom:2px;margin-bottom:4px;">{lbl_sk}</div>
+                <div style="font-size:8.5px;color:#475569;">Python, LaTeX, AI, Cloud</div>
             </div>
             <div style="width:67%;">
                 <div style="font-weight:700;font-size:10px;color:{p_col};border-bottom:1.5px solid {p_col};padding-bottom:2px;margin-bottom:6px;">{lbl_exp}</div>
                 <div style="display:flex;justify-content:space-between;font-weight:700;font-size:10px;color:{s_col};">
                     <span>Lead AI Engineer — Tech Corp</span><span style="color:#64748b;font-weight:400;">2023–Present</span>
                 </div>
-                <div style="font-size:9.5px;color:#334155;margin:3px 0 8px 8px;">• Token-efficient LLM pipelines (-78% cost)<br>• High-throughput LaTeX automation</div>
-                <div style="font-weight:700;font-size:10px;color:{p_col};border-bottom:1.5px solid {p_col};padding-bottom:2px;margin-bottom:6px;">{lbl_edu}</div>
-                <div style="display:flex;justify-content:space-between;font-weight:700;font-size:10px;color:{s_col};">
-                    <span>M.Sc. Computer Science</span><span style="color:#64748b;font-weight:400;">2021–2023</span>
-                </div>
-                <div style="font-size:9.5px;color:#475569;margin-top:2px;">Universidade de São Paulo (USP)</div>
+                <div style="font-size:9px;color:#334155;margin:3px 0 8px 8px;">• Token-efficient LLM pipelines (-78% cost)<br>• High-throughput LaTeX automation</div>
             </div>
         </div>
         """

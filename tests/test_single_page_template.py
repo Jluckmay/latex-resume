@@ -242,12 +242,13 @@ def test_tech_sidebar_balanced_columns_layout():
         resume_type="profissional",
         lang="en-us",
     )
-    # Verifica divisão em minipages
-    assert r"\begin{minipage}[t]{0.32\textwidth}" in tex
-    assert r"\begin{minipage}[t]{0.64\textwidth}" in tex
+    # Verifica divisão em paracol com régua vertical de separação
+    assert r"\begin{paracol}{2}" in tex
+    assert r"\switchcolumn" in tex
+    assert r"\setlength{\columnseprule}{0.6pt}" in tex
 
-    # Separação das colunas
-    sidebar_part, main_part = tex.split(r"\vrule width 0.6pt")
+    # Separação das colunas via \switchcolumn
+    sidebar_part, main_part = tex.split(r"\switchcolumn")
 
     # Sidebar deve conter Educação, Contatos, Idiomas e Prêmios
     assert "Education" in sidebar_part
@@ -265,6 +266,22 @@ def test_tech_sidebar_balanced_columns_layout():
     # Experiência deve utilizar layout de dois níveis
     assert r"\noindent\textbf{Introduction to Game Development Teaching Assistant} \hfill {\small\textit{2025}}" in main_part
     assert r"\textit{Federal University of Viçosa (UFV · Game Dev)}" in main_part
+
+
+def test_tech_sidebar_previews_have_education_in_sidebar():
+    """Garante que a pré-visualização do Tech Sidebar em Python e index.html mostre Formação Acadêmica na coluna lateral."""
+    from src.ui_theme import render_template_preview_html
+
+    html_preview = render_template_preview_html("tech_sidebar")
+    sidebar_part, main_part = html_preview.split("width:67%")
+    assert "M.Sc. Computer Science" in sidebar_part
+    assert "M.Sc. Computer Science" not in main_part
+
+    index_html = Path("index.html").read_text(encoding="utf-8")
+    assert 'state.templateId === "tech_sidebar"' in index_html
+    tech_js_match = re.search(r'state\.templateId === "tech_sidebar".*?width:67%', index_html, re.DOTALL)
+    assert tech_js_match is not None
+    assert "${lblEdu}" in tech_js_match.group(0)
 
 
 def test_google_standard_strictly_one_page_academic_and_professional(tmp_path):

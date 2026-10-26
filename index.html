@@ -2621,22 +2621,22 @@
                 html = `
                 <div style="background:#fff;color:#1e293b;border-radius:10px;border:1px solid #cbd5e1;padding:15px;display:flex;gap:12px;font-size:11px;min-height:240px;">
                     <div style="width:33%;border-right:1.5px solid #e2e8f0;padding-right:10px;">
-                        <div style="margin-bottom:8px;">${avatarHtml}</div>
+                        <div style="margin-bottom:6px;">${avatarHtml}</div>
                         <div style="font-weight:800;font-size:13px;color:${sCol};">${nameVal}</div>
-                        <div style="font-style:italic;font-size:10px;color:${pCol};margin-bottom:8px;">${roleVal}</div>
+                        <div style="font-style:italic;font-size:10px;color:${pCol};margin-bottom:6px;">${roleVal}</div>
                         <div style="font-weight:700;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:4px;">LINKS</div>
-                        <div style="font-size:9px;color:#475569;">🌐 ${portDisp} • 🔗 ${liNick}<br>🐙 ${ghNick} • 🆔 ${orcidId.slice(0, 11)}...<br>📍 ${locVal}</div>
-                        <div style="font-weight:700;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};margin:8px 0 4px 0;">${lblSk}</div>
-                        <div style="font-size:9px;color:#475569;">Python, LaTeX, AI, Cloud</div>
+                        <div style="font-size:8.5px;color:#475569;margin-bottom:6px;">📍 ${locVal}<br>🌐 ${portDisp}<br>🔗 ${liNick}</div>
+                        <div style="font-weight:700;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:4px;">${lblEdu}</div>
+                        <div style="font-size:8.5px;color:#334155;margin-bottom:6px;"><b>M.Sc. Computer Science</b><br><span style="color:#64748b;">USP (2021–2023)</span></div>
+                        <div style="font-weight:700;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:4px;">${lblSk}</div>
+                        <div style="font-size:8.5px;color:#475569;">Python, LaTeX, AI, Cloud</div>
                     </div>
                     <div style="width:67%;">
                         <div style="font-weight:700;font-size:10px;color:${pCol};border-bottom:1.5px solid ${pCol};margin-bottom:6px;">${lblExp}</div>
                         <div style="display:flex;justify-content:space-between;font-weight:700;font-size:10px;color:${sCol};">
                             <span>Lead AI Engineer</span><span style="color:#64748b;font-weight:400;">2023–Present</span>
                         </div>
-                        <div style="font-size:9.5px;color:#334155;margin:3px 0 8px 8px;">• Token-saving LLM synthesis (-78% cost)<br>• Automated LaTeX PDF pipelines</div>
-                        <div style="font-weight:700;font-size:10px;color:${pCol};border-bottom:1.5px solid ${pCol};margin-bottom:6px;">${lblEdu}</div>
-                        <div style="font-size:9.5px;color:#334155;"><b>M.Sc. Computer Science</b> — USP (2021–2023)</div>
+                        <div style="font-size:9px;color:#334155;margin:3px 0 8px 8px;">• Token-saving LLM synthesis (-78% cost)<br>• Automated LaTeX PDF pipelines</div>
                     </div>
                 </div>`;
             } else if (state.templateId === "academic_classic") {
