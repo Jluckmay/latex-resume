@@ -91,6 +91,27 @@ def _is_rate_limited(ip: str) -> bool:
     return False
 
 
+def _get_cors_origin() -> str | None:
+    """Identifica a origem autorizada para concessão de cabeçalho CORS."""
+    origin = request.headers.get("Origin", "").strip()
+    norm_origin = origin.rstrip("/").lower()
+    norm_pages = PAGES_ORIGIN.rstrip("/").lower()
+
+    if norm_origin == norm_pages:
+        return origin or PAGES_ORIGIN
+
+    client_header = request.headers.get("X-Resume-Client", "").strip()
+    referer = request.headers.get("Referer", "").strip().lower()
+    if referer.startswith(PAGES_REFERER_PREFIX.lower()) or client_header in ALLOWED_CLIENT_HEADERS:
+        return PAGES_ORIGIN
+
+    is_loopback = request.remote_addr in ("127.0.0.1", "::1", "localhost")
+    if (ALLOW_LOCAL_DEV or is_loopback) and _is_local_origin(origin):
+        return origin or "http://127.0.0.1:5000"
+
+    return None
+
+
 def _validate_origin_and_referer() -> tuple[bool, str]:
     """Valida se a solicitação vem exclusivamente da página autorizada:
     - https://jluckmay.github.io/
@@ -100,23 +121,27 @@ def _validate_origin_and_referer() -> tuple[bool, str]:
     """
     origin = request.headers.get("Origin", "").strip()
     referer = request.headers.get("Referer", "").strip()
+    client_hdr = request.headers.get("X-Resume-Client", "").strip()
     referer_lower = referer.lower()
 
-    # Verificação de loopback / desenvolvimento local
-    is_loopback = request.remote_addr in ("127.0.0.1", "::1", "localhost")
-    if (ALLOW_LOCAL_DEV or is_loopback) and _is_local_origin(origin):
-        return True, origin or "http://127.0.0.1:5000"
+    norm_origin = origin.rstrip("/").lower()
+    norm_pages = PAGES_ORIGIN.rstrip("/").lower()
 
     # 1. Validação de solicitações vindas de https://jluckmay.github.io/
-    if origin == PAGES_ORIGIN:
+    if norm_origin == norm_pages:
         if referer and not referer_lower.startswith(PAGES_REFERER_PREFIX.lower()):
             return False, "Referer não autorizado para a origem jluckmay.github.io"
         return True, PAGES_ORIGIN
 
-    # 2. Solicitações diretas sem cabeçalho Origin (validando exclusivamente via Referer)
-    if not origin:
-        if referer_lower.startswith(PAGES_REFERER_PREFIX.lower()):
+    # 2. Validação via cabeçalho cliente oficial ou Referer do GitHub Pages
+    if referer_lower.startswith(PAGES_REFERER_PREFIX.lower()) or client_hdr in ALLOWED_CLIENT_HEADERS:
+        if not referer or referer_lower.startswith(PAGES_REFERER_PREFIX.lower()):
             return True, PAGES_ORIGIN
+
+    # 3. Verificação de loopback / desenvolvimento local
+    is_loopback = request.remote_addr in ("127.0.0.1", "::1", "localhost")
+    if (ALLOW_LOCAL_DEV or is_loopback) and _is_local_origin(origin):
+        return True, origin or "http://127.0.0.1:5000"
 
     return False, "Origem não autorizada: o backend aceita exclusivamente requisições de https://jluckmay.github.io/"
 
@@ -124,14 +149,18 @@ def _validate_origin_and_referer() -> tuple[bool, str]:
 @app.after_request
 def add_security_and_cors_headers(response: Response) -> Response:
     """Aplica cabeçalhos estritos de segurança e CORS restrito exclusivamente à origem autorizada."""
-    is_valid, origin = _validate_origin_and_referer()
-    if is_valid:
-        response.headers["Access-Control-Allow-Origin"] = origin
+    cors_origin = _get_cors_origin()
+    if cors_origin:
+        response.headers["Access-Control-Allow-Origin"] = cors_origin
         response.headers["Vary"] = "Origin"
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = (
-            "Content-Type, X-Resume-Client, X-Client-Timestamp, X-Encrypted-Payload"
-        )
+        req_headers = request.headers.get("Access-Control-Request-Headers")
+        if req_headers:
+            response.headers["Access-Control-Allow-Headers"] = req_headers
+        else:
+            response.headers["Access-Control-Allow-Headers"] = (
+                "Content-Type, X-Resume-Client, X-Client-Timestamp, X-Encrypted-Payload, Authorization, Accept, Origin"
+            )
         response.headers["Access-Control-Expose-Headers"] = "X-Backend-Attestation, X-Encrypted-Payload"
         response.headers["Access-Control-Max-Age"] = "86400"
 

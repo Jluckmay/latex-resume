@@ -79,8 +79,8 @@ class LLMResumeGenerator:
 
         last_err = None
         for idx, candidate_model in enumerate(models_to_try):
-            # Modelo primário: até 50s (necessário para LaTeX longo); fallback: até 25s
-            req_timeout = 50 if idx == 0 else 25
+            # Modelo primário: até 35s (evita estourar o limite de 100s do gateway Render); fallback: até 20s
+            req_timeout = 35 if idx == 0 else 20
             status_code, parsed_data, err_str, usage = dispatch_secure_llm_chat(
                 provider=self.provider,
                 model=candidate_model,
@@ -174,7 +174,7 @@ class LLMResumeGenerator:
                     {"role": "system", "content": sys_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                max_tokens=4096,
+                max_tokens=2500,
             )
             clean_body = sanitize_latex_layout(CavemanPromptPlugin.strip_code_fences(content))
             if not clean_body or len(clean_body.strip()) < 30 or r"\end{document}" not in clean_body:
@@ -334,7 +334,7 @@ class LLMResumeGenerator:
                     {"role": "system", "content": sys_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                max_tokens=4096,
+                max_tokens=2500,
             )
             cleaned = sanitize_latex_layout(CavemanPromptPlugin.strip_code_fences(fixed))
             is_severely_truncated = (len(target) > 600 and len(cleaned.strip()) < int(len(target) * 0.2))

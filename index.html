@@ -3345,21 +3345,29 @@
                         await new Promise(r => setTimeout(r, 5000));
                     }
 
-                    resp = await fetch(`${base}/api/generate`, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "X-Resume-Client": "jluckmay-github-pages-v1",
-                            "X-Client-Timestamp": Date.now().toString(),
-                            "X-Encrypted-Payload": "1"
-                        },
-                        body: JSON.stringify(encryptedBody)
-                    });
+                    try {
+                        resp = await fetch(`${base}/api/generate`, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-Resume-Client": "jluckmay-github-pages-v1",
+                                "X-Client-Timestamp": Date.now().toString(),
+                                "X-Encrypted-Payload": "1"
+                            },
+                            body: JSON.stringify(encryptedBody)
+                        });
 
-                    if ((resp.status === 502 || resp.status === 503 || resp.status === 504) && isRender && genAttempt < maxGenAttempts) {
-                        continue;
+                        if ((resp.status === 502 || resp.status === 503 || resp.status === 504) && isRender && genAttempt < maxGenAttempts) {
+                            continue;
+                        }
+                        break;
+                    } catch (fetchErr) {
+                        if (isRender && genAttempt < maxGenAttempts) {
+                            console.warn(`Render activation attempt ${genAttempt}/${maxGenAttempts} failed, retrying in 5s...`, fetchErr);
+                            continue;
+                        }
+                        throw fetchErr;
                     }
-                    break;
                 }
                 if (wakeTimer) clearTimeout(wakeTimer);
 
@@ -3536,7 +3544,12 @@
                 }
             } catch (err) {
                 let errMsg = err.message || "Erro desconhecido / Unknown error";
-                if (errMsg.includes("RuntimeError") && !errMsg.toLowerCase().includes("chave") && !errMsg.toLowerCase().includes("key")) {
+                const isNetErr = errMsg.toLowerCase().includes("failed to fetch") || errMsg.toLowerCase().includes("networkerror") || errMsg.toLowerCase().includes("load resource");
+                if (isNetErr) {
+                    errMsg = (state.uiLang === "en-us")
+                        ? "Unable to reach the Render backend. The free cloud instance sleeps after inactivity and takes 30-50s to wake up. Please wait a moment and click 'Generate Resume' again, or select 'No AI / Offline (0 Tokens)'."
+                        : "Não foi possível conectar ao servidor backend (Render). No plano gratuito do Render, o servidor hiberna após inatividade e leva de 30 a 50 segundos para despertar. Aguarde um instante e clique em 'Gerar Currículo' novamente, ou selecione 'Sem IA / Offline (0 Tokens)' para compilar diretamente sem rede.";
+                } else if (errMsg.includes("RuntimeError") && !errMsg.toLowerCase().includes("chave") && !errMsg.toLowerCase().includes("key")) {
                     errMsg += (state.uiLang === "en-us")
                         ? "\n\n💡 Tip: Select 'NVIDIA NIM (Server Default)' to use the backend server's active key, or select 'No AI / Offline (0 Tokens)'."
                         : "\n\n💡 Dica: Selecione 'NVIDIA NIM (Padrão do Servidor)' para utilizar a chave ativa configurada no servidor backend, ou selecione 'Sem IA / Offline (0 Tokens)'.";

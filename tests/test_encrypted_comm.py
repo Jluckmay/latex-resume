@@ -363,4 +363,67 @@ def test_github_repo_origin_and_referer_strictly_rejected(client):
     assert res3.status_code == 403
 
 
+def test_server_cors_headers_on_options_preflight(client):
+    """Garante que requisições OPTIONS preflight retornem cabeçalhos CORS completos para o GitHub Pages."""
+    res = client.options(
+        "/api/generate",
+        headers={
+            "Origin": "https://jluckmay.github.io",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type,x-resume-client,x-client-timestamp,x-encrypted-payload",
+        },
+    )
+    assert res.status_code == 200
+    assert res.headers.get("Access-Control-Allow-Origin") == "https://jluckmay.github.io"
+    assert "POST" in res.headers.get("Access-Control-Allow-Methods", "")
+    assert res.headers.get("Access-Control-Allow-Headers") is not None
+
+
+def test_server_cors_headers_with_trailing_slash_origin(client):
+    """Garante que origens com barra final sejam normalizadas e aceitas sem bloqueio de CORS."""
+    res = client.options(
+        "/api/generate",
+        headers={
+            "Origin": "https://jluckmay.github.io/",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+    assert res.status_code == 200
+    assert res.headers.get("Access-Control-Allow-Origin") in (
+        "https://jluckmay.github.io",
+        "https://jluckmay.github.io/",
+    )
+
+
+def test_server_cors_headers_on_error_responses(client):
+    """Garante que respostas de erro (500 ou 403) enviem Access-Control-Allow-Origin para permitir leitura pelo frontend."""
+    # 500 error
+    with patch("server.build_resume_pipeline", side_effect=RuntimeError("Simulated error")):
+        res = client.post(
+            "/api/generate",
+            headers={
+                "Origin": "https://jluckmay.github.io",
+                "Referer": "https://jluckmay.github.io/latex-resume",
+                "Content-Type": "application/json",
+            },
+            data=json.dumps(encrypt_payload_envelope({"name": "Test"}, direction="req")),
+        )
+        assert res.status_code == 500
+        assert res.headers.get("Access-Control-Allow-Origin") == "https://jluckmay.github.io"
+
+
+def test_server_cors_headers_with_x_resume_client(client):
+    """Garante que o cabeçalho oficial X-Resume-Client conceda acesso CORS mesmo na ausência de Origin."""
+    res = client.get(
+        "/api/status",
+        headers={
+            "X-Resume-Client": "jluckmay-github-pages-v1",
+            "Referer": "https://jluckmay.github.io/latex-resume",
+        },
+    )
+    assert res.status_code == 200
+    assert res.headers.get("Access-Control-Allow-Origin") == "https://jluckmay.github.io"
+
+
+
 
