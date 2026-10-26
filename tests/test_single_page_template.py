@@ -201,3 +201,67 @@ def test_minimal_ats_publications_sanitizes_conference_as_authors():
     # Não deve renderizar o nome do workshop como autor
     assert "Anais do XVI Workshop de Sistemas de Informação." not in tex
 
+def test_tech_sidebar_strictly_one_page_and_no_blank_page(tmp_path):
+    """Garante que o template Tech Sidebar produz estritamente 1 página preenchida, sem página inicial em branco."""
+    for resume_type in ["profissional", "academico"]:
+        tex = render_builtin_template(
+            "tech_sidebar",
+            SAMPLE_MASSIVE_PROFILE,
+            SAMPLE_LINKS,
+            resume_type=resume_type,
+            lang="en-us",
+        )
+        tex_file = tmp_path / f"tech_{resume_type}.tex"
+        tex_file.write_text(tex, encoding="utf-8")
+
+        res = subprocess.run(
+            ["pdflatex", "-interaction=nonstopmode", str(tex_file)],
+            cwd=str(tmp_path),
+            capture_output=True,
+            text=True,
+        )
+        assert res.returncode == 0, f"pdflatex compilation failed for {resume_type}:\n{res.stdout[-600:]}"
+
+        pdf_file = tmp_path / f"tech_{resume_type}.pdf"
+        assert pdf_file.exists()
+
+        reader = pypdf.PdfReader(str(pdf_file))
+        assert len(reader.pages) == 1, f"Expected strictly 1 page for Tech Sidebar ({resume_type}), got {len(reader.pages)}"
+
+        page1_text = reader.pages[0].extract_text().strip()
+        assert len(page1_text) > 1000, f"Page 1 is unexpectedly empty or sparse: len={len(page1_text)}"
+
+
+def test_tech_sidebar_balanced_columns_layout():
+    """Valida se o Tech Sidebar distribui Formação e Contatos na barra lateral e Experiência/Projetos no corpo principal."""
+    tex = render_builtin_template(
+        "tech_sidebar",
+        SAMPLE_MASSIVE_PROFILE,
+        SAMPLE_LINKS,
+        resume_type="profissional",
+        lang="en-us",
+    )
+    # Verifica divisão em minipages
+    assert r"\begin{minipage}[t]{0.32\textwidth}" in tex
+    assert r"\begin{minipage}[t]{0.64\textwidth}" in tex
+
+    # Separação das colunas
+    sidebar_part, main_part = tex.split(r"\vrule width 0.6pt")
+
+    # Sidebar deve conter Educação, Contatos, Idiomas e Prêmios
+    assert "Education" in sidebar_part
+    assert "M.Sc. in Computer Science" in sidebar_part
+    assert "lucas.mayrinck@dcc.ufmg.br" in sidebar_part
+    assert "Languages" in sidebar_part
+    assert "Awards, Honors" in sidebar_part
+
+    # Main Body deve conter Perfil, Experiência e Projetos
+    assert "Professional Summary" in main_part
+    assert "Professional Experience" in main_part
+    assert "Featured" in main_part
+    assert "Introduction to Game Development Teaching Assistant" in main_part
+
+    # Experiência deve utilizar layout de dois níveis
+    assert r"\noindent\textbf{Introduction to Game Development Teaching Assistant} \hfill {\small\textit{2025}}" in main_part
+    assert r"\textit{Federal University of Viçosa (UFV · Game Dev)}" in main_part
+

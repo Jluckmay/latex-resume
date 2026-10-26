@@ -1772,52 +1772,212 @@ def _render_tech_sidebar(
 ) -> str:
     t = LATEX_I18N[normalize_lang(lang)]
     name = escape_latex(cv.get("name") or t["default_candidate"])
-    title = escape_latex(cv.get("title") or t["default_tech_title"])
-    contact_items = _build_contact_links(links, cv.get("email", ""), cv.get("phone", ""), cv.get("location", ""), candidate_name=name)
+    prof_title = escape_latex(cv.get("title") or t["default_tech_title"])
 
+    # 1. Foto opcional
     photo_tex = ""
     if photo_filename:
         photo_tex = rf"""
 \begin{{center}}
-    \includegraphics[width=3.2cm,height=3.2cm,keepaspectratio]{{{photo_filename}}}
+    \includegraphics[width=2.8cm,height=2.8cm,keepaspectratio]{{{photo_filename}}}
 \end{{center}}
 \vspace{{4pt}}
 """
 
-    sidebar_contacts = "\n\n".join(rf"\noindent{{\small {c}}}" for c in contact_items)
-    sidebar_skills = _build_skills_block(cv.get("skills") or [], lang)
-    sidebar_langs = _build_languages_and_awards_block(cv.get("languages") or [], cv.get("awards") or [], lang)
+    # 2. Contatos na barra lateral
+    contact_items = _build_contact_links(links, cv.get("email", ""), cv.get("phone", ""), cv.get("location", ""), candidate_name=name)
+    sidebar_contacts = "\n\n".join(rf"\noindent{{\footnotesize {c}}}" for c in contact_items)
 
-    main_blocks: List[str] = []
-    if cv.get("summary"):
-        main_blocks.append(rf"\section*{{{t['sec_profile']}}}" + "\n" + escape_latex(cv["summary"]))
-    if resume_type == "academico":
-        for b in (
-            _build_education_block(cv.get("education") or [], lang),
-            _build_publications_block(cv.get("publications") or [], lang),
-            _build_projects_block(cv.get("projects") or [], resume_type, lang),
-            _build_experience_block(cv.get("experience") or [], resume_type, lang),
-        ):
-            if b:
-                main_blocks.append(b)
+    # 3. Formação Acadêmica na barra lateral (equilibra peso visual entre colunas)
+    sidebar_edu = ""
+    edus = (cv.get("education") or [])[:2]
+    if edus:
+        edu_lines = [rf"\section*{{{t['sec_education']}}}"]
+        for ed in edus:
+            deg = escape_latex(ed.get("degree"))
+            inst = escape_latex(ed.get("institution"))
+            per = escape_latex(ed.get("period"))
+            edu_lines.append(
+                rf"\noindent\textbf{{{deg}}}\\"
+                + rf"{{\footnotesize {inst}}}\\"
+                + rf"{{\scriptsize\color{{sidecolor!70}} {per}}}\par\vspace{{4pt}}"
+            )
+        sidebar_edu = "\n".join(edu_lines)
+
+    # 4. Competências Técnicas na barra lateral
+    sidebar_skills = _build_skills_block(cv.get("skills") or [], lang, max_items=2)
+
+    # 5. Idiomas na barra lateral
+    clean_langs = [str(x).strip() for x in (cv.get("languages") or []) if str(x).strip()]
+    sidebar_langs = ""
+    if clean_langs:
+        l_items = "\n".join(rf"    \item {{\footnotesize {escape_latex(x)}}}" for x in clean_langs[:4])
+        sidebar_langs = (
+            rf"\section*{{{t['sec_languages']}}}"
+            + f"\n\\begin{{itemize}}[leftmargin=1.1em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]\n{l_items}\n\\end{{itemize}}"
+        )
+
+    # 6. Prêmios e Certificações na barra lateral
+    clean_awards = sanitize_awards(cv.get("awards") or [], lang=lang)
+    sidebar_awards = ""
+    if clean_awards:
+        a_items = "\n".join(rf"    \item {{\footnotesize {escape_latex(x)}}}" for x in clean_awards[:3])
+        sidebar_awards = (
+            rf"\section*{{{t['sec_awards']}}}"
+            + f"\n\\begin{{itemize}}[leftmargin=1.1em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]\n{a_items}\n\\end{{itemize}}"
+        )
+
+    sidebar_blocks = [
+        rf"\section*{{{t['sec_contact']}}}" + "\n" + sidebar_contacts,
+    ]
+    if sidebar_edu:
+        sidebar_blocks.append(sidebar_edu)
+    if sidebar_skills:
+        sidebar_blocks.append(sidebar_skills)
+    if sidebar_langs:
+        sidebar_blocks.append(sidebar_langs)
+    if sidebar_awards:
+        sidebar_blocks.append(sidebar_awards)
+
+    sidebar_content = "\n\n".join(sidebar_blocks)
+
+    # 7. Coluna Principal (Main Body): Profile + Experience + Projects + Publications
+    pubs = cv.get("publications") or []
+    has_pubs = bool(pubs)
+    projs = cv.get("projects") or []
+    has_projs = bool(projs)
+
+    if has_pubs and has_projs:
+        max_exp = 3
+        max_proj = 2
+        max_pubs = 2
+    elif has_pubs:
+        max_exp = 3
+        max_proj = 0
+        max_pubs = 3
+    elif has_projs:
+        max_exp = 3
+        max_proj = 3
+        max_pubs = 0
     else:
-        for b in (
-            _build_experience_block(cv.get("experience") or [], resume_type, lang),
-            _build_projects_block(cv.get("projects") or [], resume_type, lang),
-            _build_education_block(cv.get("education") or [], lang),
-            _build_publications_block(cv.get("publications") or [], lang),
-        ):
-            if b:
-                main_blocks.append(b)
+        max_exp = 4
+        max_proj = 0
+        max_pubs = 0
 
-    main_body = "\n\n".join(main_blocks)
+    # Resumo / Perfil
+    summary_block = ""
+    if cv.get("summary"):
+        sec_title = t["sec_summary_acad"] if resume_type == "academico" else t["sec_summary_prof"]
+        raw_sum = cv["summary"]
+        if len(raw_sum) > 280:
+            raw_sum = raw_sum[:277].rstrip() + "..."
+        summary_block = rf"\section*{{{sec_title}}}" + "\n" + rf"{{\small {escape_latex(raw_sum)}}}"
+
+    # Experiência com formatação profissional em 2 níveis
+    exp_block = ""
+    exps = (cv.get("experience") or [])[:max_exp]
+    if exps:
+        exp_lines = [rf"\section*{{{t['sec_exp_acad'] if resume_type == 'academico' else t['sec_exp_prof']}}}"]
+        for xp in exps:
+            role = escape_latex(xp.get("role"))
+            org = escape_latex(xp.get("organization"))
+            per = escape_latex(xp.get("period"))
+            bullets = [
+                escape_latex(sanitize_experience_description(b, lang=lang))
+                for b in (xp.get("bullets") or [])
+                if str(b).strip()
+            ]
+            head_lines = [rf"\noindent\textbf{{{role}}} \hfill {{\small\textit{{{per}}}}}"]
+            if org:
+                head_lines.append(rf"\textit{{{org}}}")
+            exp_lines.append(r" \\ ".join(head_lines))
+            if bullets:
+                exp_lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
+                for b in bullets[:2]:
+                    exp_lines.append(rf"    \item {{\small {b}}}")
+                exp_lines.append(r"\end{itemize}\vspace{2pt}")
+            else:
+                exp_lines.append(r"\par\vspace{3pt}")
+        exp_block = "\n".join(exp_lines)
+
+    # Projetos
+    proj_block = ""
+    if has_projs and max_proj:
+        proj_lines = [rf"\section*{{{t['sec_proj_acad'] if resume_type == 'academico' else t['sec_proj_prof']}}}"]
+        proj_lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
+        for pj in projs[:max_proj]:
+            nm = escape_latex(pj.get("name") or "").strip()
+            if not nm:
+                continue
+            tech = escape_latex(pj.get("tech") or "").strip()
+            url = (pj.get("url") or "").strip()
+            desc = escape_latex(sanitize_project_description(pj.get("description") or "", lang)).strip()
+            if len(desc) > 130:
+                desc = desc[:127].rstrip() + "..."
+            if url and url.startswith("http"):
+                head = rf"\href{{{escape_url(url)}}}{{\textbf{{{nm}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
+            else:
+                head = rf"\textbf{{{nm}}}"
+            if tech:
+                head += rf" ({{\scriptsize\texttt{{{tech}}}}})"
+            proj_lines.append(rf"    \item {{\small {head}: {desc}}}")
+        proj_lines.append(r"\end{itemize}")
+        proj_block = "\n".join(proj_lines)
+
+    # Publicações com limpeza de falsos autores
+    pub_block = ""
+    if has_pubs and max_pubs:
+        pub_lines = [rf"\section*{{{t['sec_publications']}}}"]
+        pub_lines.append(r"\begin{enumerate}[leftmargin=1.5em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
+        for pb in pubs[:max_pubs]:
+            title_p = escape_latex(pb.get("title") or "").strip()
+            venue = escape_latex(pb.get("venue") or "").strip()
+            year = escape_latex(pb.get("year") or "").strip()
+            authors = escape_latex(pb.get("authors") or "").strip()
+            if authors:
+                auth_low = authors.lower()
+                if (
+                    auth_low in title_p.lower()
+                    or title_p.lower() in auth_low
+                    or (venue and (auth_low in venue.lower() or venue.lower() in auth_low))
+                    or any(kw in auth_low for kw in ("workshop", "anais", "congresso", "simposio", "simpósio", "conferencia", "conferência", "conference", "proceedings", "journal", "revista"))
+                ):
+                    authors = ""
+            doi = (pb.get("doi") or "").strip()
+            pub_url = (pb.get("url") or "").strip()
+            if not pub_url and doi:
+                pub_url = doi if doi.startswith("http") else f"https://doi.org/{doi}"
+            title_head = rf"\textbf{{{title_p}}}"
+            if pub_url and pub_url.startswith("http"):
+                title_head = rf"\href{{{escape_url(pub_url)}}}{{\textbf{{{title_p}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
+            parts = []
+            if authors:
+                parts.append(f"{authors}.")
+            parts.append(f"{title_head}.")
+            if venue:
+                parts.append(rf"\textit{{{venue}}},")
+            if year:
+                parts.append(f"{year}.")
+            if doi:
+                doi_url = doi if doi.startswith("http") else f"https://doi.org/{doi}"
+                parts.append(rf"\href{{{escape_url(doi_url)}}}{{DOI: {escape_latex(doi)}}}")
+            pub_lines.append("    \\item {\\small " + " ".join(parts) + "}")
+        pub_lines.append(r"\end{enumerate}")
+        pub_block = "\n".join(pub_lines)
+
+    if resume_type == "academico":
+        ordered = [summary_block, exp_block, pub_block, proj_block]
+    else:
+        ordered = [summary_block, exp_block, proj_block, pub_block]
+
+    main_body = "\n\n".join(b for b in ordered if b)
 
     return rf"""\documentclass[10pt,a4paper]{{article}}
 \usepackage[utf8]{{inputenc}}
 \usepackage[T1]{{fontenc}}
 \usepackage[{t['babel']}]{{babel}}
 \usepackage{{lmodern}}
-\usepackage[margin=1.2cm]{{geometry}}
+\usepackage[left=1.0cm,right=1.0cm,top=0.85cm,bottom=0.85cm]{{geometry}}
 \usepackage{{xcolor}}
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
@@ -1836,33 +1996,28 @@ def _render_tech_sidebar(
 \pagestyle{{empty}}
 \setlength{{\parindent}}{{0pt}}
 
-\titleformat{{\section}}{{\normalsize\bfseries\scshape\color{{accent}}}}{{}}{{0em}}{{}}[\titlerule]
-\titlespacing*{{\section}}{{0pt}}{{8pt}}{{3pt}}
+\titleformat{{name=\section,numberless}}{{\normalsize\bfseries\scshape\color{{accent}}}}{{}}{{0em}}{{}}[\vspace{{1pt}}\titlerule]
+\titlespacing*{{name=\section,numberless}}{{0pt}}{{6pt}}{{2pt}}
+\titleformat{{\section}}{{\normalsize\bfseries\scshape\color{{accent}}}}{{}}{{0em}}{{}}[\vspace{{1pt}}\titlerule]
+\titlespacing*{{\section}}{{0pt}}{{6pt}}{{2pt}}
 
 \begin{{document}}
-\noindent
-\begin{{minipage}}[t]{{0.31\textwidth}}
+\noindent\begin{{minipage}}[t]{{0.32\textwidth}}
 \vspace{{0pt}}
 {photo_tex}
 {{\Large\bfseries\color{{sidecolor}} {name}}}\\[3pt]
-{{\normalsize\itshape\color{{accent}} {title}}}\\[8pt]
-\section*{{{t['sec_contact']}}}
-{sidebar_contacts}
-
-{sidebar_skills}
-
-{sidebar_langs}
+{{\normalsize\itshape\color{{accent}} {prof_title}}}\\[8pt]
+{sidebar_content}
 \end{{minipage}}%
 \hfill
-\vrule width 0.5pt
+\vrule width 0.6pt
 \hfill
-\begin{{minipage}}[t]{{0.65\textwidth}}
+\begin{{minipage}}[t]{{0.64\textwidth}}
 \vspace{{0pt}}
 {main_body}
 \end{{minipage}}
 \end{{document}}
 """
-
 
 def _render_minimal_ats(
     cv: Dict[str, Any],
