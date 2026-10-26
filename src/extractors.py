@@ -1209,11 +1209,19 @@ def _parse_lattes_xml(xml_bytes: bytes, out: Dict[str, Any]) -> None:
         premios = dados_gerais.find("PREMIOS-TITULOS")
         if premios is not None:
             for pr in premios.findall("PREMIO-TITULO"):
-                nome_pr = pr.attrib.get("NOME-DO-PREMIO-OU-TITULO", "")
-                ano_pr = pr.attrib.get("ANO-DA-PREMIACAO", "")
-                ent_pr = pr.attrib.get("NOME-DA-ENTIDADE-PROMOTORA", "")
+                nome_pr = pr.attrib.get("NOME-DO-PREMIO-OU-TITULO", "").strip()
+                ano_pr = pr.attrib.get("ANO-DA-PREMIACAO", "").strip()
+                ent_pr = pr.attrib.get("NOME-DA-ENTIDADE-PROMOTORA", "").strip()
                 if nome_pr:
-                    out["awards"].append(f"{nome_pr} - {ent_pr} ({ano_pr})")
+                    clean_name = re.sub(r"\s*--\s*", " – ", nome_pr).strip()
+                    parts = [clean_name]
+                    if ent_pr:
+                        parts.append(ent_pr)
+                    base_str = " – ".join(parts)
+                    if ano_pr and not re.search(rf"\b{ano_pr}\b", clean_name):
+                        out["awards"].append(f"{base_str} ({ano_pr})")
+                    else:
+                        out["awards"].append(base_str)
 
     # Produção bibliográfica
     prod = root.find("PRODUCAO-BIBLIOGRAFICA")

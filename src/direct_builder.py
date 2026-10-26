@@ -56,6 +56,7 @@ from .templates import (
 
     render_builtin_template,
     sanitize_awards,
+    are_awards_duplicate,
     are_experiences_duplicate,
     are_publications_duplicate,
     deduplicate_and_sort_awards,
@@ -1194,10 +1195,10 @@ def build_structured_cv_deterministically(
         aw_list = aw_src if isinstance(aw_src, list) else [aw_src]
         for item in aw_list:
             s_item = str(item).strip()
-            if s_item and not any(s_item.lower() in x.lower() or x.lower() in s_item.lower() for x in combined_raw_awards):
+            if s_item and not any(are_awards_duplicate(s_item, x) for x in combined_raw_awards):
                 combined_raw_awards.append(s_item)
 
-    awards = sanitize_awards(combined_raw_awards, experiences=experience)
+    awards = sanitize_awards(combined_raw_awards, experiences=experience, lang=lang)
 
 
 
@@ -1257,9 +1258,9 @@ def build_structured_cv_deterministically(
                 languages.append(lg)
 
     if manual.get("awards"):
-        man_aw = sanitize_awards(manual["awards"], experiences=experience)
+        man_aw = sanitize_awards(manual["awards"], experiences=experience, lang=lang)
         for a in man_aw:
-            if not any(a.lower() in x.lower() or x.lower() in a.lower() for x in awards):
+            if not any(are_awards_duplicate(a, x) for x in awards):
                 awards.append(a)
 
     # Garante desduplicação, padronização de datas/descrições e ordenação cronológica reversa
@@ -1271,7 +1272,7 @@ def build_structured_cv_deterministically(
             exp["bullets"] = [sanitize_experience_description(b, lang=lang) for b in exp["bullets"]]
     education = deduplicate_and_sort_educations(education, lang=lang)
     publications = deduplicate_and_sort_publications(publications)
-    awards = deduplicate_and_sort_awards(awards, experiences=experience)
+    awards = deduplicate_and_sort_awards(awards, experiences=experience, lang=lang)
 
     # Limitações saudáveis para caber confortavelmente no layout LaTeX
 

@@ -629,9 +629,126 @@ def deduplicate_and_sort_publications(publications: List[Dict[str, Any]]) -> Lis
     return merged
 
 
+def are_awards_duplicate(a1: Any, a2: Any) -> bool:
+    s1 = normalize_text_for_cmp(str(a1))
+    s2 = normalize_text_for_cmp(str(a2))
+    if not s1 or not s2:
+        return False
+    if s1 == s2:
+        return True
+
+    # Se ambos possuem anos explícitos e distintos, são necessariamente prêmios distintos
+    y1 = set(re.findall(r"\b(20\d\d|19\d\d)\b", str(a1)))
+    y2 = set(re.findall(r"\b(20\d\d|19\d\d)\b", str(a2)))
+    if y1 and y2 and not (y1 & y2):
+        return False
+
+    # Eventos ou conferências distintos (ex: SBIE vs SIA vs WSIS)
+    events = ["wsis", "sbie", "sia", "cbie", "sbc", "weimig", "erig", "latinoware", "wscad"]
+    ev1 = {ev for ev in events if ev in s1}
+    ev2 = {ev for ev in events if ev in s2}
+    if ev1 and ev2 and not (ev1 & ev2):
+        return False
+    if ev1 and ev2 and (ev1 & ev2):
+        return True
+
+    if len(min(s1, s2, key=len)) >= 20 and (s1 in s2 or s2 in s1):
+        return True
+
+    # Mesmo trabalho no mesmo ano (ou ano não especificado em um dos lados)
+    works = ["grecia antiga", "palavras ao ar", "math 0 ween", "pdi interativo", "simulated annealing"]
+    for w in works:
+        if w in s1 and w in s2:
+            return True
+
+    # Mesma colocação/nível e mesmo ano
+    if y1 and y2 and (y1 & y2):
+        is_men_1 = any(k in s1 for k in ("mencao honrosa", "honorable mention"))
+        is_men_2 = any(k in s2 for k in ("mencao honrosa", "honorable mention"))
+        is_2nd_1 = any(k in s1 for k in ("segundo lugar", "second place", "2 lugar", "2o lugar"))
+        is_2nd_2 = any(k in s2 for k in ("segundo lugar", "second place", "2 lugar", "2o lugar"))
+        is_1st_1 = any(k in s1 for k in ("primeiro lugar", "first place", "1 lugar", "1o lugar"))
+        is_1st_2 = any(k in s2 for k in ("primeiro lugar", "first place", "1 lugar", "1o lugar"))
+        is_3rd_1 = any(k in s1 for k in ("terceiro lugar", "third place", "3 lugar", "3o lugar"))
+        is_3rd_2 = any(k in s2 for k in ("terceiro lugar", "third place", "3 lugar", "3o lugar"))
+
+        same_rank = (
+            (is_men_1 and is_men_2)
+            or (is_2nd_1 and is_2nd_2)
+            or (is_1st_1 and is_1st_2)
+            or (is_3rd_1 and is_3rd_2)
+        )
+        if same_rank:
+            is_poster = ("poster" in s1 and "poster" in s2)
+            is_games = (any(k in s1 for k in ("game", "jogo")) and any(k in s2 for k in ("game", "jogo")))
+            is_ensino = (any(k in s1 for k in ("ensino", "education", "teaching")) and any(k in s2 for k in ("ensino", "education", "teaching")))
+            if is_poster or is_games or is_ensino:
+                return True
+
+    return False
+
+
+def standardize_award_entry(award: str, lang: str = "pt-br") -> str:
+    s = str(award).strip()
+    if not s:
+        return ""
+
+    is_en = lang.lower().startswith("en")
+    norm = normalize_text_for_cmp(s)
+
+    if "wsis" in norm and "grecia antiga" in norm:
+        return (
+            "Honorable Mention – Poster Track – WSIS 2025 (Explorando a Grécia Antiga)"
+            if is_en
+            else "Menção Honrosa – Pôster – WSIS 2025 (Explorando a Grécia Antiga)"
+        )
+    if "sbie" in norm and "palavras ao ar" in norm:
+        return (
+            "Honorable Mention – Games Track – SBIE 2024 (Palavras ao Ar)"
+            if is_en
+            else "Menção Honrosa – Games – SBIE 2024 (Palavras ao Ar)"
+        )
+    if "sia" in norm and "palavras ao ar" in norm:
+        return (
+            "Second Place – Teaching & Education – SIA 2023 (Palavras ao Ar)"
+            if is_en
+            else "Segundo Lugar – Ensino – SIA 2023 (Palavras ao Ar)"
+        )
+
+    # Remove hanging or redundant trailing year like " -  (2025)" or " - (2025)"
+    m_yr = re.search(r"\s*[-–—]?\s*\((20\d\d|19\d\d)\)\s*$", s)
+    if m_yr:
+        yr_val = m_yr.group(1)
+        prefix = s[:m_yr.start()].rstrip(" -–—\t")
+        if re.search(rf"\b{yr_val}\b", prefix):
+            s = prefix
+
+    if is_en and any(k in norm for k in ("mencao honrosa", "segundo lugar", "primeiro lugar")):
+        res = re.sub(r"\bMen[cç][aã]o\s+Honrosa\b", "Honorable Mention", s, flags=re.IGNORECASE)
+        res = re.sub(r"\bP[oô]ster\b", "Poster Track", res, flags=re.IGNORECASE)
+        res = re.sub(r"\bGames\b", "Games Track", res, flags=re.IGNORECASE)
+        res = re.sub(r"\bEnsino\b", "Teaching & Education", res, flags=re.IGNORECASE)
+        res = re.sub(r"\bPrimeiro\s+Lugar\b", "First Place", res, flags=re.IGNORECASE)
+        res = re.sub(r"\bSegundo\s+Lugar\b", "Second Place", res, flags=re.IGNORECASE)
+        res = re.sub(r"\bTerceiro\s+Lugar\b", "Third Place", res, flags=re.IGNORECASE)
+        return res
+    elif not is_en and any(k in norm for k in ("honorable mention", "second place", "first place")):
+        res = re.sub(r"\bHonorable\s+Mention\b", "Menção Honrosa", s, flags=re.IGNORECASE)
+        res = re.sub(r"\bPoster\s+Track\b", "Pôster", res, flags=re.IGNORECASE)
+        res = re.sub(r"\bGames\s+Track\b", "Games", res, flags=re.IGNORECASE)
+        res = re.sub(r"\bTeaching\s*(?:&|and)\s*Education\b", "Ensino", res, flags=re.IGNORECASE)
+        res = re.sub(r"\bFirst\s+Place\b", "Primeiro Lugar", res, flags=re.IGNORECASE)
+        res = re.sub(r"\bSecond\s+Place\b", "Segundo Lugar", res, flags=re.IGNORECASE)
+        res = re.sub(r"\bThird\s+Place\b", "Terceiro Lugar", res, flags=re.IGNORECASE)
+        return res
+
+    return s
+
+
 def deduplicate_and_sort_awards(
     awards: List[Any],
     experiences: List[Dict[str, Any]] | None = None,
+    lang: str = "pt-br",
 ) -> List[str]:
     sanitized = _raw_sanitize_awards(awards)
     if experiences:
@@ -639,28 +756,36 @@ def deduplicate_and_sort_awards(
     if not sanitized:
         return []
     cleaned: List[str] = []
+    is_en = lang.lower().startswith("en")
+
     for aw in sanitized:
         s = str(aw).strip()
         if not s:
             continue
         if any(k in s.lower() for k in ("destaque", "ver publicação", "ver publicacao")):
             continue
-        norm = normalize_text_for_cmp(s)
         found = False
         for idx, ex in enumerate(cleaned):
-            ex_norm = normalize_text_for_cmp(ex)
-            if norm == ex_norm or (len(min(norm, ex_norm, key=len)) >= 20 and (norm in ex_norm or ex_norm in norm)):
+            if are_awards_duplicate(s, ex):
                 found = True
-                if len(s) > len(ex) or (":" in s and ":" not in ex):
+                s_is_en = any(k in s.lower() for k in ("honorable mention", "second place", "first place", "track"))
+                ex_is_en = any(k in ex.lower() for k in ("honorable mention", "second place", "first place", "track"))
+                if is_en and s_is_en and not ex_is_en:
+                    cleaned[idx] = s
+                elif not is_en and not s_is_en and ex_is_en:
+                    cleaned[idx] = s
+                elif (":" in ex and ":" not in s) or len(s) < len(ex):
                     cleaned[idx] = s
                 break
         if not found:
             cleaned.append(s)
 
-    cleaned.sort(key=lambda a: (extract_award_year_sort_key(a)[0], a), reverse=True)
+    standardized = [standardize_award_entry(a, lang=lang) for a in cleaned]
+    standardized = [a for a in standardized if a]
+    standardized.sort(key=lambda a: (extract_award_year_sort_key(a)[0], a), reverse=True)
     if experiences:
-        cleaned = filter_awards_redundant_with_experience(cleaned, experiences)
-    return cleaned
+        standardized = filter_awards_redundant_with_experience(standardized, experiences)
+    return standardized
 
 
 def filter_awards_redundant_with_experience(
@@ -801,9 +926,10 @@ def _raw_sanitize_awards(awards: Any) -> List[str]:
 def sanitize_awards(
     awards: Any,
     experiences: List[Dict[str, Any]] | None = None,
+    lang: str = "pt-br",
 ) -> List[str]:
     """Sanitiza, deduplica e ordena prêmios da mais recente à mais antiga."""
-    return deduplicate_and_sort_awards(awards, experiences=experiences)
+    return deduplicate_and_sort_awards(awards, experiences=experiences, lang=lang)
 
 
 def render_builtin_template(
@@ -820,7 +946,7 @@ def render_builtin_template(
     cv_clean["experience"] = deduplicate_and_sort_experiences(cv_clean.get("experience") or [], lang=norm_lang)
     cv_clean["education"] = deduplicate_and_sort_educations(cv_clean.get("education") or [], lang=norm_lang)
     cv_clean["publications"] = deduplicate_and_sort_publications(cv_clean.get("publications") or [])
-    cv_clean["awards"] = deduplicate_and_sort_awards(cv_clean.get("awards") or [], experiences=cv_clean["experience"])
+    cv_clean["awards"] = deduplicate_and_sort_awards(cv_clean.get("awards") or [], experiences=cv_clean["experience"], lang=norm_lang)
     cv = cv_clean
     if template_id == "academic_classic":
         return _render_academic_classic(cv, links, photo_filename, norm_lang)
@@ -1049,7 +1175,7 @@ def _build_languages_and_awards_block(languages: List[str], awards: List[str], l
         langs_esc = " $\\cdot$ ".join(escape_latex(x) for x in clean_langs)
         if langs_esc:
             parts.append(rf"\section*{{{t['sec_languages']}}}" + "\n" + langs_esc)
-    clean_awards = sanitize_awards(awards)
+    clean_awards = sanitize_awards(awards, lang=lang)
     if clean_awards:
         lines = [rf"\section*{{{t['sec_awards']}}}"]
         lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
@@ -1528,7 +1654,7 @@ def _build_acv_sections(
             langs_esc = " $\\cdot$ ".join(escape_latex(x) for x in langs)
             lang_block = _acv_sec_title_with_body(t["sec_languages"], rf"{{\small {langs_esc}}}\par\vspace{{3pt}}")
 
-    clean_awards = sanitize_awards(cv.get("awards"))
+    clean_awards = sanitize_awards(cv.get("awards"), lang=lang)
     award_block = ""
     if clean_awards:
         aw_lines = [r"\begin{itemize}[leftmargin=1.3em,nosep,topsep=2pt]"]
@@ -1958,7 +2084,7 @@ def _render_overleaf_single_page_keywords(
         )
 
     aw_sec = ""
-    clean_awards = sanitize_awards(cv.get("awards"))
+    clean_awards = sanitize_awards(cv.get("awards"), lang=lang)
     if clean_awards:
         aw_lbl = "AWARDS" if is_en else r"PRÊMIOS \& CERTIFICAÇÕES"
         a_rows = [rf"    \item {escape_latex(a)}" for a in clean_awards]
@@ -2458,7 +2584,7 @@ def _render_ai_ats_max(
         blocks.append(rf"\section*{{{pub_title}}}" + "\n" + _build_publications_block(pubs, lang).replace(rf"\section*{{{t['sec_publications']}}}", "").strip())
 
     # 7. Certifications & Awards
-    clean_awards = sanitize_awards(cv.get("awards"))
+    clean_awards = sanitize_awards(cv.get("awards"), lang=lang)
     if clean_awards:
         aw_title = r"CERTIFICATIONS \& AWARDS" if is_en else r"CERTIFICAÇÕES \& PRÊMIOS"
         aw_lines = [rf"\section*{{{aw_title}}}", r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]"]
@@ -2658,7 +2784,7 @@ def _render_nico_krieger(
         lang_block = ""
 
     # 5. Certifications & Awards in Sidebar
-    clean_awards = sanitize_awards(cv.get("awards"))
+    clean_awards = sanitize_awards(cv.get("awards"), lang=lang)
     aw_lbl = r"AWARDS \& HONORS" if is_en else r"PRÊMIOS \& DESTAQUES"
     if clean_awards:
         aw_lines = [rf"{{\large\bfseries\color{{accent}} {aw_lbl}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\\[5pt]"]
