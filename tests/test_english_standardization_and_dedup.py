@@ -224,8 +224,10 @@ def test_russell_cv_language_circles_solid():
                 assert solids == 6 and regulars == 0  # C2
             elif "English" in line:
                 assert solids == 3 and regulars == 3  # B1
-            elif "Spanish" in line or "Libras" in line:
+            elif "Spanish" in line:
                 assert solids == 2 and regulars == 4  # A2
+            elif "Libras" in line:
+                assert solids == 1 and regulars == 5  # A1
 
     # Verifica também no template Nico Krieger
     tex_nico = render_builtin_template("nico_krieger", cv, links, lang="en-us")
@@ -233,7 +235,8 @@ def test_russell_cv_language_circles_solid():
     assert r"\foreach \x in {1,...,6}" in tex_nico
     assert r"\langdots{6}" in tex_nico  # Portuguese C2
     assert r"\langdots{3}" in tex_nico  # English B1
-    assert r"\langdots{2}" in tex_nico  # Spanish / Libras A2
+    assert r"\langdots{2}" in tex_nico  # Spanish A2
+    assert r"\langdots{1}" in tex_nico  # Libras A1
 
 
 def test_clean_publication_venue_removes_title_duplication():

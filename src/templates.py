@@ -1849,6 +1849,13 @@ def get_language_proficiency_score_6(lg_str: str, default_first: bool = False) -
     prof_note = m.group(2).strip().lower() if m and m.group(2) else ""
     full_low = s.lower()
 
+    # Heurística prioritária para Libras: deve possuir sempre 1 bullet (A1 / nível introdutório)
+    norm_name = "".join(
+        c for c in unicodedata.normalize("NFKD", clean_name) if unicodedata.category(c) != "Mn"
+    ).lower()
+    if "libra" in norm_name:
+        return (clean_name, 1)
+
     # 1. Checagem explícita de códigos CEFR (A1, A2, B1, B2, C1, C2)
     if re.search(r"\b(?:c2|c-2)\b", prof_note) or re.search(r"\b(?:c2|c-2)\b", full_low):
         return (clean_name, 6)
@@ -1880,15 +1887,11 @@ def get_language_proficiency_score_6(lg_str: str, default_first: bool = False) -
         return (clean_name, 1)
 
     # 3. Heurísticas baseadas no nome do idioma quando não há especificação de nível
-    norm_name = "".join(
-        c for c in unicodedata.normalize("NFKD", clean_name) if unicodedata.category(c) != "Mn"
-    ).lower()
-
     if "portugu" in norm_name or default_first:
         return (clean_name, 6)
     if "ingl" in norm_name or "engl" in norm_name:
         return (clean_name, 3)
-    if any(k in norm_name for k in ("espanh", "span", "libra")):
+    if any(k in norm_name for k in ("espanh", "span")):
         return (clean_name, 2)
 
     return (clean_name, 3)
