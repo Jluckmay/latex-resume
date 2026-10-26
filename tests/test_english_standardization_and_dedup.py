@@ -223,3 +223,4 @@ def test_clean_publication_venue_removes_title_duplication():
     redundant_venue_2 = "Math-O-Ween - Revista Brasileira de Informática na Educação, 2024"
     clean_v_2 = clean_publication_venue(redundant_venue_2, "Math-O-Ween")
     assert clean_v_2 == "Revista Brasileira de Informática na Educação, 2024"
+
