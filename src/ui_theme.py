@@ -130,11 +130,23 @@ def apply_custom_colors_and_portfolio_to_latex(
     s_hex = sanitize_hex_color(secondary_color, "3F3F46")
 
     out = latex_code
-    # Substitui definições de cores nos modelos integrados
-    out = re.sub(r"\\definecolor\{accent\}\{HTML\}\{[0-9A-Fa-f]{6}\}", rf"\\definecolor{{accent}}{{HTML}}{{{p_hex}}}", out)
-    out = re.sub(r"\\definecolor\{acadnavy\}\{HTML\}\{[0-9A-Fa-f]{6}\}", rf"\\definecolor{{acadnavy}}{{HTML}}{{{p_hex}}}", out)
-    out = re.sub(r"\\definecolor\{primary\}\{HTML\}\{[0-9A-Fa-f]{6}\}", rf"\\definecolor{{primary}}{{HTML}}{{{p_hex}}}", out)
-    out = re.sub(r"\\definecolor\{sidecolor\}\{HTML\}\{[0-9A-Fa-f]{6}\}", rf"\\definecolor{{sidecolor}}{{HTML}}{{{s_hex}}}", out)
+    # Substitui definições de cores primárias e secundárias nos modelos integrados
+    out = re.sub(r"\\definecolor\{(accent|acadnavy|primary)\}\{(?:HTML|RGB|rgb)\}\{[^}]+\}", rf"\\definecolor{{\1}}{{HTML}}{{{p_hex}}}", out)
+    out = re.sub(r"\\definecolor\{(sidecolor|secondary|subaccent)\}\{(?:HTML|RGB|rgb)\}\{[^}]+\}", rf"\\definecolor{{\1}}{{HTML}}{{{s_hex}}}", out)
+
+    # Garante que acadnavy e subaccent/sidecolor estejam definidos e sincronizados
+    if "\\definecolor{acadnavy}" in out and "\\definecolor{subaccent}" not in out:
+        out = re.sub(
+            r"(\\definecolor\{acadnavy\}\{HTML\}\{[0-9A-Fa-f]{6}\})",
+            rf"\1\n\\definecolor{{subaccent}}{{HTML}}{{{s_hex}}}\n\\definecolor{{sidecolor}}{{HTML}}{{{s_hex}}}",
+            out,
+        )
+        out = re.sub(
+            r"\\titleformat\{\\section\}\{\\normalsize\\bfseries\\scshape\\color\{acadnavy\}\}\{\}\{0em\}\{\}\[\\vspace\{1pt\}\\titlerule\]",
+            rf"\\titleformat{{\\section}}{{\\normalsize\\bfseries\\scshape\\color{{acadnavy}}}}{{}}{{0em}}{{}}[\\vspace{{1pt}}{{\\color{{subaccent}}\\titlerule[0.8pt]}}]",
+            out,
+        )
+        out = out.replace(r"{\large\itshape ", r"{\large\itshape\color{subaccent} ")
 
     # No modelo minimal_ats (que não tinha cor nos títulos), adiciona a cor escolhida pelo usuário
     if "\\definecolor{accent}" not in out and "\\definecolor{acadnavy}" not in out and "\\usepackage{xcolor}" not in out:

@@ -918,43 +918,35 @@ def build_structured_cv_deterministically(
         r_url = repo.get("url", "").strip()
 
         if r_name:
+            clean_rdesc = sanitize_project_description(r_desc, lang).strip()
+            if not clean_rdesc:
+                if r_tech:
+                    clean_rdesc = f"Software and technical implementation developed with {r_tech}." if is_en else f"Projeto e implementação técnica desenvolvida em {r_tech}."
+                else:
+                    clean_rdesc = f"Software implementation and development for {r_name}." if is_en else f"Projeto e desenvolvimento computacional referente a {r_name}."
 
             projects.append({
-
                 "name": r_name,
-
                 "tech": r_tech,
-
                 "url": r_url,
-
-                "description": sanitize_project_description(r_desc, lang),
-
+                "description": clean_rdesc,
             })
 
-
-
     # Prioridade B: Lattes Projetos de Pesquisa
-
     for proj in lattes.get("projects") or []:
-
         p_name = proj.get("title", "").strip()
-
         p_year = str(proj.get("year") or "").strip()
-
         p_desc = proj.get("description", "").strip()
-
         if p_name:
+            clean_pdesc = sanitize_project_description(p_desc, lang).strip()
+            if not clean_pdesc:
+                clean_pdesc = f"Research project developed during {p_year}." if is_en else f"Projeto de pesquisa desenvolvido durante o ano de {p_year}."
 
             projects.append({
-
                 "name": p_name,
-
                 "tech": f"Pesquisa ({p_year})" if not is_en else f"Research ({p_year})",
-
                 "url": "",
-
-                "description": sanitize_project_description(p_desc, lang),
-
+                "description": clean_pdesc,
             })
 
 

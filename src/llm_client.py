@@ -213,7 +213,7 @@ class LLMResumeGenerator:
                 {"role": "system", "content": sys_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            max_tokens=1500,
+            max_tokens=3000,
         )
 
         short_dict = self._parse_json_safely(content, raw_profile_data, resume_type)
@@ -336,10 +336,16 @@ class LLMResumeGenerator:
                     {"role": "system", "content": sys_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                max_tokens=2500,
+                max_tokens=4096,
             )
             cleaned = sanitize_latex_layout(CavemanPromptPlugin.strip_code_fences(fixed))
-            is_severely_truncated = (len(target) > 600 and len(cleaned.strip()) < int(len(target) * 0.2))
+            target_secs = [m.strip() for m in re.findall(r"\\(?:cvsection|section\*?)\{([^}]+)\}", target)]
+            cleaned_secs = [m.strip() for m in re.findall(r"\\(?:cvsection|section\*?)\{([^}]+)\}", cleaned)]
+            missing_major_secs = [s for s in target_secs if not any(s.lower() in cs.lower() or cs.lower() in s.lower() for cs in cleaned_secs)]
+            is_severely_truncated = (
+                (len(target) > 600 and len(cleaned.strip()) < int(len(target) * 0.70))
+                or (len(target_secs) >= 3 and len(missing_major_secs) > 0)
+            )
             has_end_doc = r"\end{document}" in cleaned
             if not cleaned or len(cleaned.strip()) < 30 or is_severely_truncated or not has_end_doc:
                 final_latex = base_latex
@@ -494,26 +500,65 @@ class LLMResumeGenerator:
         if not cv["awards"] and lattes.get("awards"):
             cv["awards"] = sanitize_awards(lattes["awards"][:5])
 
-        if not cv.get("education") and lattes.get("educations"):
+        if not cv.get("education"):
+            real_edus = (
+                lattes.get("educations")
+                or (raw_profile_data.get("orcid") or {}).get("educations")
+                or (raw_profile_data.get("portfolio") or {}).get("educations")
+                or []
+            )
             cv["education"] = [
                 {
-                    "degree": f"{e.get('level', '')} - {e.get('course', '')}".strip(" -"),
-                    "institution": e.get("institution", ""),
-                    "period": f"{e.get('start', '')}-{e.get('end', '')}".strip("-"),
-                    "details": e.get("thesis_title", ""),
-                }
-                for e in lattes["educations"][:5]
-            ]
-        elif not cv.get("education") and (raw_profile_data.get("orcid") or {}).get("educations"):
-            cv["education"] = [
-                {
-                    "degree": (e.get("degree") or e.get("role") or e.get("course") or "").strip(),
+                    "degree": (e.get("degree") or f"{e.get('level', '')} - {e.get('course', '')}".strip(" -") or e.get("course") or "").strip(),
                     "institution": (e.get("institution") or e.get("organization") or e.get("org") or "").strip(),
-                    "period": f"{e.get('start', '')}-{e.get('end', '')}".strip("-"),
-                    "details": "",
+                    "period": (e.get("period") or f"{e.get('start', '')}-{e.get('end', '')}".strip("-")).strip(),
+                    "details": (e.get("details") or e.get("thesis_title") or "").strip(),
                 }
-                for e in (raw_profile_data.get("orcid") or {})["educations"][:5]
+                for e in real_edus[:6]
+                if (e.get("degree") or e.get("institution") or e.get("level") or e.get("course"))
             ]
+
+        if not cv.get("experience"):
+            real_emps = (
+                (raw_profile_data.get("portfolio") or {}).get("employments")
+                or lattes.get("employments")
+                or (raw_profile_data.get("orcid") or {}).get("employments")
+                or (raw_profile_data.get("linkedin") or {}).get("experiences")
+                or []
+            )
+            cv["experience"] = [
+                {
+                    "role": (e.get("role") or e.get("title") or ("Pesquisador / Colaborador" if not is_en else "Researcher / Staff")).strip(),
+                    "organization": (e.get("organization") or e.get("company") or e.get("institution") or "").strip(),
+                    "period": (e.get("period") or f"{e.get('start', '')}-{e.get('end', '')}".strip("-")).strip(),
+                    "bullets": [e.get("description")] if e.get("description") else (e.get("bullets") or []),
+                }
+                for e in real_emps[:6]
+                if (e.get("role") or e.get("organization") or e.get("company") or e.get("institution"))
+            ]
+
+        if not cv.get("skills"):
+            gh_langs = [l for l in (gh.get("languages") or []) if str(l).strip()]
+            li_skills = [s for s in ((raw_profile_data.get("linkedin") or {}).get("skills") or []) if str(s).strip()]
+            acad_areas = [a for a in (lattes.get("areas") or (raw_profile_data.get("orcid") or {}).get("keywords") or []) if str(a).strip()]
+            cand_skills = []
+            if gh_langs:
+                cand_skills.append({
+                    "category": "Languages & Technologies" if is_en else "Linguagens & Tecnologias",
+                    "items": ", ".join(gh_langs[:10])
+                })
+            if li_skills:
+                cand_skills.append({
+                    "category": "Core Competencies" if is_en else "Competências & Especialidades",
+                    "items": ", ".join(li_skills[:12])
+                })
+            if acad_areas:
+                cand_skills.append({
+                    "category": "Focus & Research Domains" if is_en else "Áreas de Conhecimento & Foco",
+                    "items": ", ".join(acad_areas[:10])
+                })
+            cv["skills"] = cand_skills
+
         if not cv.get("projects") and gh.get("repos"):
             cv["projects"] = [
                 {
@@ -522,7 +567,7 @@ class LLMResumeGenerator:
                     "url": r.get("url", ""),
                     "description": r.get("description", ""),
                 }
-                for r in gh["repos"][:5]
+                for r in gh["repos"][:6]
             ]
         elif not cv.get("projects") and lattes.get("projects"):
             cv["projects"] = [
@@ -532,8 +577,21 @@ class LLMResumeGenerator:
                     "url": str(p.get("year") or ""),
                     "description": p.get("description", ""),
                 }
-                for p in lattes["projects"][:5]
+                for p in lattes["projects"][:6]
             ]
+
+        # Enriquecimento de descrições e tecnologias de repositórios caso tenham vindo vazias
+        real_repos = {r.get("name", "").lower(): r for r in (gh.get("repos") or []) if r.get("name")}
+        for p in cv.get("projects") or []:
+            p_name = (p.get("name") or "").lower()
+            if p_name in real_repos:
+                repo = real_repos[p_name]
+                if not (p.get("description") or "").strip() and repo.get("description"):
+                    p["description"] = repo["description"]
+                if not (p.get("tech") or "").strip() and (repo.get("tech") or repo.get("language")):
+                    p["tech"] = repo.get("tech") or repo.get("language")
+                if not (p.get("url") or "").strip() and repo.get("url"):
+                    p["url"] = repo["url"]
         # Coleta e consolidação de publicações reais das fontes
         all_real_pubs = []
         seen_pub_titles = set()

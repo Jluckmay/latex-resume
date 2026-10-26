@@ -1311,7 +1311,7 @@ def render_builtin_template(
     cv_clean["awards"] = deduplicate_and_sort_awards(cv_clean.get("awards") or [], experiences=cv_clean["experience"], lang=norm_lang)
     cv = cv_clean
     if template_id == "academic_classic":
-        return _render_academic_classic(cv, links, photo_filename, norm_lang)
+        return _render_academic_classic(cv, links, resume_type, photo_filename, norm_lang)
     if template_id == "tech_sidebar":
         return _render_tech_sidebar(cv, links, resume_type, photo_filename, norm_lang)
     if template_id == "minimal_ats":
@@ -1370,6 +1370,7 @@ def _render_header_with_optional_photo(
 def _render_sections_body(cv: Dict[str, Any], resume_type: str, lang: str = "pt-br") -> str:
     """Constrói as seções do corpo na ordem e idioma ideais para currículo Acadêmico ou Profissional."""
     t = LATEX_I18N[normalize_lang(lang)]
+    is_en = normalize_lang(lang).startswith("en")
     blocks: List[str] = []
 
     if cv.get("summary"):
@@ -1386,7 +1387,7 @@ def _render_sections_body(cv: Dict[str, Any], resume_type: str, lang: str = "pt-
     )
 
     if resume_type == "academico":
-        ordered = [edu_block, pub_block, proj_block, exp_block, skill_block, lang_award_block]
+        ordered = [edu_block, exp_block, pub_block, proj_block, skill_block, lang_award_block]
     else:
         ordered = [exp_block, proj_block, edu_block, skill_block, pub_block, lang_award_block]
 
@@ -1445,24 +1446,32 @@ def _build_experience_block(experiences: List[Dict[str, Any]], resume_type: str,
 def _build_projects_block(projects: List[Dict[str, Any]], resume_type: str, lang: str = "pt-br") -> str:
     if not projects:
         return ""
+    is_en = normalize_lang(lang).startswith("en")
     t = LATEX_I18N[normalize_lang(lang)]
     title = t["sec_proj_acad"] if resume_type == "academico" else t["sec_proj_prof"]
     lines = [rf"\section*{{{title}}}"]
     lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
     for pj in projects:
-        nm = escape_latex(pj.get("name"))
-        tech = escape_latex(pj.get("tech"))
+        nm = escape_latex(pj.get("name") or "").strip()
+        if not nm:
+            continue
+        tech = escape_latex(pj.get("tech") or "").strip()
         url = (pj.get("url") or "").strip()
-        desc = escape_latex(sanitize_project_description(pj.get("description"), lang))
+        raw_desc = pj.get("description") or ""
+        desc = escape_latex(sanitize_project_description(raw_desc, lang)).strip()
+        if not desc:
+            if tech:
+                desc = f"Software and technical implementation developed with {tech}." if is_en else f"Projeto e implementação técnica desenvolvida em {tech}."
+            else:
+                desc = f"Software implementation and development for {nm}." if is_en else f"Projeto e desenvolvimento computacional referente a {nm}."
         if url and url.startswith("http"):
             head = rf"\href{{{escape_url(url)}}}{{\textbf{{{nm}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
         else:
             head = rf"\textbf{{{nm}}}"
         if tech:
             head += rf" ({{\small\texttt{{{tech}}}}})"
-        item_line = f"    \\item {head}"
-        if desc:
-            item_line += f": {desc}"
+        item_line = f"    \\item {head}: {desc}"
+        item_line = re.sub(r"\s*\(\s*\)", "", item_line)
         lines.append(item_line)
     lines.append(r"\end{itemize}")
     return "\n".join(lines)
@@ -1475,10 +1484,13 @@ def _build_publications_block(publications: List[Dict[str, Any]], lang: str = "p
     lines = [rf"\section*{{{t['sec_publications']}}}"]
     lines.append(r"\begin{enumerate}[leftmargin=1.5em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
     for pb in publications:
-        title = escape_latex(pb.get("title"))
-        venue = escape_latex(pb.get("venue"))
-        year = escape_latex(pb.get("year"))
-        authors = escape_latex(pb.get("authors"))
+        title = escape_latex(pb.get("title") or "").strip()
+        title = re.sub(r"-(Resumo Estendido|Short Paper|Extended Abstract)\b", r" (\1)", title, flags=re.IGNORECASE)
+        venue = escape_latex(pb.get("venue") or "").strip()
+        year = escape_latex(pb.get("year") or "").strip()
+        authors = escape_latex(pb.get("authors") or "").strip()
+        if authors and (authors.lower() in title.lower() or title.lower() in authors.lower()):
+            authors = ""
         doi = (pb.get("doi") or "").strip()
         pub_url = (pb.get("url") or "").strip()
         if not pub_url and doi:
@@ -1606,7 +1618,8 @@ def _render_modern_pro(
 def _render_academic_classic(
     cv: Dict[str, Any],
     links: Dict[str, str],
-    photo_filename: str | None,
+    resume_type: str = "academico",
+    photo_filename: str | None = None,
     lang: str = "pt-br",
 ) -> str:
     t = LATEX_I18N[normalize_lang(lang)]
@@ -1621,7 +1634,7 @@ def _render_academic_classic(
     else:
         contact_str = " \\;\\textbullet\\; ".join(contact_items)
     header = _render_header_with_optional_photo(name, title, contact_str, photo_filename, accent_cmd=r"\color{acadnavy}")
-    body = _render_sections_body(cv, "academico", lang)
+    body = _render_sections_body(cv, resume_type, lang)
 
     return rf"""\documentclass[10pt,a4paper]{{article}}
 \usepackage[utf8]{{inputenc}}
@@ -1643,10 +1656,12 @@ def _render_academic_classic(
 \raggedbottom
 \setlist{{noitemsep, topsep=1pt, parsep=0pt, partopsep=0pt}}
 \definecolor{{acadnavy}}{{HTML}}{{1B365D}}
+\definecolor{{sidecolor}}{{HTML}}{{0F172A}}
+\definecolor{{subaccent}}{{HTML}}{{0F172A}}
 \pagestyle{{empty}}
 \setlength{{\parindent}}{{0pt}}
 
-\titleformat{{\section}}{{\normalsize\bfseries\scshape\color{{acadnavy}}}}{{}}{{0em}}{{}}[\vspace{{1pt}}\titlerule]
+\titleformat{{\section}}{{\normalsize\bfseries\scshape\color{{acadnavy}}}}{{}}{{0em}}{{}}[\vspace{{1pt}}{{\color{{subaccent}}\titlerule[0.8pt]}}]
 \titlespacing*{{\section}}{{0pt}}{{9pt}}{{4pt}}
 
 \begin{{document}}
@@ -1906,6 +1921,7 @@ def _build_acv_sections(
 ) -> str:
     """Constrói seções no estilo Russell CV / Awesome-CV (\\cvsection, \\cventries, \\cvskills, \\cvhonors)."""
     t = LATEX_I18N[normalize_lang(lang)]
+    is_en = normalize_lang(lang).startswith("en")
     blocks: List[str] = []
 
     if cv.get("summary"):
@@ -1978,10 +1994,18 @@ def _build_acv_sections(
     pj_entries: List[str] = []
     lbl_tech = t.get("lbl_tech_stack", "Ferramentas & Tecnologias")
     for pj in (cv.get("projects") or []):
-        nm = escape_latex(pj.get("name"))
-        tech = escape_latex(pj.get("tech"))
+        nm = escape_latex(pj.get("name") or "").strip()
+        if not nm:
+            continue
+        tech = escape_latex(pj.get("tech") or "").strip()
         url = (pj.get("url") or "").strip()
-        desc = escape_latex(sanitize_project_description(pj.get("description"), lang))
+        raw_desc = pj.get("description") or ""
+        desc = escape_latex(sanitize_project_description(raw_desc, lang)).strip()
+        if not desc:
+            if tech:
+                desc = f"Software and technical implementation developed with {tech}." if is_en else f"Projeto e implementação técnica desenvolvida em {tech}."
+            else:
+                desc = f"Software implementation and development for {nm}." if is_en else f"Projeto e desenvolvimento computacional referente a {nm}."
         if url and url.startswith("http"):
             nm_tex = rf"\href{{{escape_url(url)}}}{{\textbf{{{nm}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
         else:
@@ -2010,10 +2034,13 @@ def _build_acv_sections(
     if pubs:
         pb_lines = [r"\begin{enumerate}[leftmargin=1.5em,itemsep=2pt,topsep=2pt]"]
         for pb in pubs:
-            title = escape_latex(pb.get("title"))
-            venue = escape_latex(pb.get("venue"))
-            year = escape_latex(pb.get("year"))
-            authors = escape_latex(pb.get("authors"))
+            title = escape_latex(pb.get("title") or "").strip()
+            title = re.sub(r"-(Resumo Estendido|Short Paper|Extended Abstract)\b", r" (\1)", title, flags=re.IGNORECASE)
+            venue = escape_latex(pb.get("venue") or "").strip()
+            year = escape_latex(pb.get("year") or "").strip()
+            authors = escape_latex(pb.get("authors") or "").strip()
+            if authors and (authors.lower() in title.lower() or title.lower() in authors.lower()):
+                authors = ""
             doi = (pb.get("doi") or "").strip()
             pub_url = (pb.get("url") or "").strip()
             if not pub_url and doi:
@@ -2070,7 +2097,7 @@ def _build_acv_sections(
         award_block = _acv_sec_title_with_body(t["sec_awards"], "\n".join(aw_lines))
 
     if resume_type == "academico":
-        ordered = [edu_block, pub_block, proj_block, exp_block, skill_block, award_block, lang_block]
+        ordered = [edu_block, exp_block, pub_block, proj_block, skill_block, award_block, lang_block]
     elif skills_first:
         # Ordem do Jason Richards' Résumé (Awesome-CV): Skills -> Education -> Experience -> Projects -> Pubs -> Languages
         ordered = [skill_block, edu_block, exp_block, proj_block, pub_block, award_block, lang_block]

@@ -2494,11 +2494,6 @@
             state.resumeType = type;
             document.getElementById("btn-type-prof").classList.toggle("active", type === "profissional");
             document.getElementById("btn-type-acad").classList.toggle("active", type === "academico");
-            if (type === "academico" && state.templateId === "ai_ats_max") {
-                selectTemplate("academic_classic");
-            } else if (type === "profissional" && state.templateId === "academic_classic") {
-                selectTemplate("ai_ats_max");
-            }
             renderLivePreview();
         }
 
@@ -2701,7 +2696,7 @@
                         <div style="flex:1;height:1px;background:#94a3b8;"></div>
                     </div>
                     <div style="display:flex;justify-content:space-between;font-size:9.5px;">
-                        <span><b>Português</b> (Proficiência Nativa)</span><span style="color:${pCol};">● ● ● ● ●</span>
+                        <span><b>Português</b> (Proficiência Nativa)</span><span style="color:${pCol};">● ● ● ● ● ●</span>
                     </div>
                 </div>`;
             } else if (state.templateId === "overleaf_awesome_cv") {
