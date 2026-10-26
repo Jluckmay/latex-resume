@@ -384,13 +384,40 @@ def are_experiences_duplicate(e1: Dict[str, Any], e2: Dict[str, Any]) -> bool:
             if any(k in o1 or k in o2 for k in ("vicosa", "viçosa", "funarben")):
                 return True
 
+    yrs1 = re.findall(r"\b(20\d\d|19\d\d)\b", p1)
+    yrs2 = re.findall(r"\b(20\d\d|19\d\d)\b", p2)
+    same_years = bool(yrs1 and yrs2 and any(y in yrs2 for y in yrs1)) or (p1 and p2 and p1 == p2)
+    org_overlap = (
+        ("funarben" in o1 and "funarben" in o2)
+        or (any(k in o1 for k in ("vicosa", "viçosa", "ufv")) and any(k in o2 for k in ("vicosa", "viçosa", "ufv")))
+        or (any(k in o1 for k in ("ufmg", "minas gerais")) and any(k in o2 for k in ("ufmg", "minas gerais")))
+    )
+
+    if same_years and org_overlap:
+        is_game = any(k in r1 or k in o1 for k in ("game", "jogo")) and any(k in r2 or k in o2 for k in ("game", "jogo"))
+        is_research = any(k in r1 for k in ("fellow", "bolsista", "research", "pesquisa")) and any(k in r2 for k in ("fellow", "bolsista", "research", "pesquisa"))
+        is_ta = any(k in r1 for k in ("teaching assistant", "monitor", "tutor")) and any(k in r2 for k in ("teaching assistant", "monitor", "tutor"))
+        is_grad = any(k in r1 for k in ("graduate", "msc", "mestrand")) and any(k in r2 for k in ("graduate", "msc", "mestrand"))
+        if is_game or is_research or is_ta or is_grad:
+            return True
+
     return False
 
 
 def merge_experiences(target: Dict[str, Any], source: Dict[str, Any], lang: str = "pt-br") -> None:
     r_t = target.get("role", "").strip()
     r_s = source.get("role", "").strip()
-    if len(r_s) > len(r_t) and not any(k in r_s.lower() for k in ("teaching assistant", "fellow")):
+    is_en = lang.lower().startswith("en")
+    en_markers = ("teaching assistant", "fellow", "researcher", "m.sc.", "graduate", "developer")
+
+    if is_en:
+        if any(m in r_t.lower() for m in en_markers):
+            pass
+        elif any(m in r_s.lower() for m in en_markers):
+            target["role"] = r_s
+        elif len(r_s) > len(r_t):
+            target["role"] = r_s
+    elif len(r_s) > len(r_t) and not any(k in r_s.lower() for k in ("teaching assistant", "fellow")):
         target["role"] = r_s
     elif not r_t:
         target["role"] = r_s
@@ -399,6 +426,8 @@ def merge_experiences(target: Dict[str, Any], source: Dict[str, Any], lang: str 
     o_s = source.get("organization", "").strip()
     if not o_t:
         target["organization"] = o_s
+    elif is_en and any(k in o_t.lower() for k in ("federal university", "foundation", "institute")):
+        pass
     elif "funarben" in o_s.lower() and any(k in o_t.lower() for k in ("viçosa", "vicosa")):
         target["organization"] = "Universidade Federal de Viçosa"
 
