@@ -26,15 +26,19 @@ Garante:
 
 from __future__ import annotations
 
-
-
 import re
+import unicodedata
 import urllib.parse
 from typing import Any, Dict, List, Tuple
 
-
-
-from .i18n import normalize_lang
+from .i18n import (
+    normalize_lang,
+    standardize_summary_to_en,
+    translate_award_to_en,
+    translate_experience_bullet_to_en,
+    translate_institution_to_en,
+    translate_role_to_en,
+)
 
 from .extractors import (
     extract_languages_from_text,
@@ -57,12 +61,14 @@ from .templates import (
     render_builtin_template,
     sanitize_awards,
     are_awards_duplicate,
+    are_educations_duplicate,
     are_experiences_duplicate,
     are_publications_duplicate,
     deduplicate_and_sort_awards,
     deduplicate_and_sort_educations,
     deduplicate_and_sort_experiences,
     deduplicate_and_sort_publications,
+    merge_educations,
     merge_experiences,
     merge_publications,
 
@@ -493,81 +499,58 @@ def build_structured_cv_deterministically(
             )
 
         else:
-
             summary = (
-
                 "Dedicated professional with strong technical expertise, proven track record in software engineering, and continuous learning mindset."
-
                 if is_en
-
                 else "Profissional dedicado com sólida experiência técnica, atuação em desenvolvimento de software e foco em resultados escaláveis."
-
             )
 
-
+    if is_en and summary:
+        summary = standardize_summary_to_en(summary)
 
     # 5. Formação Acadêmica (Education)
-
     education: List[Dict[str, str]] = []
-
     # Prioridade A: Lattes (muito rico em nível, curso, instituição e tese)
-
     for edu in lattes.get("educations") or []:
-
         lvl = edu.get("level", "").strip()
-
         course = edu.get("course", "").strip()
-
         degree = f"{lvl} em {course}" if (lvl and course) else (lvl or course or "Formação Superior")
-
+        inst = edu.get("institution", "").strip()
         if is_en:
-
             lvl_en = {
-
                 "Doutorado": "Ph.D.",
-
                 "Mestrado": "M.Sc.",
-
                 "Mestrado Profissional": "Professional M.Sc.",
-
                 "Especialização": "Postgraduate Specialization",
-
                 "Graduação": "B.Sc.",
-
                 "Pós-Doutorado": "Postdoctoral Fellowship",
-
             }.get(lvl, lvl)
-
-            degree = f"{lvl_en} in {course}" if (lvl_en and course) else (lvl_en or course)
-
-
+            course_en = course
+            course_low = "".join(
+                c for c in unicodedata.normalize("NFKD", course) if not unicodedata.combining(c)
+            ).lower()
+            if "ciencia da computacao" in course_low or "computacao" in course_low:
+                course_en = "Computer Science"
+            elif "sistemas de informacao" in course_low:
+                course_en = "Information Systems"
+            elif "engenharia de software" in course_low:
+                course_en = "Software Engineering"
+            degree = f"{lvl_en} in {course_en}" if (lvl_en and course_en) else (lvl_en or course_en)
+            inst = translate_institution_to_en(inst)
 
         start_yr = str(edu.get("start") or "").strip()
-
         end_yr = str(edu.get("end") or "").strip() or ("Present" if is_en else "Atual")
-
         period = f"{start_yr} - {end_yr}" if (start_yr and end_yr) else (start_yr or end_yr)
 
-
-
         details = edu.get("thesis_title", "").strip()
-
         if details:
-
             details = f"Tese/Dissertação: {details}" if not is_en else f"Thesis: {details}"
 
-
-
         education.append({
-
             "degree": degree,
-
-            "institution": edu.get("institution", "").strip(),
-
+            "institution": inst,
             "period": period,
-
             "details": details,
-
         })
 
 
@@ -707,22 +690,20 @@ def build_structured_cv_deterministically(
         deg_pt = pt_edu.get("degree", "").strip()
         inst_pt = pt_edu.get("institution", "").strip()
         per_pt = pt_edu.get("period", "").strip()
+        cand = {
+            "degree": deg_pt,
+            "institution": inst_pt,
+            "period": per_pt,
+            "details": pt_edu.get("details", "").strip(),
+        }
         matched = False
         for ex_edu in education:
-            if deg_pt.lower() in ex_edu.get("degree", "").lower() or ex_edu.get("degree", "").lower() in deg_pt.lower():
+            if are_educations_duplicate(ex_edu, cand):
                 matched = True
-                if (not ex_edu.get("period") or ex_edu["period"] in ("Atual", "Present", "Concluído", "Em andamento")) and per_pt:
-                    ex_edu["period"] = per_pt
-                if not ex_edu.get("institution") and inst_pt:
-                    ex_edu["institution"] = inst_pt
+                merge_educations(ex_edu, cand, lang=lang)
                 break
         if not matched and deg_pt:
-            education.append({
-                "degree": deg_pt,
-                "institution": inst_pt,
-                "period": per_pt,
-                "details": pt_edu.get("details", "").strip(),
-            })
+            education.append(cand)
 
     education = deduplicate_and_sort_educations(education, lang=lang)
 
@@ -777,26 +758,26 @@ def build_structured_cv_deterministically(
         period = f"{start_yr} - {end_yr}" if (start_yr and end_yr) else (start_yr or end_yr)
 
         desc = emp.get("description", "").strip()
-
         bullets = [desc] if desc else []
-
         if role or inst:
-
-            # Evita duplicatas se já adicionado pelo LinkedIn
-
-            if not any(e["organization"].lower() == inst.lower() for e in experience):
-
-                experience.append({
-
-                    "role": role or ("Pesquisador / Colaborador" if not is_en else "Researcher / Staff"),
-
-                    "organization": inst,
-
-                    "period": period,
-
-                    "bullets": bullets,
-
-                })
+            if is_en:
+                role = translate_role_to_en(role)
+                inst = translate_institution_to_en(inst)
+                bullets = [translate_experience_bullet_to_en(b) for b in bullets]
+            cand = {
+                "role": role or ("Pesquisador / Colaborador" if not is_en else "Researcher / Staff"),
+                "organization": inst,
+                "period": period,
+                "bullets": bullets,
+            }
+            matched = False
+            for ex in experience:
+                if are_experiences_duplicate(ex, cand):
+                    matched = True
+                    merge_experiences(ex, cand, lang=lang)
+                    break
+            if not matched:
+                experience.append(cand)
 
 
 
@@ -891,6 +872,11 @@ def build_structured_cv_deterministically(
         desc = emp.get("description", "").strip()
         bullets = [desc] if desc else []
         if role:
+            if is_en:
+                role = translate_role_to_en(role)
+                if org:
+                    org = translate_institution_to_en(org)
+                bullets = [translate_experience_bullet_to_en(b) for b in bullets]
             cand = {
                 "role": role,
                 "organization": org or ("Universidade Federal de Viçosa" if not is_en else "Federal University of Viçosa"),

@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Tuple
 
 import requests
 from bs4 import BeautifulSoup
+from .i18n import translate_experience_bullet_to_en
 
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -491,6 +492,7 @@ def sanitize_experience_description(desc: str, lang: str = "pt-br") -> str:
         text = re.sub(r"\be acompanhou\b", "e acompanhamento de", text, flags=re.IGNORECASE)
         text = re.sub(r"\be auxiliou\b", "e auxílio em", text, flags=re.IGNORECASE)
     else:
+        text = translate_experience_bullet_to_en(text)
         conversions_en = [
             (r"^\s*led\s+(?:in\s+|the\s+)?", "Leadership of "),
             (r"^\s*managed\s+(?:the\s+)?", "Management of "),

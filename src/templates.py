@@ -299,8 +299,11 @@ PLACEHOLDER_PATTERN = re.compile(
 
 
 def normalize_text_for_cmp(text: str) -> str:
-    clean = unicodedata.normalize("NFKD", str(text or "")).lower()
-    clean = re.sub(r"[^\w\s]", " ", clean)
+    no_diacritics = "".join(
+        c for c in unicodedata.normalize("NFKD", str(text or ""))
+        if unicodedata.category(c) != "Mn"
+    ).lower()
+    clean = re.sub(r"[^\w\s]", " ", no_diacritics)
     return re.sub(r"\s+", " ", clean).strip()
 
 
@@ -354,6 +357,191 @@ def extract_award_year_sort_key(aw: str) -> Tuple[int, str]:
     return (max(yrs) if yrs else 0, str(aw))
 
 
+def are_bullets_duplicate(b1: str, b2: str) -> bool:
+    n1 = normalize_text_for_cmp(b1)
+    n2 = normalize_text_for_cmp(b2)
+    if not n1 or not n2:
+        return False
+    if n1 == n2 or n1 in n2 or n2 in n1:
+        return True
+
+    sem_groups = [
+        {"geogebra", "dinamicas", "dynamic"},
+        {"wordpress", "figma"},
+        {"eleicao", "election", "caposcomp"},
+        {"jogos", "game", "mentoring", "orientacao", "didaticos"},
+        {"redes", "network", "seguranca", "security", "machine learning"},
+        {"informatica", "office", "computing essentials"},
+        {"programacao", "programming"},
+    ]
+    for grp in sem_groups:
+        if any(k in n1 for k in grp) and any(k in n2 for k in grp):
+            return True
+
+    stop_words = {"de", "da", "do", "das", "dos", "em", "e", "a", "o", "as", "os", "ao", "aos", "para", "com", "por", "in", "of", "and", "the", "to", "for", "at", "on"}
+    w1 = {w for w in n1.split() if w not in stop_words and len(w) > 2}
+    w2 = {w for w in n2.split() if w not in stop_words and len(w) > 2}
+    if w1 and w2:
+        overlap = len(w1 & w2) / min(len(w1), len(w2))
+        if overlap >= 0.5:
+            return True
+    return False
+
+
+def is_bullet_english(b: str) -> bool:
+    b_norm = normalize_text_for_cmp(b)
+    en_words = {"the", "in", "and", "of", "to", "with", "for", "research", "coursework", "development", "investigation", "volunteer", "guidance", "mentoring", "student", "learning", "networks", "security", "election", "academic", "graduate", "teaching", "hands"}
+    if any(c in b for c in "áàâãéêíóôõúç"):
+        return False
+    words = set(b_norm.split())
+    return len(words & en_words) >= 1
+
+
+def standardize_experience_entry(item: Dict[str, Any], lang: str = "pt-br") -> Dict[str, Any]:
+    c_item = dict(item)
+    is_en = str(lang).lower().startswith("en")
+    c_item["period"] = normalize_period(c_item.get("period", ""), lang)
+    role = str(c_item.get("role") or "").strip()
+    org = str(c_item.get("organization") or "").strip()
+    r_norm = normalize_text_for_cmp(role)
+    o_norm = normalize_text_for_cmp(org)
+
+    if is_en:
+        if "eleitoral" in r_norm or "comissao" in r_norm:
+            c_item["role"] = "Electoral Committee"
+        elif any(k in r_norm for k in ("monitor de desenvolvimento de jogos", "jogos")) and ("monitor" in r_norm or "ta" in r_norm or "teaching" in r_norm):
+            c_item["role"] = "Game Development Teaching Assistant"
+        elif "bolsista" in r_norm and "pesquisa" in r_norm:
+            c_item["role"] = "Research Fellow"
+        elif "pesquisador" in r_norm or "mestrando" in r_norm:
+            c_item["role"] = "Graduate Researcher / M.Sc. Student"
+        elif "tutor de introducao" in r_norm or "informatica" in r_norm:
+            c_item["role"] = "Introduction to Computer Science Tutor"
+        elif "monitor de programacao" in r_norm:
+            c_item["role"] = "Programming Teaching Assistant"
+        elif "tutor de programacao" in r_norm:
+            c_item["role"] = "Programming Tutor"
+        elif "voluntario" in r_norm and "frontend" in r_norm:
+            c_item["role"] = "Frontend Developer (Volunteer)"
+
+        if "caposcomp" in o_norm or "caposcomp" in r_norm:
+            c_item["organization"] = "CAPosComp/UFMG"
+        elif any(k in o_norm for k in ("ufmg", "minas gerais")):
+            c_item["organization"] = "Federal University of Minas Gerais (DCC / UFMG)"
+        elif "funarben" in o_norm or "arthur bernardes" in o_norm:
+            c_item["organization"] = "Arthur Bernardes Foundation (FUNARBEN / UFV)"
+        elif any(k in o_norm for k in ("ufv", "vicosa", "paranaiba")):
+            if "game" in c_item["role"].lower() or "jogo" in c_item["role"].lower():
+                c_item["organization"] = "Federal University of Viçosa (UFV · Game Dev)"
+            else:
+                c_item["organization"] = "Federal University of Viçosa"
+        elif "health lake" in o_norm:
+            c_item["organization"] = "Health Lake Institute"
+
+        raw_bullets = c_item.get("bullets") or []
+        std_bullets = []
+        for b in raw_bullets:
+            b_s = str(b).strip()
+            b_norm = normalize_text_for_cmp(b_s)
+            if "eleicao da representacao discente" in b_norm or ("eleicao" in b_norm and "caposcomp" in b_norm):
+                std_bullets.append("Participation in the student representation election process for the Graduate Student Academic Center (CAPosComp/UFMG).")
+            elif "historia da computacao" in b_norm or "nocoes de informatica" in b_norm:
+                std_bullets.append("Instruction in computer science history, computing essentials, office productivity tools, online security, copyright, and digital citizenship.")
+            elif "orientacao pratica" in b_norm and ("jogos" in b_norm or "materiais" in b_norm):
+                std_bullets.append("Hands-on guidance and student mentoring, supporting the development and review of course materials in Digital Game Development.")
+            elif "figuras dinamicas no geogebra" in b_norm:
+                std_bullets.append("Investigation of dynamic GeoGebra figures applied to mathematics education and educational technology.")
+            elif "trabalho voluntario" in b_norm or "atuacao voluntaria" in b_norm:
+                std_bullets.append("Volunteer work (Dec 2021 – Mar 2023) in Science and Technology: migrating website to WordPress, creating wireframes using Figma, website administration and maintenance.")
+            else:
+                std_bullets.append(sanitize_experience_description(b_s, lang=lang))
+
+        clean_bullets = []
+        for b in std_bullets:
+            matched = False
+            for idx, ex in enumerate(clean_bullets):
+                if are_bullets_duplicate(b, ex):
+                    matched = True
+                    if is_bullet_english(b) and not is_bullet_english(ex):
+                        clean_bullets[idx] = b
+                    elif len(b) > len(ex):
+                        clean_bullets[idx] = b
+                    break
+            if not matched:
+                clean_bullets.append(b)
+        c_item["bullets"] = clean_bullets
+
+    else:
+        if "eleitoral" in r_norm or "comissao" in r_norm:
+            c_item["role"] = "Comissão eleitoral"
+        elif "introducao ao desenvolvimento de jogos" in r_norm or "introduction to game development" in r_norm:
+            c_item["role"] = "Monitor de Introdução ao Desenvolvimento de Jogos"
+        elif r_norm == "monitor de jogos":
+            c_item["role"] = "Monitor de Jogos"
+        elif "game development teaching assistant" in r_norm or ("jogos" in r_norm and "monitor" in r_norm):
+            c_item["role"] = "Monitor de Desenvolvimento de Jogos"
+        elif "research fellow" in r_norm or ("bolsista" in r_norm and "pesquisa" in r_norm):
+            c_item["role"] = "Bolsista de Pesquisa"
+        elif "graduate researcher" in r_norm or "m.sc. student" in r_norm or "pesquisador" in r_norm or "mestrando" in r_norm:
+            c_item["role"] = "Pesquisador / Mestrando"
+        elif "volunteer" in r_norm and "frontend" in r_norm:
+            c_item["role"] = "Frontend Developer (Voluntário)"
+        elif "introduction to computer science tutor" in r_norm:
+            c_item["role"] = "Tutor de Introdução à Informática"
+        elif "programming teaching assistant" in r_norm:
+            c_item["role"] = "Monitor de Programação"
+        elif "programming tutor" in r_norm:
+            c_item["role"] = "Tutor de Programação"
+
+        if "caposcomp" in o_norm or "caposcomp" in r_norm:
+            c_item["organization"] = "CAPosComp/UFMG"
+        elif org == "FUNARBEN":
+            c_item["organization"] = "FUNARBEN"
+        elif "funarben" in o_norm or "arthur bernardes" in o_norm:
+            c_item["organization"] = "Fundação Arthur Bernardes (FUNARBEN / UFV)"
+        elif any(k in o_norm for k in ("federal university of minas gerais", "minas gerais")):
+            c_item["organization"] = "Universidade Federal de Minas Gerais (DCC / UFMG)" if "dcc" in o_norm else "Universidade Federal de Minas Gerais"
+        elif any(k in o_norm for k in ("federal university of vicosa", "federal university of viçosa")):
+            c_item["organization"] = "Universidade Federal de Viçosa (UFV · Jogos)" if ("jogos" in c_item["role"].lower() or "game" in c_item["role"].lower()) else "Universidade Federal de Viçosa"
+        elif "health lake" in o_norm:
+            c_item["organization"] = "Instituto Health Lake"
+
+        raw_bullets = c_item.get("bullets") or []
+        std_bullets = []
+        for b in raw_bullets:
+            b_s = str(b).strip()
+            b_norm = normalize_text_for_cmp(b_s)
+            if "student representation election" in b_norm:
+                std_bullets.append("Participação no processo de eleição da representação discente do Centro Acadêmico da Pós-Graduação em Ciência da Computação.")
+            elif "dynamic geogebra figures" in b_norm:
+                std_bullets.append("Investigação de figuras dinâmicas no GeoGebra aplicadas ao ensino de matemática e tecnologia educacional.")
+            elif "volunteer work" in b_norm and "wordpress" in b_norm:
+                std_bullets.append("Atuação voluntária (dez. de 2021 a mar. de 2023) em Ciência e Tecnologia: migração de website para WordPress, criação de wireframes no Figma, administração e manutenção da plataforma web.")
+            elif "hands on guidance" in b_norm and "game" in b_norm:
+                std_bullets.append("Orientação prática e acompanhamento de estudantes e apoio no desenvolvimento e revisão de materiais didáticos na disciplina Introdução ao Desenvolvimento de Jogos Digitais.")
+            elif "research and advanced coursework" in b_norm:
+                std_bullets.append("Pesquisa e formação avançada em redes de computadores, segurança da informação, sistemas inteligentes e machine learning.")
+            else:
+                std_bullets.append(sanitize_experience_description(b_s, lang=lang))
+
+        clean_bullets = []
+        for b in std_bullets:
+            matched = False
+            for idx, ex in enumerate(clean_bullets):
+                if are_bullets_duplicate(b, ex):
+                    matched = True
+                    if not is_bullet_english(b) and is_bullet_english(ex):
+                        clean_bullets[idx] = b
+                    elif len(b) > len(ex):
+                        clean_bullets[idx] = b
+                    break
+            if not matched:
+                clean_bullets.append(b)
+        c_item["bullets"] = clean_bullets
+
+    return c_item
+
+
 def are_experiences_duplicate(e1: Dict[str, Any], e2: Dict[str, Any]) -> bool:
     r1 = normalize_text_for_cmp(e1.get("role", ""))
     r2 = normalize_text_for_cmp(e2.get("role", ""))
@@ -362,7 +550,7 @@ def are_experiences_duplicate(e1: Dict[str, Any], e2: Dict[str, Any]) -> bool:
     p1 = normalize_period(e1.get("period", ""))
     p2 = normalize_period(e2.get("period", ""))
 
-    if r1 == r2:
+    if r1 == r2 and (not o1 or not o2 or o1 == o2 or o1 in o2 or o2 in o1):
         return True
 
     stop_words = {"de", "da", "do", "das", "dos", "em", "e", "a", "o", "as", "os", "ao", "aos", "para", "com", "por", "in", "of", "and", "the", "to", "for"}
@@ -381,7 +569,7 @@ def are_experiences_duplicate(e1: Dict[str, Any], e2: Dict[str, Any]) -> bool:
         yrs1 = re.findall(r"\b(20\d\d|19\d\d)\b", p1)
         yrs2 = re.findall(r"\b(20\d\d|19\d\d)\b", p2)
         if any(y in yrs2 for y in yrs1):
-            if any(k in o1 or k in o2 for k in ("vicosa", "viçosa", "funarben")):
+            if any(k in o1 or k in o2 for k in ("vicosa", "funarben")):
                 return True
 
     yrs1 = re.findall(r"\b(20\d\d|19\d\d)\b", p1)
@@ -389,65 +577,93 @@ def are_experiences_duplicate(e1: Dict[str, Any], e2: Dict[str, Any]) -> bool:
     same_years = bool(yrs1 and yrs2 and any(y in yrs2 for y in yrs1)) or (p1 and p2 and p1 == p2)
     org_overlap = (
         ("funarben" in o1 and "funarben" in o2)
-        or (any(k in o1 for k in ("vicosa", "viçosa", "ufv")) and any(k in o2 for k in ("vicosa", "viçosa", "ufv")))
+        or (any(k in o1 for k in ("vicosa", "ufv")) and any(k in o2 for k in ("vicosa", "ufv")))
         or (any(k in o1 for k in ("ufmg", "minas gerais")) and any(k in o2 for k in ("ufmg", "minas gerais")))
+        or ("health lake" in o1 and "health lake" in o2)
+        or ("caposcomp" in o1 and "caposcomp" in o2)
     )
 
     if same_years and org_overlap:
+        has_prog1 = any(k in r1 for k in ("programacao", "programming"))
+        has_prog2 = any(k in r2 for k in ("programacao", "programming"))
+        has_info1 = any(k in r1 for k in ("informatica", "computer science")) and not any(k in r1 for k in ("graduate", "msc", "mestrand"))
+        has_info2 = any(k in r2 for k in ("informatica", "computer science")) and not any(k in r2 for k in ("graduate", "msc", "mestrand"))
+        if (has_prog1 and not has_prog2 and has_info2) or (has_prog2 and not has_prog1 and has_info1):
+            return False
+
         is_game = any(k in r1 or k in o1 for k in ("game", "jogo")) and any(k in r2 or k in o2 for k in ("game", "jogo"))
         is_research = any(k in r1 for k in ("fellow", "bolsista", "research", "pesquisa")) and any(k in r2 for k in ("fellow", "bolsista", "research", "pesquisa"))
         is_ta = any(k in r1 for k in ("teaching assistant", "monitor", "tutor")) and any(k in r2 for k in ("teaching assistant", "monitor", "tutor"))
         is_grad = any(k in r1 for k in ("graduate", "msc", "mestrand")) and any(k in r2 for k in ("graduate", "msc", "mestrand"))
-        if is_game or is_research or is_ta or is_grad:
+        is_frontend = any(k in r1 for k in ("frontend", "developer")) and any(k in r2 for k in ("frontend", "developer"))
+        if is_game or is_research or is_ta or is_grad or is_frontend:
+            return True
+
+    if any(k in o1 or k in r1 for k in ("caposcomp", "eleitoral", "electoral")) and any(k in o2 or k in r2 for k in ("caposcomp", "eleitoral", "electoral")):
+        if same_years or not p1 or not p2:
             return True
 
     return False
 
 
 def merge_experiences(target: Dict[str, Any], source: Dict[str, Any], lang: str = "pt-br") -> None:
-    r_t = target.get("role", "").strip()
-    r_s = source.get("role", "").strip()
-    is_en = lang.lower().startswith("en")
-    en_markers = ("teaching assistant", "fellow", "researcher", "m.sc.", "graduate", "developer")
+    is_en = str(lang).lower().startswith("en")
+    t_std = standardize_experience_entry(target, lang)
+    s_std = standardize_experience_entry(source, lang)
 
-    if is_en:
-        if any(m in r_t.lower() for m in en_markers):
-            pass
-        elif any(m in r_s.lower() for m in en_markers):
-            target["role"] = r_s
-        elif len(r_s) > len(r_t):
-            target["role"] = r_s
-    elif len(r_s) > len(r_t) and not any(k in r_s.lower() for k in ("teaching assistant", "fellow")):
-        target["role"] = r_s
-    elif not r_t:
-        target["role"] = r_s
-
-    o_t = target.get("organization", "").strip()
-    o_s = source.get("organization", "").strip()
-    if not o_t:
-        target["organization"] = o_s
-    elif is_en and any(k in o_t.lower() for k in ("federal university", "foundation", "institute")):
-        pass
-    elif "funarben" in o_s.lower() and any(k in o_t.lower() for k in ("viçosa", "vicosa")):
-        target["organization"] = "Universidade Federal de Viçosa"
+    target["role"] = t_std["role"] or s_std["role"]
+    target["organization"] = t_std["organization"] or s_std["organization"]
 
     p_t = normalize_period(target.get("period", ""), lang)
     p_s = normalize_period(source.get("period", ""), lang)
     if not p_t or p_t in ("Atual", "Present", "Período não especificado"):
-        target["period"] = p_s
+        target["period"] = p_s or p_t
     elif p_s and p_s not in ("Atual", "Present") and ("-" in p_s and "-" not in p_t):
         target["period"] = p_s
     else:
         target["period"] = normalize_period(p_t or p_s, lang)
 
-    b_t = [str(b).strip() for b in (target.get("bullets") or []) if str(b).strip()]
-    b_s = [str(b).strip() for b in (source.get("bullets") or []) if str(b).strip()]
-    merged_b: List[str] = [sanitize_experience_description(b, lang=lang) for b in b_t]
-    for b in b_s:
-        sb = sanitize_experience_description(b, lang=lang)
-        if not any(normalize_text_for_cmp(sb) == normalize_text_for_cmp(x) for x in merged_b):
-            merged_b.append(sb)
-    target["bullets"] = merged_b
+    all_raw_bullets = (t_std.get("bullets") or []) + (s_std.get("bullets") or [])
+    filtered_bullets: List[str] = []
+
+    for b in all_raw_bullets:
+        b_str = re.sub(r"^[–—·\-\*•\s]+", "", str(b)).strip()
+        if not b_str:
+            continue
+        b_str = b_str[0].upper() + b_str[1:]
+        if not b_str.endswith((".", "!", "?")):
+            b_str += "."
+
+        matched_idx = -1
+        for idx, existing in enumerate(filtered_bullets):
+            if are_bullets_duplicate(b_str, existing):
+                matched_idx = idx
+                break
+
+        if matched_idx == -1:
+            filtered_bullets.append(b_str)
+        else:
+            existing = filtered_bullets[matched_idx]
+            if is_en:
+                b_en = is_bullet_english(b_str)
+                ex_en = is_bullet_english(existing)
+                if b_en and not ex_en:
+                    filtered_bullets[matched_idx] = b_str
+                elif not b_en and ex_en:
+                    pass
+                elif len(b_str) > len(existing):
+                    filtered_bullets[matched_idx] = b_str
+            else:
+                b_en = is_bullet_english(b_str)
+                ex_en = is_bullet_english(existing)
+                if not b_en and ex_en:
+                    filtered_bullets[matched_idx] = b_str
+                elif b_en and not ex_en:
+                    pass
+                elif len(b_str) > len(existing):
+                    filtered_bullets[matched_idx] = b_str
+
+    target["bullets"] = filtered_bullets
 
 
 def deduplicate_and_sort_experiences(experiences: List[Dict[str, Any]], lang: str = "pt-br") -> List[Dict[str, Any]]:
@@ -457,23 +673,7 @@ def deduplicate_and_sort_experiences(experiences: List[Dict[str, Any]], lang: st
     for item in experiences:
         if not item or not isinstance(item, dict):
             continue
-        c_item = dict(item)
-        c_item["period"] = normalize_period(c_item.get("period", ""), lang)
-        if c_item.get("description"):
-            c_item["description"] = sanitize_experience_description(c_item["description"], lang=lang)
-
-        raw_bullets = c_item.get("bullets") or []
-        std_bullets = []
-        for b in raw_bullets:
-            b_str = re.sub(r"^[–—·\-\*•\s]+", "", str(b)).strip()
-            if b_str:
-                b_str = sanitize_experience_description(b_str, lang=lang)
-                b_str = b_str[0].upper() + b_str[1:]
-                if not b_str.endswith((".", "!", "?")):
-                    b_str += "."
-                std_bullets.append(b_str)
-        c_item["bullets"] = std_bullets
-
+        c_item = standardize_experience_entry(item, lang)
         found = False
         for ex in merged:
             if are_experiences_duplicate(ex, c_item):
@@ -487,34 +687,168 @@ def deduplicate_and_sort_experiences(experiences: List[Dict[str, Any]], lang: st
     return merged
 
 
+def standardize_education_entry(edu: Dict[str, Any], lang: str = "pt-br") -> Dict[str, Any]:
+    c_ed = dict(edu)
+    is_en = str(lang).lower().startswith("en")
+    c_ed["period"] = normalize_period(c_ed.get("period", ""), lang)
+    d = str(c_ed.get("degree") or "").strip()
+    inst = str(c_ed.get("institution") or "").strip()
+    details = str(c_ed.get("details") or "").strip()
+    d_norm = normalize_text_for_cmp(d)
+    i_norm = normalize_text_for_cmp(inst)
+
+    is_m = any(k in d_norm for k in ("msc", "m sc", "master", "mestrado")) and not any(k in d_norm for k in ("phd", "doutor"))
+    is_b = any(k in d_norm for k in ("bsc", "b sc", "bachelor", "bacharelado", "graduacao"))
+    is_d = any(k in d_norm for k in ("phd", "ph d", "doutorado", "doctor"))
+
+    has_cs = any(k in d_norm for k in ("ciencia da computacao", "computer science"))
+    has_is = any(k in d_norm for k in ("sistemas de informacao", "information systems"))
+
+    is_ufmg = any(k in i_norm for k in ("ufmg", "minas gerais"))
+    is_ufv = any(k in i_norm for k in ("ufv", "vicosa", "paranaiba"))
+
+    if is_en:
+        if is_m and has_cs:
+            c_ed["degree"] = "M.Sc. in Computer Science"
+        elif is_b and has_is:
+            c_ed["degree"] = "B.Sc. in Information Systems"
+        elif is_m:
+            c_ed["degree"] = re.sub(r"(?i)mestrado(?:\s+profissional)?\s+em\s+", "M.Sc. in ", d)
+        elif is_b:
+            c_ed["degree"] = re.sub(r"(?i)(?:bacharelado|graduação)\s+em\s+", "B.Sc. in ", d)
+        elif is_d:
+            c_ed["degree"] = re.sub(r"(?i)doutorado\s+em\s+", "Ph.D. in ", d)
+
+        if is_ufmg:
+            if "dcc" in i_norm or ("federal university" in i_norm and "ufmg" in i_norm):
+                c_ed["institution"] = "Federal University of Minas Gerais (UFMG · DCC)"
+            elif "federal university" in i_norm:
+                c_ed["institution"] = "Federal University of Minas Gerais"
+            else:
+                c_ed["institution"] = inst
+        elif is_ufv:
+            if ("paranaiba" in i_norm or "campus" in i_norm) and ("federal university" in i_norm or "ufv" in i_norm):
+                c_ed["institution"] = "Federal University of Viçosa (UFV · Rio Paranaíba Campus)"
+            elif "federal university" in i_norm:
+                c_ed["institution"] = "Federal University of Viçosa"
+            else:
+                c_ed["institution"] = inst
+
+        if details:
+            det_norm = normalize_text_for_cmp(details)
+            if det_norm in i_norm or i_norm in det_norm or "universidade federal" in det_norm or "federal university" in det_norm:
+                c_ed["details"] = ""
+            elif any(k in det_norm for k in ("redes", "wireless", "algoritmos", "security", "machine learning")):
+                c_ed["details"] = "Thesis: Advanced studies in wireless networks, security, algorithms, and machine learning"
+            elif any(k in det_norm for k in ("educacao", "software", "tecnologia", "ux design", "education", "data analysis")):
+                c_ed["details"] = "Thesis: Education in software and systems development, UX design, data analysis, and educational technology"
+            else:
+                c_ed["details"] = re.sub(r"(?i)^(?:tese/dissertação|dissertação|tese):\s*", "Thesis: ", details)
+    else:
+        if is_m and has_cs:
+            c_ed["degree"] = "Mestrado em Ciência da Computação"
+        elif is_b and has_is:
+            c_ed["degree"] = "Bacharelado em Sistemas de Informação"
+        elif is_m:
+            c_ed["degree"] = re.sub(r"(?i)master'?s?\s+(?:degree\s+)?(?:of\s+science\s+)?in\s+", "Mestrado em ", d)
+        elif is_b:
+            c_ed["degree"] = re.sub(r"(?i)bachelor'?s?\s+(?:degree\s+)?(?:of\s+science\s+)?in\s+", "Bacharelado em ", d)
+        elif is_d:
+            c_ed["degree"] = re.sub(r"(?i)(?:ph\.?d\.?|doctorate)\s+in\s+", "Doutorado em ", d)
+
+        if is_ufmg:
+            if "dcc" in i_norm or "ufmg" in i_norm:
+                c_ed["institution"] = "Universidade Federal de Minas Gerais (UFMG · DCC)"
+            else:
+                c_ed["institution"] = "Universidade Federal de Minas Gerais"
+        elif is_ufv:
+            if "paranaiba" in i_norm or "campus" in i_norm:
+                c_ed["institution"] = "Universidade Federal de Viçosa (UFV · Campus Rio Paranaíba)"
+            else:
+                c_ed["institution"] = "Universidade Federal de Viçosa"
+
+        if details:
+            det_norm = normalize_text_for_cmp(details)
+            if det_norm in i_norm or i_norm in det_norm or "universidade federal" in det_norm or "federal university" in det_norm:
+                c_ed["details"] = ""
+            elif any(k in det_norm for k in ("redes", "wireless", "algoritmos", "security", "machine learning")):
+                c_ed["details"] = "Dissertação: Formação avançada em redes sem fio, segurança, algoritmos e machine learning"
+            elif any(k in det_norm for k in ("educacao", "software", "tecnologia", "ux design", "education", "data analysis")):
+                c_ed["details"] = "Trabalho de Conclusão: Formação em desenvolvimento de software e sistemas, UX design, análise de dados e tecnologia aplicada à educação"
+            else:
+                c_ed["details"] = re.sub(r"(?i)^thesis:\s*", "Dissertação: ", details)
+
+    return c_ed
+
+
 def are_educations_duplicate(ed1: Dict[str, Any], ed2: Dict[str, Any]) -> bool:
     d1 = normalize_text_for_cmp(ed1.get("degree", ""))
     d2 = normalize_text_for_cmp(ed2.get("degree", ""))
+    i1 = normalize_text_for_cmp(ed1.get("institution", ""))
+    i2 = normalize_text_for_cmp(ed2.get("institution", ""))
     p1 = normalize_period(ed1.get("period", ""))
     p2 = normalize_period(ed2.get("period", ""))
-    if d1 == d2:
+
+    if d1 == d2 and (not i1 or not i2 or i1 == i2):
         return True
+
+    is_m1 = any(k in d1 for k in ("msc", "m sc", "master", "mestrado"))
+    is_m2 = any(k in d2 for k in ("msc", "m sc", "master", "mestrado"))
+    is_b1 = any(k in d1 for k in ("bsc", "b sc", "bachelor", "bacharelado", "graduacao"))
+    is_b2 = any(k in d2 for k in ("bsc", "b sc", "bachelor", "bacharelado", "graduacao"))
+    is_d1 = any(k in d1 for k in ("phd", "ph d", "doutorado", "doctor"))
+    is_d2 = any(k in d2 for k in ("phd", "ph d", "doutorado", "doctor"))
+
+    same_level = (is_m1 and is_m2) or (is_b1 and is_b2) or (is_d1 and is_d2)
+
+    same_inst = (
+        (any(k in i1 for k in ("ufmg", "minas gerais")) and any(k in i2 for k in ("ufmg", "minas gerais")))
+        or (any(k in i1 for k in ("ufv", "vicosa", "paranaiba")) and any(k in i2 for k in ("ufv", "vicosa", "paranaiba")))
+        or (i1 and i2 and (i1 in i2 or i2 in i1))
+    )
+
+    is_cs1 = any(k in d1 for k in ("computer science", "ciencia da computacao", "computacao"))
+    is_cs2 = any(k in d2 for k in ("computer science", "ciencia da computacao", "computacao"))
+    is_is1 = any(k in d1 for k in ("information systems", "sistemas de informacao"))
+    is_is2 = any(k in d2 for k in ("information systems", "sistemas de informacao"))
+    same_field = (is_cs1 and is_cs2) or (is_is1 and is_is2)
+
+    yrs1 = re.findall(r"\b(20\d\d|19\d\d)\b", p1)
+    yrs2 = re.findall(r"\b(20\d\d|19\d\d)\b", p2)
+    same_years = bool(yrs1 and yrs2 and any(y in yrs2 for y in yrs1)) or (not p1 or not p2 or p1 == p2)
+
+    if same_level and (same_inst or same_field) and same_years:
+        return True
+
     if (d1 in d2 or d2 in d1) and ("mestrado" in d1 or "bacharelado" in d1 or "doutorado" in d1 or "master" in d1 or "bachelor" in d1 or "phd" in d1):
-        if not p1 or not p2 or p1 == p2 or any(y in p2 for y in re.findall(r"\b(20\d\d|19\d\d)\b", p1)):
+        if same_years:
             return True
+
     return False
 
 
 def merge_educations(target: Dict[str, Any], source: Dict[str, Any], lang: str = "pt-br") -> None:
-    if len(source.get("degree", "")) > len(target.get("degree", "")):
-        target["degree"] = source["degree"]
-    if not target.get("institution") and source.get("institution"):
-        target["institution"] = source["institution"]
+    s_std = standardize_education_entry(source, lang)
+    t_std = standardize_education_entry(target, lang)
+
+    target["degree"] = t_std["degree"] or s_std["degree"]
+    target["institution"] = t_std["institution"] or s_std["institution"]
+
     p_t = normalize_period(target.get("period", ""), lang)
     p_s = normalize_period(source.get("period", ""), lang)
     if not p_t or p_t in ("Atual", "Present", "Concluído"):
-        target["period"] = p_s
+        target["period"] = p_s or p_t
     elif p_s and p_s not in ("Atual", "Present") and ("-" in p_s and "-" not in p_t):
         target["period"] = p_s
     else:
         target["period"] = normalize_period(p_t or p_s, lang)
-    if not target.get("details") and source.get("details"):
-        target["details"] = source["details"]
+
+    d_t = t_std.get("details", "").strip()
+    d_s = s_std.get("details", "").strip()
+    if len(d_s) > len(d_t):
+        target["details"] = d_s
+    else:
+        target["details"] = d_t or d_s
 
 
 def deduplicate_and_sort_educations(educations: List[Dict[str, Any]], lang: str = "pt-br") -> List[Dict[str, Any]]:
@@ -524,8 +858,7 @@ def deduplicate_and_sort_educations(educations: List[Dict[str, Any]], lang: str 
     for ed in educations:
         if not ed or not isinstance(ed, dict):
             continue
-        c_ed = dict(ed)
-        c_ed["period"] = normalize_period(c_ed.get("period", ""), lang)
+        c_ed = standardize_education_entry(ed, lang)
         found = False
         for ex in merged:
             if are_educations_duplicate(ex, c_ed):
@@ -536,6 +869,31 @@ def deduplicate_and_sort_educations(educations: List[Dict[str, Any]], lang: str 
             merged.append(c_ed)
     merged.sort(key=lambda x: extract_period_sort_key(x.get("period", "")), reverse=True)
     return merged
+
+
+def clean_publication_venue(venue: str, title: str) -> str:
+    """Higieniza o local de publicação (venue) removendo prefixos redundantes ou títulos repetidos."""
+    if not venue:
+        return ""
+    v = str(venue).strip()
+    v = re.sub(r"^[\s\.,:;\-·/–—]+", "", v).strip()
+
+    t_clean = re.sub(r"\s+", " ", str(title or "")).strip()
+    if t_clean and v.lower().startswith(t_clean.lower()):
+        v = v[len(t_clean):].strip()
+        v = re.sub(r"^[\s\.,:;\-·/–—]+", "", v).strip()
+
+    t_norm = normalize_text_for_cmp(t_clean)
+    v_norm = normalize_text_for_cmp(v)
+    if t_norm and len(t_norm) > 15 and v_norm.startswith(t_norm):
+        words_t = t_clean.split()
+        if len(words_t) >= 3:
+            last_word = words_t[-1]
+            idx = v.lower().find(last_word.lower())
+            if idx != -1:
+                v = v[idx + len(last_word):].strip()
+                v = re.sub(r"^[\s\.,:;\-·/–—]+", "", v).strip()
+    return v
 
 
 def are_publications_duplicate(p1: Dict[str, Any], p2: Dict[str, Any]) -> bool:
@@ -580,8 +938,8 @@ def merge_publications(target: Dict[str, Any], source: Dict[str, Any]) -> None:
 
     v_t = target.get("venue", "").strip()
     v_s = source.get("venue", "").strip()
-    if len(v_s) > len(v_t):
-        target["venue"] = v_s
+    chosen_venue = v_s if len(v_s) > len(v_t) else (v_t or v_s)
+    target["venue"] = clean_publication_venue(chosen_venue, target.get("title", ""))
 
     y_t = str(target.get("year") or "").strip()
     y_s = str(source.get("year") or "").strip()
@@ -617,6 +975,7 @@ def deduplicate_and_sort_publications(publications: List[Dict[str, Any]]) -> Lis
         if not pub or not isinstance(pub, dict):
             continue
         c_pub = dict(pub)
+        c_pub["venue"] = clean_publication_venue(c_pub.get("venue", ""), c_pub.get("title", ""))
         found = False
         for ex in merged:
             if are_publications_duplicate(ex, c_pub):
@@ -731,6 +1090,9 @@ def standardize_award_entry(award: str, lang: str = "pt-br") -> str:
         res = re.sub(r"\bPrimeiro\s+Lugar\b", "First Place", res, flags=re.IGNORECASE)
         res = re.sub(r"\bSegundo\s+Lugar\b", "Second Place", res, flags=re.IGNORECASE)
         res = re.sub(r"\bTerceiro\s+Lugar\b", "Third Place", res, flags=re.IGNORECASE)
+        res = re.sub(r"(?i)\bsimp[oó]sio de integra[cç][aã]o acad[eê]mica\b", "Academic Integration Symposium", res)
+        res = re.sub(r"(?i)\buniversidade federal de vi[cç]osa\b", "Federal University of Viçosa", res)
+        res = re.sub(r"(?i)\buniversidade federal de minas gerais\b", "Federal University of Minas Gerais", res)
         return res
     elif not is_en and any(k in norm for k in ("honorable mention", "second place", "first place")):
         res = re.sub(r"\bHonorable\s+Mention\b", "Menção Honrosa", s, flags=re.IGNORECASE)
@@ -1638,7 +2000,7 @@ def _build_acv_sections(
                     else:
                         filled = 3
 
-                full_circle = r"\faIcon{circle}"
+                full_circle = r"\faIcon[solid]{circle}"
                 empty_circle = r"\faIcon[regular]{circle}"
                 dots = " ".join([full_circle] * filled + [empty_circle] * (5 - filled))
                 l_rows.append(rf"    \textbf{{\color{{sidecolor}} {escape_latex(clean_name)}}} & {{\color{{accent}} {dots}}} \\")

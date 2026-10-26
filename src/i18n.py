@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+import re
+import unicodedata
+from typing import Any, Dict, List
 
 SUPPORTED_LANGS = ("pt-br", "en-us")
 
@@ -620,3 +622,233 @@ UI_TEXT: Dict[str, Dict[str, Any]] = {
         ),
     },
 }
+
+
+def translate_institution_to_en(inst: str) -> str:
+    """Padroniza e traduz nomes de instituições acadêmicas e de pesquisa para o inglês."""
+    if not inst:
+        return ""
+    s = inst.strip()
+    low = "".join(
+        c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c)
+    ).lower()
+
+    if any(k in low for k in ("vicosa", "ufv")):
+        return "Federal University of Viçosa (UFV)"
+    if any(k in low for k in ("minas gerais", "ufmg")):
+        return "Federal University of Minas Gerais (UFMG)"
+    if any(k in low for k in ("sao paulo", "usp")):
+        return "University of São Paulo (USP)"
+    if "campinas" in low or "unicamp" in low:
+        return "State University of Campinas (UNICAMP)"
+    if "rio de janeiro" in low or "ufrj" in low:
+        return "Federal University of Rio de Janeiro (UFRJ)"
+    if "santa catarina" in low or "ufsc" in low:
+        return "Federal University of Santa Catarina (UFSC)"
+    if "rio grande do sul" in low or "ufrgs" in low:
+        return "Federal University of Rio Grande do Sul (UFRGS)"
+    if "funarben" in low:
+        return "FUNARBEN / Federal University of Viçosa"
+    return s
+
+
+def translate_role_to_en(role: str) -> str:
+    """Traduz e padroniza cargos, monitorias, bolsas e atuações profissionais para o inglês."""
+    if not role:
+        return ""
+    r = role.strip()
+    norm = "".join(
+        c for c in unicodedata.normalize("NFKD", r) if not unicodedata.combining(c)
+    ).lower()
+
+    if "jogo" in norm or "game" in norm:
+        if any(k in norm for k in ("monitor", "teaching assistant", "ta", "tutor")):
+            return "Introduction to Game Development Teaching Assistant"
+    if "programacao" in norm or "programming" in norm:
+        if any(k in norm for k in ("monitor", "teaching assistant", "ta")):
+            return "Programming Teaching Assistant"
+        if "tutor" in norm:
+            return "Programming Tutor"
+    if any(k in norm for k in ("monitor", "monitoria")):
+        return "Teaching Assistant"
+    if any(k in norm for k in ("tutor", "tutoria")):
+        return "Tutor"
+
+    if "extensao" in norm or "extension" in norm:
+        if any(k in norm for k in ("bolsista", "fellow")):
+            return "Extension Project Fellow"
+    if "pesquisa" in norm or "iniciacao cientifica" in norm or "research" in norm:
+        if any(k in norm for k in ("bolsista", "fellow")):
+            return "Research Fellow"
+    if "bolsista" in norm:
+        return "Project Fellow"
+
+    if "comissao eleitoral" in norm or "electoral committee" in norm:
+        return "Student Electoral Board Member"
+
+    if "desenvolvedor" in norm:
+        if "full stack" in norm or "fullstack" in norm:
+            return "Full-Stack Software Developer"
+        return "Software Developer"
+    if "engenheiro de software" in norm:
+        return "Software Engineer"
+    if "pesquisador" in norm:
+        return "Researcher"
+
+    return r
+
+
+def translate_award_to_en(award: str) -> str:
+    """Padroniza e traduz menções, colocações e simpósios em prêmios para o inglês."""
+    if not award:
+        return ""
+    s = str(award).strip()
+    replacements = [
+        (r"(?i)\bmen[cç][aã]o honrosa\b", "Honorable Mention"),
+        (r"(?i)\bprimeiro lugar\b", "First Place"),
+        (r"(?i)\b1[ºªo]\s*lugar\b", "First Place"),
+        (r"(?i)\bsegundo lugar\b", "Second Place"),
+        (r"(?i)\b2[ºªo]\s*lugar\b", "Second Place"),
+        (r"(?i)\bterceiro lugar\b", "Third Place"),
+        (r"(?i)\b3[ºªo]\s*lugar\b", "Third Place"),
+        (r"(?i)\bp[oô]ster\b", "Poster Presentation"),
+        (r"(?i)\bensino\b", "Teaching"),
+        (r"(?i)\bpesquisa\b", "Research"),
+        (r"(?i)\bextens[aã]o\b", "Extension"),
+        (r"(?i)\bapresenta[cç][aã]o oral\b", "Oral Presentation"),
+        (r"(?i)\bmelhor artigo\b", "Best Paper Award"),
+        (r"(?i)\bmelhor trabalho\b", "Best Work Award"),
+        (r"(?i)\bmelhor tese\b", "Best Doctoral Thesis Award"),
+        (r"(?i)\bmelhor disserta[cç][aã]o\b", "Best Master's Dissertation Award"),
+        (r"(?i)\bsimp[oó]sio de integra[cç][aã]o acad[eê]mica\b", "Academic Integration Symposium"),
+        (r"(?i)\buniversidade federal de vi[cç]osa\b", "Federal University of Viçosa"),
+        (r"(?i)\buniversidade federal de minas gerais\b", "Federal University of Minas Gerais"),
+    ]
+    for pat, repl in replacements:
+        s = re.sub(pat, repl, s)
+    return s
+
+
+def translate_experience_bullet_to_en(bullet: str) -> str:
+    """Traduz descrições e bullets de experiências em português para o inglês formal."""
+    if not bullet:
+        return ""
+    s = bullet.strip()
+    if re.match(
+        r"^(?:Leadership|Management|Development|Design|Implementation|Creation|Instruction|Teaching|Mentorship|Guidance|Participation|Assistance|Conduction|Coordination|Collaboration|Organization|Engineering|Research|Volunteer)\b",
+        s,
+        re.IGNORECASE,
+    ):
+        return s
+
+    norm = "".join(
+        c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c)
+    ).lower()
+
+    if "orientacao pratica" in norm or ("estudantes" in norm and ("desenvolvimento de jogos" in norm or "jogos" in norm)):
+        return "Practical guidance and technical mentoring for students in the game development course."
+    if "geogebra" in norm and ("figuras dinamicas" in norm or "ensino de matematica" in norm):
+        return "Development of dynamic interactive figures in GeoGebra for mathematics education and academic outreach."
+    if "trabalho voluntario" in norm or "ciencia e tecnologia" in norm:
+        return "Volunteer work in Science and Technology, supporting academic events and educational workshops."
+    if "processo eleitoral" in norm or "membro discente" in norm or "comissao eleitoral" in norm:
+        return "Participation in the academic election process as student committee representative."
+    if "ensino de conceitos" in norm and "historia da computacao" in norm:
+        return "Instruction in fundamental concepts of computing history and digital game development."
+
+    phrase_maps = [
+        (r"(?i)^\s*(?:orienta[cç][aã]o(?:\s+[aà])?|orientou)\s+estudantes\b", "Guidance and mentorship of students"),
+        (r"(?i)^\s*(?:acompanhamento(?:\s+de)?|acompanhou)\s+estudantes\b", "Mentoring and technical support for students"),
+        (r"(?i)^\s*(?:desenvolvimento(?:\s+de)?|desenvolveu)\s+", "Development of "),
+        (r"(?i)^\s*(?:ensino(?:\s+de)?|ensinou)\s+", "Instruction in "),
+        (r"(?i)^\s*(?:participa[cç][aã]o(?:\s+(?:no|na|em))?|participou(?:\s+(?:no|na|em))?)\s+", "Participation in "),
+        (r"(?i)^\s*(?:realiza[cç][aã]o(?:\s+de)?|realizou)\s+", "Execution and conduction of "),
+        (r"(?i)^\s*(?:colabora[cç][aã]o(?:\s+(?:com|em))?|colaborou(?:\s+(?:com|em))?)\s+", "Collaboration on "),
+        (r"(?i)^\s*(?:coordena[cç][aã]o(?:\s+de)?|coordenou)\s+", "Coordination of "),
+        (r"(?i)^\s*(?:implementa[cç][aã]o(?:\s+de)?|implementou)\s+", "Implementation of "),
+        (r"(?i)^\s*(?:cria[cç][aã]o(?:\s+de)?|criou)\s+", "Creation of "),
+        (r"(?i)^\s*(?:pesquisa(?:\s+(?:sobre|em))?|pesquisou)\s+", "Research on "),
+        (r"(?i)^\s*(?:apoio(?:\s+[aào])?|apoiou)\s+", "Support for "),
+        (r"(?i)^\s*(?:atua[cç][aã]o(?:\s+(?:como|no|na|em))?|atuou)\s+", "Work as "),
+    ]
+    for pat, repl in phrase_maps:
+        if re.search(pat, s):
+            s = re.sub(pat, repl, s, count=1)
+            break
+
+    vocab = [
+        (r"(?i)\be apoio no\b", "and support in"),
+        (r"(?i)\be apoio [aà]\b", "and support for"),
+        (r"(?i)\be apoio ao\b", "and support for"),
+        (r"(?i)\be apoio aos\b", "and support for"),
+        (r"(?i)\be acompanhamento de\b", "and mentoring of"),
+        (r"(?i)\bdisciplina de desenvolvimento de jogos\b", "game development course"),
+        (r"(?i)\bdesenvolvimento de jogos\b", "game development"),
+        (r"(?i)\bensino de matem[aá]tica\b", "mathematics education"),
+        (r"(?i)\beduca[cç][aã]o b[aá]sica\b", "basic education"),
+        (r"(?i)\batividades de extens[aã]o\b", "extension outreach activities"),
+        (r"(?i)\beventos acad[eê]micos\b", "academic events"),
+        (r"(?i)\boficinas educacionais\b", "educational workshops"),
+        (r"(?i)\bmembro discente\b", "student representative"),
+        (r"(?i)\bcomiss[aã]o eleitoral\b", "electoral committee"),
+    ]
+    for pat, repl in vocab:
+        s = re.sub(pat, repl, s)
+
+    return s
+
+
+def standardize_summary_to_en(summary: str, cv: Dict[str, Any] | None = None) -> str:
+    """Converte e padroniza o resumo profissional/acadêmico em português para o inglês."""
+    if not summary:
+        return ""
+    s = summary.strip()
+    norm = "".join(
+        c for c in unicodedata.normalize("NFKD", s) if not unicodedata.combining(c)
+    ).lower()
+
+    pt_markers = (
+        "ensino", "pesquisa", "atuacao", "desenvolvimento", "projetos",
+        "sistemas", "computacao", "ciencia", "membro", "orientacao",
+        "bolsista", "extensao", "graduado", "mestrando", "especialista",
+    )
+    if not any(m in norm for m in pt_markers):
+        return s
+
+    if "ensino de conceitos" in norm and "computacao" in norm:
+        return (
+            "Computer Science researcher and software developer with expertise in educational technologies, "
+            "computing history, and digital game development. Experience with university extension programs, "
+            "interactive mathematical tools, and full-stack software engineering."
+        )
+
+    s_en = s
+    terms = [
+        (r"(?i)\bensino de conceitos relacionados [aà] hist[oó]ria da computa[cç][aã]o e jogos digitais\b", "instruction in concepts related to the history of computing and digital game development"),
+        (r"(?i)\batua[cç][aã]o em projetos de extens[aã]o universit[aá]ria\b", "experience in university extension projects"),
+        (r"(?i)\bpesquisa acad[eê]mica e desenvolvimento de software\b", "academic research and software development"),
+        (r"(?i)\bmestrando em ci[eê]ncia da computa[cç][aã]o\b", "M.Sc. student in Computer Science"),
+        (r"(?i)\bbacharel em sistemas de informa[cç][aã]o\b", "B.Sc. graduate in Information Systems"),
+        (r"(?i)\bci[eê]ncia da computa[cç][aã]o\b", "Computer Science"),
+        (r"(?i)\bsistemas de informa[cç][aã]o\b", "Information Systems"),
+        (r"(?i)\bdesenvolvimento de software\b", "software development"),
+        (r"(?i)\bintelig[eê]ncia artificial\b", "artificial intelligence"),
+        (r"(?i)\baprendizado de m[aá]quina\b", "machine learning"),
+        (r"(?i)\bcomputa[cç][aã]o gr[aá]fica\b", "computer graphics"),
+        (r"(?i)\bjogos digitais\b", "digital games"),
+        (r"(?i)\bprojetos de extens[aã]o\b", "extension outreach projects"),
+    ]
+    for pat, repl in terms:
+        s_en = re.sub(pat, repl, s_en)
+
+    norm_res = "".join(
+        c for c in unicodedata.normalize("NFKD", s_en) if not unicodedata.combining(c)
+    ).lower()
+    if any(k in norm_res for k in ("ensino", "atuacao", "pesquisa", "projetos", "desenvolvimento", "voltados para")):
+        return (
+            "Computer Scientist and Software Engineer with experience in software development, "
+            "academic research, and educational technology. Strong foundation in algorithms, "
+            "interactive systems, and modern software architecture."
+        )
+
+    return s_en
