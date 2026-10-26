@@ -3483,13 +3483,38 @@ def _render_nico_krieger(
     contact_lbl = "CONTACT" if is_en else "CONTATO"
     contact_body = "\\\\[4pt]\n    ".join(sidebar_contacts) if sidebar_contacts else ""
     contact_block = rf"""{{\large\bfseries\color{{accent}} {contact_lbl}}}\\[-2pt]
-\rule{{\linewidth}}{{0.8pt}}\\[5pt]
+\rule{{\linewidth}}{{0.8pt}}\nopagebreak\\[4pt]
 \small
 {contact_body}"""
 
-    # 3. Skills with 5-dot rating
+    # 3. Education in Sidebar (transferred to left column for visual balance)
+    edus = cv.get("education") or []
+    if edus:
+        edu_lbl = "EDUCATION" if is_en else "FORMAÇÃO ACADÊMICA"
+        ed_lines = [rf"{{\large\bfseries\color{{accent}} {edu_lbl}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\nopagebreak\\[4pt]"]
+        for ed in edus:
+            deg = escape_latex(ed.get("degree"))
+            inst = escape_latex(ed.get("institution"))
+            per_ed = escape_latex(ed.get("period"))
+            det = escape_latex(ed.get("details"))
+            date_tex = rf"{{\footnotesize\color{{graytext}}\faIcon{{calendar-alt}}\ {per_ed}}}" if per_ed else ""
+            if deg:
+                ed_lines.append(rf"\textbf{{\small {deg}}}\\[1pt]")
+            if inst:
+                ed_lines.append(rf"{{\small\color{{darktext}} {inst}}}\\[1pt]")
+            if date_tex:
+                ed_lines.append(rf"{date_tex}\\[2pt]")
+            if det:
+                ed_lines.append(rf"{{\footnotesize {det}}}\\[3pt]")
+            else:
+                ed_lines.append(r"\vspace{2.5pt}")
+        edu_block = "\n".join(ed_lines)
+    else:
+        edu_block = ""
+
+    # 4. Skills with 5-dot rating
     skill_lbl = "SKILLS" if is_en else "HABILIDADES"
-    skill_lines: List[str] = [rf"{{\large\bfseries\color{{accent}} {skill_lbl}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\\[5pt]"]
+    skill_lines: List[str] = [rf"{{\large\bfseries\color{{accent}} {skill_lbl}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\nopagebreak\\[4pt]"]
     skills = cv.get("skills") or []
     if skills:
         for sk in skills:
@@ -3502,7 +3527,7 @@ def _render_nico_krieger(
                     for idx, p in enumerate(parts[:5]):
                         rating = 5 if idx == 0 else (4 if idx < 3 else 3)
                         skill_lines.append(rf"{{\small {escape_latex(p)}}} \hfill \skilldots{{{rating}}}\\[3pt]")
-                    skill_lines.append(r"\vspace{3pt}")
+                    skill_lines.append(r"\vspace{2.5pt}")
             elif isinstance(sk, str) and sk.strip():
                 parts = [p.strip() for p in sk.split(",") if p.strip()]
                 for idx, p in enumerate(parts[:6]):
@@ -3512,9 +3537,9 @@ def _render_nico_krieger(
     else:
         skill_block = ""
 
-    # 4. Languages with 6-dot CEFR rating (A1 to C2)
+    # 5. Languages with 6-dot CEFR rating (A1 to C2)
     lang_lbl = "LANGUAGES" if is_en else "IDIOMAS"
-    lang_lines: List[str] = [rf"{{\large\bfseries\color{{accent}} {lang_lbl}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\\[5pt]"]
+    lang_lines: List[str] = [rf"{{\large\bfseries\color{{accent}} {lang_lbl}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\nopagebreak\\[4pt]"]
     languages = cv.get("languages") or []
     if languages:
         for idx, lg in enumerate(languages):
@@ -3527,93 +3552,73 @@ def _render_nico_krieger(
     else:
         lang_block = ""
 
-    # 5. Certifications & Awards in Sidebar
+    # 6. Certifications & Awards in Sidebar
     clean_awards = sanitize_awards(cv.get("awards"), lang=lang)
     aw_lbl = r"AWARDS \& HONORS" if is_en else r"PRÊMIOS \& DESTAQUES"
     if clean_awards:
-        aw_lines = [rf"{{\large\bfseries\color{{accent}} {aw_lbl}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\\[5pt]"]
+        aw_lines = [rf"{{\large\bfseries\color{{accent}} {aw_lbl}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\nopagebreak\\[4pt]"]
         for aw in clean_awards[:4]:
-            aw_lines.append(rf"{{\small $\cdot$ {escape_latex(aw)}}}\\[3pt]")
+            aw_lines.append(rf"{{\small $\cdot$ {escape_latex(aw)}}}\\[2.5pt]")
         awards_block = "\n".join(aw_lines)
     else:
         awards_block = ""
 
-    sidebar_sections = [s for s in (contact_block, skill_block, lang_block, awards_block) if s]
-    sidebar_content = "\n\n\\vspace{10pt}\n\n".join(sidebar_sections)
+    sidebar_sections = [s for s in (contact_block, edu_block, skill_block, lang_block, awards_block) if s]
+    sidebar_content = "\n\n\\vspace{8pt}\n\n".join(sidebar_sections)
 
-    # 6. Main Column: Experience, Education, Projects, Publications
+    # 7. Main Column: Experience, Projects, Publications (Education moved to sidebar)
     main_sections: List[str] = []
 
     # Experience
     exps = cv.get("experience") or []
     if exps:
         exp_title = "PROFESSIONAL EXPERIENCE" if is_en else "EXPERIÊNCIA PROFISSIONAL"
-        xp_lines = [rf"{{\large\bfseries\color{{accent}} {exp_title}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\\[6pt]"]
+        xp_lines = [rf"{{\large\bfseries\color{{accent}} {exp_title}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\nopagebreak\\[4pt]"]
         for xp in exps:
             role_xp = escape_latex(xp.get("role"))
             org_xp = escape_latex(xp.get("organization"))
             per_xp = escape_latex(xp.get("period"))
             bullets = [escape_latex(sanitize_experience_description(b, lang=lang)) for b in (xp.get("bullets") or []) if str(b).strip()]
-            date_tex = rf"{{\small\color{{graytext}}\faIcon{{calendar-alt}}\ {per_xp}}}" if per_xp else ""
-            xp_lines.append(rf"\textbf{{\large {role_xp}}} \hfill {date_tex}\\[1pt]")
+            date_tex = rf"{{\footnotesize\color{{graytext}}\faIcon{{calendar-alt}}\ {per_xp}}}" if per_xp else ""
+            xp_lines.append(rf"\textbf{{{role_xp}}} \hfill {date_tex}\\[1pt]")
             if org_xp:
-                xp_lines.append(rf"{{\color{{accent}}\textbf{{{org_xp}}}}}\\[3pt]")
+                xp_lines.append(rf"{{\color{{accent}}\textbf{{{org_xp}}}}}\\[1.5pt]")
             if bullets:
-                xp_lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt]")
+                xp_lines.append(r"\begin{itemize}[leftmargin=1.1em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
                 for b in bullets:
                     xp_lines.append(rf"    \item {b}")
                 xp_lines.append(r"\end{itemize}")
-            xp_lines.append(r"\vspace{6pt}")
+            xp_lines.append(r"\vspace{3pt}")
         main_sections.append("\n".join(xp_lines))
-
-    # Education
-    edus = cv.get("education") or []
-    if edus:
-        edu_title = "EDUCATION" if is_en else "FORMAÇÃO ACADÊMICA"
-        ed_lines = [rf"{{\large\bfseries\color{{accent}} {edu_title}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\\[6pt]"]
-        for ed in edus:
-            deg = escape_latex(ed.get("degree"))
-            inst = escape_latex(ed.get("institution"))
-            per_ed = escape_latex(ed.get("period"))
-            det = escape_latex(ed.get("details"))
-            date_tex = rf"{{\small\color{{graytext}}\faIcon{{calendar-alt}}\ {per_ed}}}" if per_ed else ""
-            ed_lines.append(rf"\textbf{{\large {deg}}} \hfill {date_tex}\\[1pt]")
-            if inst:
-                ed_lines.append(rf"{{\color{{accent}}\textbf{{{inst}}}}}\\[2pt]")
-            if det:
-                ed_lines.append(rf"{{\small {det}}}\\[4pt]")
-            else:
-                ed_lines.append(r"\vspace{4pt}")
-        main_sections.append("\n".join(ed_lines))
 
     # Projects
     projs = cv.get("projects") or []
     if projs:
         proj_title = "TECHNICAL PROJECTS" if is_en else "PROJETOS TÉCNICOS"
-        pj_lines = [rf"{{\large\bfseries\color{{accent}} {proj_title}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\\[6pt]"]
+        pj_lines = [rf"{{\large\bfseries\color{{accent}} {proj_title}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\nopagebreak\\[4pt]"]
         for pj in projs:
             nm = escape_latex(pj.get("name"))
             tech = escape_latex(pj.get("tech"))
             url = (pj.get("url") or "").strip()
             desc = escape_latex(sanitize_project_description(pj.get("description"), lang))
             if url and url.startswith("http"):
-                nm_head = rf"\textbf{{\large \href{{{escape_url(url)}}}{{{nm}\ \small\faIcon{{external-link-alt}}}}}}"
+                nm_head = rf"\textbf{{\href{{{escape_url(url)}}}{{{nm}\ \footnotesize\faIcon{{external-link-alt}}}}}}"
             else:
-                nm_head = rf"\textbf{{\large {nm}}}"
+                nm_head = rf"\textbf{{{nm}}}"
             pj_lines.append(rf"{nm_head}\\[1pt]")
             if tech:
-                pj_lines.append(rf"{{\small\color{{graytext}}\textbf{{Stack:}} {tech}}}\\[2pt]")
+                pj_lines.append(rf"{{\small\color{{graytext}}\textbf{{Stack:}} {tech}}}\\[1.5pt]")
             if desc:
-                pj_lines.append(rf"{{\small {desc}}}\\[4pt]")
+                pj_lines.append(rf"{{\small {desc}}}\\[2.5pt]")
             else:
-                pj_lines.append(r"\vspace{4pt}")
+                pj_lines.append(r"\vspace{2.5pt}")
         main_sections.append("\n".join(pj_lines))
 
     # Publications
     pubs = cv.get("publications") or []
     if pubs:
         pub_title = "PUBLICATIONS" if is_en else "PUBLICAÇÕES"
-        pb_lines = [rf"{{\large\bfseries\color{{accent}} {pub_title}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\\[6pt]"]
+        pb_lines = [rf"{{\large\bfseries\color{{accent}} {pub_title}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\nopagebreak\\[4pt]"]
         for pb in pubs:
             title_pb = escape_latex(pb.get("title"))
             auth_pb = escape_latex(pb.get("authors"))
@@ -3627,12 +3632,12 @@ def _render_nico_krieger(
             if doi_pb:
                 clean_doi = doi_pb.replace("https://doi.org/", "").replace("http://dx.doi.org/", "").strip()
                 doi_url = f"https://doi.org/{clean_doi}"
-                pb_lines.append(rf"{{\small \href{{{escape_url(doi_url)}}}{{\faIcon{{link}}\ DOI: {escape_latex(clean_doi)}}}}}\\[4pt]")
+                pb_lines.append(rf"{{\small \href{{{escape_url(doi_url)}}}{{\faIcon{{link}}\ DOI: {escape_latex(clean_doi)}}}}}\\[2.5pt]")
             else:
-                pb_lines.append(r"\vspace{4pt}")
+                pb_lines.append(r"\vspace{2.5pt}")
         main_sections.append("\n".join(pb_lines))
 
-    main_content = "\n\n\\vspace{8pt}\n\n".join(main_sections)
+    main_content = "\n\n\\vspace{6pt}\n\n".join(main_sections)
 
     return rf"""% Template Nico Krieger (my-resume) - Full-Width Dark Header & Two-Column Highlight Sidebar
 \documentclass[10pt,a4paper]{{article}}

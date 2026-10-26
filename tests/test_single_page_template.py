@@ -1,5 +1,6 @@
 """Testes dedicados ao template Single Page + Keywords garantindo página única e cabeçalho estético."""
 
+import re
 import subprocess
 from pathlib import Path
 import pypdf
@@ -316,5 +317,71 @@ def test_google_standard_gayle_mcdowell_layout_and_accent():
     # Experiência: Organização em negrito e cargo em itálico abaixo (Gayle Laakmann McDowell SWE layout)
     assert r"\noindent\textbf{Federal University of Minas Gerais (DCC / UFMG)} \hfill \textbf{2026}" in tex
     assert r"\textit{Student Electoral Board Member}" in tex
+
+
+def test_nico_krieger_education_in_sidebar_and_tight_spacing():
+    """Valida se o template Nico Krieger posiciona a Formação Acadêmica na coluna lateral (sidebar)
+    e utiliza espaçamentos compactos entre itens na coluna da direita."""
+    tex_pt = render_builtin_template(
+        "nico_krieger",
+        SAMPLE_MASSIVE_PROFILE,
+        SAMPLE_LINKS,
+        resume_type="academico",
+        lang="pt-br",
+    )
+    tex_en = render_builtin_template(
+        "nico_krieger",
+        SAMPLE_MASSIVE_PROFILE,
+        SAMPLE_LINKS,
+        resume_type="academico",
+        lang="en-us",
+    )
+
+    # 1. Deve possuir paracol com \switchcolumn
+    assert r"\begin{paracol}{2}" in tex_pt
+    assert r"\switchcolumn" in tex_pt
+    parts_pt = tex_pt.split(r"\switchcolumn")
+    sidebar_pt = parts_pt[0]
+    main_pt = parts_pt[1]
+
+    # Formação Acadêmica deve estar estritamente na barra lateral (esquerda)
+    assert "FORMAÇÃO ACADÊMICA" in sidebar_pt
+    assert "FORMAÇÃO ACADÊMICA" not in main_pt
+
+    # Em inglês, EDUCATION deve estar na barra lateral
+    parts_en = tex_en.split(r"\switchcolumn")
+    sidebar_en = parts_en[0]
+    main_en = parts_en[1]
+    assert "EDUCATION" in sidebar_en
+    assert "EDUCATION" not in main_en
+
+    # 2. Experiência e Publicações na coluna da direita
+    assert "EXPERIÊNCIA PROFISSIONAL" in main_pt
+    assert "PUBLICAÇÕES" in main_pt
+
+    # 3. Espaçamentos reduzidos e regras com \nopagebreak
+    assert r"\rule{\linewidth}{0.8pt}\nopagebreak\\[4pt]" in tex_pt
+    assert r"\begin{itemize}[leftmargin=1.1em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]" in tex_pt
+    assert r"\vspace{3pt}" in main_pt
+    assert r"\vspace{2.5pt}" in main_pt
+
+
+def test_nico_krieger_previews_have_education_in_sidebar():
+    """Garante que a pré-visualização do Nico Krieger em Python e index.html mostre Formação Acadêmica na coluna lateral."""
+    from src.ui_theme import render_template_preview_html
+
+    html_preview = render_template_preview_html("nico_krieger")
+    # A coluna lateral de 34% deve conter CONTATO e FORMAÇÃO ACADÊMICA
+    sidebar_part, main_part = html_preview.split('width:66%')
+    assert "FORMAÇÃO ACADÊMICA" in sidebar_part
+    assert "FORMAÇÃO ACADÊMICA" not in main_part
+
+    # index.html deve manter a mesma coerência estrutural
+    index_html = Path("index.html").read_text(encoding="utf-8")
+    assert 'state.templateId === "nico_krieger"' in index_html
+    nico_js_match = re.search(r'state\.templateId === "nico_krieger".*?width:66%', index_html, re.DOTALL)
+    assert nico_js_match is not None
+    assert "FORMAÇÃO ACADÊMICA" in nico_js_match.group(0)
+
 
 

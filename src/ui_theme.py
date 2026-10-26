@@ -426,7 +426,7 @@ def render_template_preview_html(
             <div style="display:flex;min-height:180px;">
                 <div style="width:34%;background:#f8f9fa;border-right:1px solid #e2e8f0;padding:10px 10px;font-size:8.5px;color:#334155;">
                     <div style="font-weight:800;font-size:9px;color:{p_col};border-bottom:1px solid {p_col};padding-bottom:2px;margin-bottom:4px;">CONTATO</div>
-                    <div style="line-height:1.45;margin-bottom:8px;">
+                    <div style="line-height:1.45;margin-bottom:6px;">
                         ✉️ lucas@email.com<br>
                         📱 +55 11 99999-8888<br>
                         📍 São Paulo, SP<br>
@@ -434,6 +434,9 @@ def render_template_preview_html(
                         🔗 in/lucassilva<br>
                         🐙 lucassilva
                     </div>
+                    <div style="font-weight:800;font-size:9px;color:{p_col};border-bottom:1px solid {p_col};padding-bottom:2px;margin-bottom:4px;">FORMAÇÃO ACADÊMICA</div>
+                    <div style="font-weight:700;color:#0f172a;line-height:1.2;margin-bottom:2px;">Bacharelado em Ciência da Computação</div>
+                    <div style="color:#64748b;font-size:8px;margin-bottom:6px;">USP · 2017–2021</div>
                     <div style="font-weight:800;font-size:9px;color:{p_col};border-bottom:1px solid {p_col};padding-bottom:2px;margin-bottom:4px;">HABILIDADES</div>
                     <div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span>Python</span><span style="color:{p_col};">● ● ● ● ●</span></div>
                     <div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span>Docker</span><span style="color:{p_col};">● ● ● ● ○</span></div>
@@ -452,9 +455,6 @@ def render_template_preview_html(
                         • Liderança técnica de microsserviços atendendo 5M de requisições diárias.<br>
                         • Redução de latência em 40% com cache Redis e mensageria distribuída.
                     </div>
-                    <div style="font-weight:800;font-size:9.5px;color:{p_col};border-bottom:1px solid #cbd5e1;padding-bottom:2px;margin-bottom:4px;">FORMAÇÃO ACADÊMICA</div>
-                    <div style="font-weight:700;color:#0f172a;">Bacharelado em Ciência da Computação</div>
-                    <div style="color:#64748b;font-size:8px;">Universidade de São Paulo (USP) · 2017–2021</div>
                 </div>
             </div>
         </div>
