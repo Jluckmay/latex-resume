@@ -58,7 +58,7 @@ Para executar o gerador e compilar os currículos em PDF, o ambiente deve atende
    - **Detecção Automática**: detectam automaticamente na inicialização o **idioma padrão** (`navigator.language` / `Accept-Language` ou idioma do SO) e o **tema visual padrão** (`prefers-color-scheme` / registro do SO), adotando-os sem necessidade de configuração manual.
    - **Alternância Instantânea**: incluem seletor rápido entre **☀️ Modo Claro** e **🌙 Modo Escuro** e alternância instantânea entre **Português (`pt-BR`)** e **Inglês (`en-US`)**.
 2. **Preview Visual em Tempo Real dos Modelos LaTeX e Customização de Cores**:
-   - **Preview Interativo**: exibe uma prévia visual fiel do layout do modelo LaTeX escolhido (`modern_pro`, `academic_classic`, `tech_sidebar`, `minimal_ats`, `overleaf_russell_ti`, `overleaf_awesome_cv`, `overleaf_single_page_keywords`, `google_standard`, `ai_ats_max`) que reflete instantaneamente as cores e o idioma selecionados antes mesmo de compilar o PDF.
+   - **Preview Interativo**: exibe uma prévia visual fiel do layout do modelo LaTeX escolhido (`modern_pro`, `academic_classic`, `tech_sidebar`, `minimal_ats`, `overleaf_russell_ti`, `overleaf_awesome_cv`, `overleaf_single_page_keywords`, `nico_krieger`, `google_standard`, `ai_ats_max`) que reflete instantaneamente as cores e o idioma selecionados antes mesmo de compilar o PDF.
    - **Paletas e Seletor de Cores (`HEX`)**: escolha entre 6 paletas executivas/acadêmicas predefinidas (*Grafite ATS (Padrão)*, *Azul Oceano*, *Azul Marinho Acadêmico*, *Verde Esmeralda Tech*, *Índigo Real*, *Bordô Clássico*) ou defina manualmente a **Cor Principal** e a **Cor Secundária** aplicadas ao código LaTeX (`\definecolor`).
 3. **Modo Duplo de Entrada de Dados: Importação Automática & Inserção Manual Estruturada**:
    - **Alternância Flexível na Interface**: escolha facilmente entre **Importar Informações** ou **Inserir Manualmente** tanto na aplicação Web quanto no Streamlit.
@@ -82,16 +82,16 @@ Para executar o gerador e compilar os currículos em PDF, o ambiente deve atende
      - **Modo Rápido / Texto em Lote (Expansível)**: mantém suporte opcional a sintaxe linha por linha separada por barras verticais (`|`) ou objetos JSON para colar múltiplos itens em bloco.
      - Preserva campos opcionais de links (GitHub, Google Scholar, LinkedIn, Portfólio, ORCID, Lattes e Foto) para enriquecer o cabeçalho do currículo.
 4. **10 Modelos LaTeX Integrados (incluindo Padrão Google, Otimizado para IA & ATS, Modelo Russell, Awesome CV, Single Page + Keywords e Modelo Nico Krieger) + Suporte a Template `.tex` Customizado**:
-   - `ai_ats_max`: **Otimizado para IA & ATS (Máxima Legibilidade por LLMs)** — Desenvolvido especificamente para triagem automatizada por LLMs (Gemini, Claude, GPT) e sistemas ATS neurais (Workday, Greenhouse, Lever). Fluxo textual 100% linear em coluna única, metadados semânticos explícitos (tags textuais ASCII: Location, Email, Phone, LinkedIn, GitHub, Portfolio), matriz de competências e palavras-chave (Core Competencies & Keywords) dedicada para match semântico e compatibilidade Unicode nativa (`glyphtounicode`).
-   - `google_standard`: **Padrão Google (Big Tech / Software Engineer)** — Baseado nas diretrizes de recrutamento Big Tech (Google SWE / Gayle Laakmann McDowell). Página única densa, margens de 0.5 polegadas, estrutura XYZ de realizações ("Conquistou [X] medido por [Y], realizando [Z]"), divisórias horizontais limpas e formatação clean sem espaços ociosos.
-   - `overleaf_russell_ti`: **Modelo Russell (Currículo T.I.)** — Baseado no template Russell CV ([ver no Overleaf](https://www.overleaf.com/read/rgfqqnnynrmv#d5b171)). Cabeçalho com foto à esquerda, ícones FontAwesome 5, títulos com destaque nas 3 primeiras letras, tabela de skills e barra de proficiência de idiomas (5 pontos).
+   - `ai_ats_max`: **Otimizado para IA & ATS (Máxima Legibilidade por LLMs & ATS Neurais)** — Desenvolvido especificamente para triagem automatizada por LLMs (Gemini, Claude, GPT) e sistemas ATS neurais (Workday, Greenhouse, Lever). Fluxo textual 100% linear em coluna única, metadados semânticos explícitos, matriz de competências e palavras-chave (Core Competencies & Keywords) dedicada para match semântico e compatibilidade Unicode nativa (`glyphtounicode`). Multi-página abrangente para máxima densidade de indexação.
+   - `google_standard`: **Padrão Google (Big Tech / Software Engineer)** — Baseado nas diretrizes de recrutamento Big Tech (Google SWE / Gayle Laakmann McDowell). Página única densa garantida (0.5 polegadas / 1.0 cm de margem), destaque em Google Blue (`#0B57D0`), estrutura XYZ de realizações ("Conquistou [X] medido por [Y], realizando [Z]"), divisórias horizontais limpas e hierarquia clássica (Empresa no topo, cargo em itálico abaixo).
+   - `overleaf_russell_ti`: **Modelo Russell (Currículo T.I.)** — Baseado no template Russell CV ([ver no Overleaf](https://www.overleaf.com/read/rgfqqnnynrmv#d5b171)). Cabeçalho com foto à esquerda, ícones FontAwesome 5, títulos com destaque nas 3 primeiras letras, tabela de skills e círculos de proficiência de idiomas em 6 níveis CEFR (A1 a C2).
    - `overleaf_awesome_cv`: **Awesome CV (Jason Richards)** — Baseado no modelo Jason Richards Résumé ([ver no Overleaf](https://www.overleaf.com/articles/jason-richards-resume/chbxgnfyyvfc)) derivado do Awesome-CV. Tipografia Roboto + Source Sans Pro, cabeçalho centralizado, títulos com destaque colorido nas 3 primeiras letras e rodapé executivo de 3 colunas.
-   - `overleaf_single_page_keywords`: **Single Page + Keywords** — Baseado no modelo de Primož Godec e Salman Maqbool ([ver no Overleaf](https://www.overleaf.com/latex/templates/sample-single-page-resume-with-keywords/wmcxcgmtkxzk)). Fonte Raleway, cabeçalho em 2 colunas, ícones circulares em TikZ + FontAwesome 5, seção Summary em largura total e corpo em 2 colunas com linha de `Keywords` por cargo.
-   - `nico_krieger`: **Modelo Nico Krieger (`my-resume.cls`)** — Baseado no template de Dr. Nico Krieger ([ver no Overleaf](https://www.overleaf.com/latex/templates/my-resume/rqzfybxqvpny) e no [GitHub](https://github.com/GiantMolecularCloud/my-resume)). Cabeçalho escuro de largura total com nome, cargo/tagline e foto opcional; barra lateral destacada (`highlightbar`) para contatos, habilidades avaliadas em 5 pontos (`\skilldots`) e idiomas; e coluna principal para experiência, formação, projetos e publicações.
+   - `overleaf_single_page_keywords`: **Single Page + Keywords** — Baseado no modelo de Primož Godec e Salman Maqbool ([ver no Overleaf](https://www.overleaf.com/latex/templates/sample-single-page-resume-with-keywords/wmcxcgmtkxzk)). Página única estrita, fonte Raleway, cabeçalho em 2 colunas, ícones circulares em TikZ + FontAwesome 5, seção Summary em largura total e corpo em 2 colunas com linha de `Keywords` por cargo.
+   - `nico_krieger`: **Modelo Nico Krieger (`my-resume.cls`)** — Baseado no template de Dr. Nico Krieger ([ver no Overleaf](https://www.overleaf.com/latex/templates/my-resume/rqzfybxqvpny) e no [GitHub](https://github.com/GiantMolecularCloud/my-resume)). Cabeçalho escuro de largura total com nome, cargo/tagline e foto opcional; barra lateral destacada (`highlightbar`) para contatos, habilidades avaliadas em 5 pontos (`\skilldots`) e idiomas em 6 níveis CEFR (`\langdots`); e coluna principal para experiência, formação, projetos e publicações.
    - `modern_pro`: Moderno Executivo (Profissional & Tech)
    - `academic_classic`: Acadêmico Clássico (Pesquisador / CNPq / Pós-Graduação)
-   - `tech_sidebar`: Tech & Engenharia Duas Colunas (Barra Lateral)
-   - `minimal_ats`: Minimalista ATS-Friendly (Alta Densidade)
+   - `tech_sidebar`: Tech & Engenharia Duas Colunas (Barra Lateral) — Página única estrita com colunas balanceadas (sem página inicial em branco)
+   - `minimal_ats`: Minimalista ATS-Friendly (Alta Densidade) — Página única estrita de alta densidade
    - **Template Customizado (`.tex`)**: envie qualquer arquivo `.tex` próprio e o modelo preencherá a estrutura mantendo o preâmbulo original.
 5. **Suporte Multi-Provedor com Chaves Próprias Opcionais e Criptografia em Navegador (Zero-Storage)**:
    - **6 Provedores de IA Suportados**: escolha entre **NVIDIA NIM** (padrão de servidor ou chave própria), **Google Gemini**, **Anthropic Claude**, **OpenAI** e **DeepSeek**, com modelos de última geração e fallback automático.
@@ -102,7 +102,7 @@ Para executar o gerador e compilar os currículos em PDF, o ambiente deve atende
    - **Compilação Efêmera & Destruição Imediata (`finally`)**: a compilação LaTeX ocorre em diretório temporário efêmero isolado (`tempfile.mkdtemp`). Imediatamente após a conversão do PDF para base64/bytes em RAM, todos os arquivos temporários são sobrescritos com bytes nulos (`0x00`) e expurgados via `secure_wipe_and_remove_dir` no bloco `finally:`.
    - **Cache de Tokens Volátil (RAM-Only)**: o cache de tokens opera em memória volátil durante a execução do processo (`in_memory_only=True`), sem gravação de currículos ou prompts em arquivos de disco no servidor.
 7. **Modo Offline Zero-Token & Modo de Revisão Cirúrgica (Economia Máxima de Tokens)**:
-   - **Geração Direta Determinística (0 Tokens)**: gere currículos completos em menos de 1 segundo sem consumir nenhuma cota ou chamada de IA (`--no-ai` no CLI, `provider="none"` no backend/HTML/Streamlit, ou via `python scripts/generate_direct_resume.py`). Os extratores mapeiam dados reais diretamente para os 9 modelos LaTeX ou template customizado com sanitização rigorosa de caracteres especiais e regras anti-alucinação.
+   - **Geração Direta Determinística (0 Tokens)**: gere currículos completos em menos de 1 segundo sem consumir nenhuma cota ou chamada de IA (`--no-ai` no CLI, `provider="none"` no backend/HTML/Streamlit, ou via `python scripts/generate_direct_resume.py`). Os extratores mapeiam dados reais diretamente para os 10 modelos LaTeX ou template customizado com sanitização rigorosa de caracteres especiais e regras anti-alucinação.
    - **Modo Apenas Revisão (Review-Only)**: economiza até 75% dos tokens comparado à síntese tradicional! O motor gera o esqueleto LaTeX determinístico completo e submete apenas o corpo do documento (`\begin{document}` a `\end{document}`) ao modelo de IA para polimento textual, fortalecimento de verbos de ação e validação de sintaxe, sem gastar tokens com preâmbulos ou cabeçalhos estruturais.
 
 ### 📂 Estrutura de Arquivos e Diretórios
@@ -151,15 +151,25 @@ latex-resume/
 │   ├── ui_theme.py             # Temas visuais e CSS responsivo para Streamlit
 │   ├── py.typed                # Marcador PEP 561 de tipagem estática
 │   └── README.md               # Documentação detalhada da arquitetura de módulos
-├── tests/                      # Suíte de testes automatizados com Pytest (108+ testes)
+├── tests/                      # Suíte de testes automatizados com Pytest (214+ testes com 100% de aprovação)
 │   ├── conftest.py             # Configurações globais e fixtures compartilhadas do Pytest
-│   ├── test_awards_and_orcid.py# Testes de higienização de prêmios/certificações e ORCID
-│   ├── test_direct_builder.py  # Testes do modo direto offline e revisão cirúrgica de LaTeX
-│   ├── test_encrypted_comm.py  # Testes de criptografia de ponta a ponta e blindagem contra extração de chaves
-│   ├── test_manual_input_mode.py # Testes do modo duplo de entrada (importação vs manual estruturado)
-│   ├── test_ui_assets.py       # Testes de integridade de ícones, favicons e responsividade
-│   ├── test_zero_storage.py    # Testes de política estrita de Zero-Storage e destruição de memória
-│   └── README.md               # Guia de execução e invariantes de segurança testados
+│   ├── test_academic_mode_and_colors.py # Testes de modo acadêmico, seções e cores personalizadas
+│   ├── test_awards_and_orcid.py# Higienização de prêmios, exclusão de bolsas redundantes e ORCID
+│   ├── test_chronological_ordering_and_deduplication.py # Ordenação cronológica e deduplicação
+│   ├── test_direct_builder.py  # Testes do modo direto offline (0 tokens) e revisão cirúrgica
+│   ├── test_encrypted_comm.py  # Criptografia ponta a ponta AES-256-GCM e blindagem anti-extração
+│   ├── test_english_standardization_and_dedup.py # Padronização em inglês e tradução consistente
+│   ├── test_experience_nouns_and_email.py # Validação de substantivos de cargo e formato de email
+│   ├── test_generation_resilience_and_ui_polish.py # Resiliência de pipeline e polimento de UI
+│   ├── test_latex_formatting.py# Formatação LaTeX, auditoria de segurança e reparo automático
+│   ├── test_manual_input_mode.py # Modo duplo de entrada (importação vs manual estruturado)
+│   ├── test_platform_display.py# Exibição elegante de handles e identificadores sociais/acadêmicos
+│   ├── test_projects_enrichment.py # Enriquecimento de stack e links de projetos
+│   ├── test_scholar_and_publications.py # Fusão inteligente de artigos entre Scholar, ORCID e Lattes
+│   ├── test_single_page_template.py # Compilação estrita em 1 página (Google, Tech Sidebar, Minimal ATS, Keywords)
+│   ├── test_ui_assets.py       # Integridade de ícones, favicons, responsividade e acessibilidade
+│   ├── test_zero_storage.py    # Garantia de Zero-Storage, sobrescrita binária 0x00 e memória volátil
+│   └── README.md               # Documentação detalhada dos 16 módulos de teste e invariantes
 ├── app.py                      # Interface gráfica interativa em Streamlit
 ├── server.py                   # Servidor backend de API (Flask / Gunicorn) para GitHub Pages e Render
 ├── cli.py                      # Interface de linha de comando (CLI)
@@ -458,7 +468,7 @@ To run the generator and compile resumes into PDF, your environment must meet th
    - **Automatic Detection**: automatically detects your **default language** (`navigator.language` / `Accept-Language` or OS locale) and **default color scheme** (`prefers-color-scheme` / OS registry theme) on startup and adopts them seamlessly.
    - **Instant Switching**: includes a one-click switcher between **☀️ Light Mode** and **🌙 Dark Mode**, plus instant toggling between **English (`en-US`)** and **Portuguese (`pt-BR`)**.
 2. **Real-Time Visual LaTeX Template Preview & Color Customization**:
-   - **Interactive Template Preview**: renders a live visual preview of your chosen LaTeX template (`modern_pro`, `academic_classic`, `tech_sidebar`, `minimal_ats`, `overleaf_russell_ti`, `overleaf_awesome_cv`, `overleaf_single_page_keywords`, `google_standard`, `ai_ats_max`) that updates immediately as you tweak colors or switch languages prior to compiling the PDF.
+   - **Interactive Template Preview**: renders a live visual preview of your chosen LaTeX template (`modern_pro`, `academic_classic`, `tech_sidebar`, `minimal_ats`, `overleaf_russell_ti`, `overleaf_awesome_cv`, `overleaf_single_page_keywords`, `nico_krieger`, `google_standard`, `ai_ats_max`) that updates immediately as you tweak colors or switch languages prior to compiling the PDF.
    - **Curated Palettes & `HEX` Color Pickers**: choose from 6 executive/academic presets (*Minimalist Charcoal (ATS Default)*, *Ocean Blue*, *Academic Navy*, *Emerald Tech*, *Royal Indigo*, *Classic Burgundy*) or pick custom **Primary** and **Secondary** colors injected directly into LaTeX (`\definecolor`).
 3. **Dual Data Input Modes: Automated Multi-Source Profile Import & Structured Manual Entry**:
    - **Flexible UI Mode Switcher**: easily toggle between **Import Information** and **Enter Manually** in both the Web interface and Streamlit app.
@@ -480,16 +490,16 @@ To run the generator and compile resumes into PDF, your environment must meet th
      - **Quick Mode / Batch Paste (Collapsible)**: preserves optional support for line-by-line pipe-delimited syntax (`|`) or structured JSON to paste multiple items at once.
      - Preserves optional header profile links (GitHub, LinkedIn, Portfolio, ORCID, Lattes, and photo).
 4. **10 Built-in LaTeX Templates (including Google Standard, AI/ATS-Optimized, Modelo Russell, Awesome CV, Single Page + Keywords, and Modelo Nico Krieger) + Custom `.tex` Template Support**:
-   - `ai_ats_max`: **AI & ATS Max-Readability (LLM & Neural ATS Evaluators)** — Engineered specifically for automated screening by LLMs (Gemini, Claude, GPT) and neural ATS parsers (Workday, Greenhouse, Lever). Strict 100% linear single-column text stream, explicit semantic ASCII metadata tags (Location, Email, Phone, LinkedIn, GitHub, Portfolio), dedicated Core Competencies & Keywords matrix, and native Unicode mapping (`glyphtounicode`).
-   - `google_standard`: **Google Standard (Big Tech / Software Engineer)** — Built upon Big Tech recruitment guidelines (Google SWE / Gayle Laakmann McDowell). Dense single-page layout, 0.5-inch margins, XYZ accomplishment format ("Accomplished [X] as measured by [Y], by doing [Z]"), clean horizontal rules, and zero wasted white space.
-   - `overleaf_russell_ti`: **Modelo Russell (IT Resume)** — Based on the Russell CV template ([view on Overleaf](https://www.overleaf.com/read/rgfqqnnynrmv#d5b171)). Features left header photo, FontAwesome 5 icons, 3-letter colored section titles, skill category tables, and 5-dot language proficiency bars.
+   - `ai_ats_max`: **AI & ATS Max-Readability (LLM & Neural ATS Evaluators)** — Engineered specifically for automated screening by LLMs (Gemini, Claude, GPT) and neural ATS parsers (Workday, Greenhouse, Lever). Strict 100% linear single-column text stream, explicit semantic metadata tags, dedicated Core Competencies & Keywords matrix, and native Unicode mapping (`glyphtounicode`). Full multi-page capable for maximum keyword coverage.
+   - `google_standard`: **Google Standard (Big Tech / Software Engineer)** — Built upon Big Tech recruitment guidelines (Google SWE / Gayle Laakmann McDowell). Guaranteed dense single-page layout (0.5-inch / 1.0 cm margins), Google Blue (`#0B57D0`) accents, XYZ accomplishment format ("Accomplished [X] as measured by [Y], by doing [Z]"), clean horizontal rules, and classic hierarchy (Company on top, italic role underneath).
+   - `overleaf_russell_ti`: **Modelo Russell (IT Resume)** — Based on the Russell CV template ([view on Overleaf](https://www.overleaf.com/read/rgfqqnnynrmv#d5b171)). Features left header photo, FontAwesome 5 icons, 3-letter colored section titles, skill category tables, and 6-dot language proficiency bars (CEFR A1 to C2).
    - `overleaf_awesome_cv`: **Awesome CV (Jason Richards)** — Based on the Jason Richards Résumé ([view on Overleaf](https://www.overleaf.com/articles/jason-richards-resume/chbxgnfyyvfc)) derived from Awesome-CV. Roboto + Source Sans Pro typography, centered header, 3-letter colored section titles, and 3-column executive footer.
-   - `overleaf_single_page_keywords`: **Single Page + Keywords** — Based on Primož Godec and Salman Maqbool's template ([view on Overleaf](https://www.overleaf.com/latex/templates/sample-single-page-resume-with-keywords/wmcxcgmtkxzk)). Raleway font, 2-column header, TikZ circled FontAwesome 5 section icons, full-width Summary, and 2-column body with per-role `Keywords` lines.
-   - `nico_krieger`: **Modelo Nico Krieger (`my-resume.cls`)** — Based on Dr. Nico Krieger's design ([view on Overleaf](https://www.overleaf.com/latex/templates/my-resume/rqzfybxqvpny) and [GitHub](https://github.com/GiantMolecularCloud/my-resume)). Features a full-width dark top header (name, title, tagline, optional photo), a highlight sidebar for contact info, 5-dot skill ratings (`\skilldots`), languages, and certifications, paired with an elegant main column for experience and education.
+   - `overleaf_single_page_keywords`: **Single Page + Keywords** — Based on Primož Godec and Salman Maqbool's template ([view on Overleaf](https://www.overleaf.com/latex/templates/sample-single-page-resume-with-keywords/wmcxcgmtkxzk)). Strictly single-page, Raleway font, 2-column header, TikZ circled FontAwesome 5 section icons, full-width Summary, and 2-column body with per-role `Keywords` lines.
+   - `nico_krieger`: **Modelo Nico Krieger (`my-resume.cls`)** — Based on Dr. Nico Krieger's design ([view on Overleaf](https://www.overleaf.com/latex/templates/my-resume/rqzfybxqvpny) and [GitHub](https://github.com/GiantMolecularCloud/my-resume)). Features a full-width dark top header (name, title, tagline, optional photo), a highlight sidebar for contact info, 5-dot skill ratings (`\skilldots`), 6-level CEFR languages (`\langdots`), and certifications, paired with an elegant main column for experience and education.
    - `modern_pro`: Executive Modern (Professional & Tech)
    - `academic_classic`: Academic Classic (Researcher / Post-Grad / Faculty)
-   - `tech_sidebar`: Tech & Engineering Two-Column (Sidebar)
-   - `minimal_ats`: Minimalist ATS-Friendly (High Density)
+   - `tech_sidebar`: Tech & Engineering Two-Column (Sidebar) — Strictly single-page with balanced columns (no blank page)
+   - `minimal_ats`: Minimalist ATS-Friendly (High Density) — Strictly single-page
    - **Custom Template (`.tex`)**: upload or paste your own `.tex` template and the engine populates the document body while preserving your custom preamble and macros.
 5. **Multi-Provider AI Engine with Optional Custom API Keys & Zero-Storage In-Browser Encryption**:
    - **6 Supported AI Providers**: choose between **NVIDIA NIM** (secure server default or custom key), **Google Gemini**, **Anthropic Claude**, **OpenAI**, and **DeepSeek**, featuring state-of-the-art models and automated fallback resilience.
@@ -549,15 +559,25 @@ latex-resume/
 │   ├── ui_theme.py             # Dynamic themes, responsive CSS, and color palettes for Streamlit
 │   ├── py.typed                # PEP 561 static typing compliance marker
 │   └── README.md               # Comprehensive module architecture documentation
-├── tests/                      # Automated test suite (Pytest - 108+ tests)
+├── tests/                      # Automated test suite (Pytest - 214+ tests with 100% pass rate)
 │   ├── conftest.py             # Global Pytest configuration and shared test fixtures
-│   ├── test_awards_and_orcid.py# Awards sanitization, section omission and ORCID placement tests
-│   ├── test_direct_builder.py  # Zero-token offline generator and surgical review tests
-│   ├── test_encrypted_comm.py  # End-to-end encryption & anti-key-leakage verification tests
+│   ├── test_academic_mode_and_colors.py # Academic mode, section completeness and custom color tests
+│   ├── test_awards_and_orcid.py# Awards sanitization, redundant grant scrubbing and ORCID placement
+│   ├── test_chronological_ordering_and_deduplication.py # Reverse chronological ordering & deduplication
+│   ├── test_direct_builder.py  # Zero-token offline generator (0 tokens) and surgical review tests
+│   ├── test_encrypted_comm.py  # End-to-end AES-256-GCM encryption & anti-key-leakage tests
+│   ├── test_english_standardization_and_dedup.py # English standardization and cross-language dedup tests
+│   ├── test_experience_nouns_and_email.py # Role noun sanitization and email formatting tests
+│   ├── test_generation_resilience_and_ui_polish.py # Pipeline resilience & UI consistency tests
+│   ├── test_latex_formatting.py# LaTeX syntax, security audits and compiler auto-repair tests
 │   ├── test_manual_input_mode.py # Dual input mode (automated import vs structured manual entry) tests
-│   ├── test_ui_assets.py       # Icon integrity, favicon endpoints, and responsive CSS tests
-│   ├── test_zero_storage.py    # Strict Zero-Storage & memory destruction tests
-│   └── README.md               # Test suite documentation & verified security invariants
+│   ├── test_platform_display.py# Clean social and academic handle display formatting tests
+│   ├── test_projects_enrichment.py # Project tech stack enrichment and description tests
+│   ├── test_scholar_and_publications.py # Smart publication merging across Scholar, ORCID & Lattes
+│   ├── test_single_page_template.py # Strictly single-page compilation tests (Google, Tech Sidebar, Minimal ATS, Keywords)
+│   ├── test_ui_assets.py       # Icon integrity, favicons, WCAG accessibility and light/dark theme tests
+│   ├── test_zero_storage.py    # Strict Zero-Storage, 0x00 memory shredding and RAM-only tests
+│   └── README.md               # Comprehensive documentation of all 16 test modules and invariants
 ├── app.py                      # Interactive visual Streamlit application
 ├── server.py                   # Production API backend server (Flask / Gunicorn) for GitHub Pages & Render
 ├── cli.py                      # Command-line interface (CLI)
