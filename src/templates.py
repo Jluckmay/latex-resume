@@ -2371,7 +2371,11 @@ def _render_overleaf_single_page_keywords(
     photo_filename: str | None,
     lang: str = "pt-br",
 ) -> str:
-    """Renderiza o modelo Overleaf 'Sample single page resume with keywords' (https://www.overleaf.com/latex/templates/sample-single-page-resume-with-keywords/wmcxcgmtkxzk)."""
+    """Renderiza o modelo Overleaf 'Sample single page resume with keywords' (https://www.overleaf.com/latex/templates/sample-single-page-resume-with-keywords/wmcxcgmtkxzk).
+
+    Garante formato estrito de página única através de curadoria balanceada de itens,
+    espaçamento compacto e cabeçalho harmônico com contatos distribuídos em duas subcolunas.
+    """
     t = LATEX_I18N[normalize_lang(lang)]
     is_en = normalize_lang(lang) == "en-us"
     raw_name = cv.get("name") or t["default_candidate"]
@@ -2386,37 +2390,61 @@ def _render_overleaf_single_page_keywords(
             all_skill_items.append(escape_latex(sk["items"]))
         elif isinstance(sk, str) and sk.strip():
             all_skill_items.append(escape_latex(sk.strip()))
-    fallback_kw = ", ".join(all_skill_items)[:95]
+    fallback_kw = ", ".join(all_skill_items)[:85]
 
-    right_contacts: List[str] = []
+    # Contatos organizados em grid harmônico de 2 colunas para layout estético e compacto
+    col_left: List[str] = []
+    col_right: List[str] = []
+
     clean_em = (cv.get("email") or links.get("email") or "").strip()
     if clean_em:
-        right_contacts.append(rf"{{\small\faIcon{{envelope}}}} \href{{mailto:{escape_url(clean_em)}}}{{\textbf{{{escape_latex(clean_em)}}}}}")
-    if cv.get("phone"):
-        right_contacts.append(rf"{{\small\faIcon{{phone}}}} \textbf{{{escape_latex(cv['phone'])}}}")
+        col_left.append(rf"\faIcon{{envelope}}\ \href{{mailto:{escape_url(clean_em)}}}{{\textbf{{{escape_latex(clean_em)}}}}}")
     if links.get("portfolio"):
         port_disp = escape_latex(simplify_url_display(links["portfolio"]))
-        right_contacts.append(rf"{{\small\faIcon{{globe}}}} \href{{{escape_url(links['portfolio'])}}}{{\textbf{{{port_disp}}}}}")
-    if links.get("linkedin"):
-        li_disp = escape_latex(_get_platform_display(links, "linkedin", candidate_name=raw_name))
-        right_contacts.append(rf"{{\small\faIcon{{linkedin}}}} \href{{{escape_url(links['linkedin'])}}}{{\textbf{{{li_disp}}}}}")
+        col_left.append(rf"\faIcon{{globe}}\ \href{{{escape_url(links['portfolio'])}}}{{\textbf{{{port_disp}}}}}")
     if links.get("github"):
         gh_disp = escape_latex(_get_platform_display(links, "github", candidate_name=raw_name))
-        right_contacts.append(rf"{{\small\faIcon{{github}}}} \href{{{escape_url(links['github'])}}}{{\textbf{{{gh_disp}}}}}")
-    if links.get("orcid"):
-        orcid_disp = escape_latex(_get_platform_display(links, "orcid", candidate_name=raw_name))
-        right_contacts.append(rf"{{\small\faIcon{{orcid}}}} \href{{{escape_url(links['orcid'])}}}{{\textbf{{{orcid_disp}}}}}")
+        col_left.append(rf"\faIcon{{github}}\ \href{{{escape_url(links['github'])}}}{{\textbf{{{gh_disp}}}}}")
+    if links.get("linkedin"):
+        li_disp = escape_latex(_get_platform_display(links, "linkedin", candidate_name=raw_name))
+        col_left.append(rf"\faIcon{{linkedin}}\ \href{{{escape_url(links['linkedin'])}}}{{\textbf{{{li_disp}}}}}")
+
+    if cv.get("phone"):
+        col_right.append(rf"\faIcon{{phone}}\ \textbf{{{escape_latex(cv['phone'])}}}")
     if links.get("scholar"):
         sc_disp = escape_latex(_get_platform_display(links, "scholar", candidate_name=raw_name))
-        right_contacts.append(rf"{{\small\faIcon{{google}}}} \href{{{escape_url(links['scholar'])}}}{{\textbf{{{sc_disp}}}}}")
+        col_right.append(rf"\faIcon{{google}}\ \href{{{escape_url(links['scholar'])}}}{{\textbf{{{sc_disp}}}}}")
+    if links.get("orcid"):
+        orcid_disp = escape_latex(_get_platform_display(links, "orcid", candidate_name=raw_name))
+        col_right.append(rf"\faIcon{{orcid}}\ \href{{{escape_url(links['orcid'])}}}{{\textbf{{{orcid_disp}}}}}")
     if links.get("lattes"):
         lattes_disp = escape_latex(_get_platform_display(links, "lattes", candidate_name=raw_name))
-        right_contacts.append(rf"{{\small\faIcon{{graduation-cap}}}} \href{{{escape_url(links['lattes'])}}}{{\textbf{{{lattes_disp}}}}}")
+        col_right.append(rf"\faIcon{{graduation-cap}}\ \href{{{escape_url(links['lattes'])}}}{{\textbf{{{lattes_disp}}}}}")
     if cv.get("location"):
         maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
-        right_contacts.append(rf"{{\small\faIcon{{map-marker-alt}}}} \href{{{escape_url(maps_url)}}}{{\textbf{{{escape_latex(cv['location'].strip())}}}}}")
+        col_right.append(rf"\faIcon{{map-marker-alt}}\ \href{{{escape_url(maps_url)}}}{{\textbf{{{escape_latex(cv['location'].strip())}}}}}")
 
-    right_contact_tex = "\\\\\n    ".join(right_contacts)
+    all_contacts = col_left + col_right
+    if len(all_contacts) <= 3:
+        right_contact_tex = "\\\\n    ".join(all_contacts)
+    else:
+        half = (len(all_contacts) + 1) // 2
+        c1 = all_contacts[:half]
+        c2 = all_contacts[half:]
+        tbl_rows = []
+        for i in range(half):
+            left_item = c1[i]
+            right_item = c2[i] if i < len(c2) else ""
+            if right_item:
+                tbl_rows.append(rf"  {left_item} & {right_item} \\")
+            else:
+                tbl_rows.append(rf"  \multicolumn{{2}}{{l}}{{{left_item}}} \\")
+        right_contact_tex = (
+            r"\begin{tabular}[c]{@{} l @{\hspace{14pt}} l @{}}" + "\n"
+            + "\n".join(tbl_rows) + "\n"
+            + r"\end{tabular}"
+        )
+
     photo_inline = (
         rf"\includegraphics[width=1.9cm,height=1.9cm,keepaspectratio]{{{photo_filename}}}\hspace{{6pt}}"
         if photo_filename
@@ -2428,42 +2456,64 @@ def _render_overleaf_single_page_keywords(
         sum_lbl = "SUMMARY" if is_en else "RESUMO"
         summary_tex = rf"""\cvsec{{\faIcon{{file-alt}}}}{{{sum_lbl}}}
 {{\small {escape_latex(cv['summary'])}}}
-\vspace{{4pt}}"""
+\vspace{{3pt}}"""
 
-    # Coluna 1: WORK + SKILLS
+    pubs = cv.get("publications") or []
+    has_pubs = bool(pubs)
+
+    max_work = 4 if has_pubs else 5
+    max_proj = 4 if has_pubs else 5
+    max_pubs = 4
+
+    # Coluna 1: WORK + EDUCATION + AWARDS
     work_lbl = "WORK" if is_en else "EXPERIÊNCIA"
     work_items: List[str] = []
-    for xp in (cv.get("experience") or []):
+    for xp in (cv.get("experience") or [])[:max_work]:
         r_txt = escape_latex(xp.get("role"))
         p_txt = escape_latex(xp.get("period"))
         o_txt = escape_latex(xp.get("organization"))
-        bullets = [escape_latex(sanitize_experience_description(b, lang=lang)) for b in (xp.get("bullets") or []) if str(b).strip()]
-        desc_txt = " ".join(bullets)
+        raw_bullets = [escape_latex(sanitize_experience_description(b, lang=lang)) for b in (xp.get("bullets") or []) if str(b).strip()]
+        desc_txt = raw_bullets[0] if raw_bullets else ""
+        if len(desc_txt) > 160:
+            desc_txt = desc_txt[:157].rstrip() + "..."
         head_rp = f"{r_txt} / {p_txt}" if p_txt else r_txt
         work_items.append(rf"\work{{{head_rp}}}{{{o_txt}}}{{{desc_txt}}}{{{fallback_kw}}}")
     work_sec = (rf"\cvsec{{\faIcon{{pencil-alt}}}}{{{work_lbl}}}" + "\n" + "\n\n".join(work_items)) if work_items else ""
 
-    sk_lbl = "SKILLS" if is_en else "COMPETÊNCIAS"
-    sk_rows: List[str] = []
-    for sk in (cv.get("skills") or []):
-        if isinstance(sk, dict):
-            cat = escape_latex(sk.get("category") or t["default_skill_cat"])
-            items = escape_latex(sk.get("items"))
-        else:
-            cat = escape_latex(t["default_skill_cat"])
-            items = escape_latex(str(sk).strip())
-        if items:
-            sk_rows.append(rf"\noindent\textbf{{{cat}:}} {{\small {items}}}\par\vspace{{2pt}}")
-    sk_sec = (rf"\cvsec{{\faIcon{{list}}}}{{{sk_lbl}}}" + "\n" + "\n".join(sk_rows)) if sk_rows else ""
+    edu_lbl = "EDUCATION" if is_en else "FORMAÇÃO ACADÊMICA"
+    edu_rows: List[str] = []
+    for ed in (cv.get("education") or [])[:2]:
+        deg = escape_latex(ed.get("degree"))
+        per = escape_latex(ed.get("period"))
+        inst = escape_latex(ed.get("institution"))
+        det = escape_latex(ed.get("details"))
+        head_ed = f"{deg} - {per}" if per else deg
+        edu_rows.append(rf"\school{{{head_ed}}}{{{inst}}}{{{det}}}")
+    edu_sec = (rf"\cvsec{{\faIcon{{graduation-cap}}}}{{{edu_lbl}}}" + "\n" + "\n\n".join(edu_rows)) if edu_rows else ""
 
-    # Coluna 2: OTHER PROJECTS + EDUCATION + PUBLICATIONS + AWARDS / LANGUAGES
+    aw_sec = ""
+    clean_awards = sanitize_awards(cv.get("awards"), lang=lang)
+    if clean_awards:
+        aw_lbl = "AWARDS" if is_en else r"PRÊMIOS \& CERTIFICAÇÕES"
+        a_rows = [rf"    \item {escape_latex(a)}" for a in clean_awards[:3]]
+        aw_sec = (
+            rf"\cvsec{{\faIcon{{star}}}}{{{aw_lbl}}}"
+            + "\n\\begin{itemize}[leftmargin=1.1em,noitemsep,topsep=1pt]\n"
+            + "\n".join(a_rows)
+            + "\n\\end{itemize}"
+        )
+
+    # Coluna 2: OTHER PROJECTS + SKILLS + PUBLICATIONS + LANGUAGES
     proj_lbl = "OTHER PROJECTS" if is_en else "PROJETOS DE DESTAQUE"
     proj_rows: List[str] = []
-    for pj in (cv.get("projects") or []):
+    for pj in (cv.get("projects") or [])[:max_proj]:
         nm = escape_latex(pj.get("name"))
         tech = escape_latex(pj.get("tech"))
         url = (pj.get("url") or "").strip()
-        desc = escape_latex(sanitize_project_description(pj.get("description"), lang))
+        raw_d = sanitize_project_description(pj.get("description"), lang)
+        if len(raw_d) > 130:
+            raw_d = raw_d[:127].rstrip() + "..."
+        desc = escape_latex(raw_d)
         if url and url.startswith("http"):
             nm_head = rf"\href{{{escape_url(url)}}}{{\textbf{{{nm}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
         else:
@@ -2475,30 +2525,35 @@ def _render_overleaf_single_page_keywords(
     if proj_rows:
         proj_sec = (
             rf"\cvsec{{\faIcon{{paint-brush}}}}{{{proj_lbl}}}"
-            + "\n\\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=2pt]\n"
+            + "\n\\begin{itemize}[leftmargin=1.1em,noitemsep,topsep=1pt]\n"
             + "\n".join(proj_rows)
             + "\n\\end{itemize}"
         )
 
-    edu_lbl = "EDUCATION" if is_en else "FORMAÇÃO ACADÊMICA"
-    edu_rows: List[str] = []
-    for ed in (cv.get("education") or []):
-        deg = escape_latex(ed.get("degree"))
-        per = escape_latex(ed.get("period"))
-        inst = escape_latex(ed.get("institution"))
-        det = escape_latex(ed.get("details"))
-        head_ed = f"{deg} - {per}" if per else deg
-        edu_rows.append(rf"\school{{{head_ed}}}{{{inst}}}{{{det}}}")
-    edu_sec = (rf"\cvsec{{\faIcon{{graduation-cap}}}}{{{edu_lbl}}}" + "\n" + "\n\n".join(edu_rows)) if edu_rows else ""
+    sk_lbl = "SKILLS" if is_en else "COMPETÊNCIAS"
+    sk_rows: List[str] = []
+    for sk in (cv.get("skills") or [])[:2]:
+        if isinstance(sk, dict):
+            cat = escape_latex(sk.get("category") or t["default_skill_cat"])
+            items = escape_latex(sk.get("items"))
+        else:
+            cat = escape_latex(t["default_skill_cat"])
+            items = escape_latex(str(sk).strip())
+        if items:
+            sk_rows.append(rf"\noindent\textbf{{{cat}:}} {{\small {items}}}\par\vspace{{1pt}}")
+    sk_sec = (rf"\cvsec{{\faIcon{{list}}}}{{{sk_lbl}}} " + "\n" + "\n".join(sk_rows)) if sk_rows else ""
 
     pub_sec = ""
-    pubs = cv.get("publications") or []
     if pubs:
         pub_lbl = "PUBLICATIONS" if is_en else "PUBLICAÇÕES"
         p_rows: List[str] = []
-        for pb in pubs:
+        for pb in pubs[:max_pubs]:
             pt = escape_latex(pb.get("title"))
+            if len(pt) > 85:
+                pt = pt[:82].rstrip() + "..."
             pv = escape_latex(pb.get("venue"))
+            if len(pv) > 45:
+                pv = pv[:42].rstrip() + "..."
             py = escape_latex(pb.get("year"))
             pub_url = (pb.get("url") or "").strip()
             doi = (pb.get("doi") or "").strip()
@@ -2508,28 +2563,20 @@ def _render_overleaf_single_page_keywords(
                 pt_head = rf"\href{{{escape_url(pub_url)}}}{{\textbf{{{pt}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
             else:
                 pt_head = rf"\textbf{{{pt}}}"
-            p_rows.append(rf"    \item {pt_head} ({pv}, {py})")
+            meta_str = f"{pv}, {py}" if (pv and py) else (pv or py)
+            p_rows.append(rf"    \item {pt_head}" + (rf" ({meta_str})" if meta_str else ""))
         pub_sec = (
             rf"\cvsec{{\faIcon{{book}}}}{{{pub_lbl}}}"
-            + "\n\\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=2pt]\n"
+            + "\n\\begin{itemize}[leftmargin=1.1em,noitemsep,topsep=1pt]\n"
             + "\n".join(p_rows)
-            + "\n\\end{itemize}"
-        )
-
-    aw_sec = ""
-    clean_awards = sanitize_awards(cv.get("awards"), lang=lang)
-    if clean_awards:
-        aw_lbl = "AWARDS" if is_en else r"PRÊMIOS \& CERTIFICAÇÕES"
-        a_rows = [rf"    \item {escape_latex(a)}" for a in clean_awards]
-        aw_sec = (
-            rf"\cvsec{{\faIcon{{star}}}}{{{aw_lbl}}}"
-            + "\n\\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=2pt]\n"
-            + "\n".join(a_rows)
             + "\n\\end{itemize}"
         )
 
     lg_sec = ""
     langs = [str(x).strip() for x in (cv.get("languages") or []) if str(x).strip()]
+    if langs:
+        lg_lbl = "LANGUAGES / INTERESTS" if is_en else "IDIOMAS"
+    lg_sec = ""
     if langs:
         lg_lbl = "LANGUAGES / INTERESTS" if is_en else "IDIOMAS"
         lg_sec = rf"\cvsec{{\faIcon{{globe}}}}{{{lg_lbl}}}" + "\n{\\small " + " $\\cdot$ ".join(escape_latex(x) for x in langs) + "}"
@@ -2547,7 +2594,7 @@ def _render_overleaf_single_page_keywords(
 \usepackage{{tikz}}
 \usepackage{{multicol}}
 \usepackage[skins]{{tcolorbox}}
-\usepackage[margin=1.0cm,footskip=0.25in]{{geometry}}
+\usepackage[left=0.8cm,right=0.8cm,top=0.7cm,bottom=0.7cm,footskip=0.15in]{{geometry}}
 \usepackage{{xcolor}}
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
@@ -2564,48 +2611,47 @@ def _render_overleaf_single_page_keywords(
 \definecolor{{sidecolor}}{{HTML}}{{111827}}
 \pagestyle{{empty}}
 \setlength{{\parindent}}{{0pt}}
-\setlength{{\columnsep}}{{1.1cm}}
+\setlength{{\columnsep}}{{0.8cm}}
 
 \newcommand*{{\circled}}[1]{{%
   \tikz[baseline=(char.base)]{{%
-    \node[shape=circle,fill=sidecolor,inner sep=1.8pt,minimum size=18pt] (char) {{\textcolor{{white}}{{\footnotesize #1}}}};%
+    \node[shape=circle,fill=sidecolor,inner sep=1.8pt,minimum size=17pt] (char) {{\textcolor{{white}}{{\footnotesize #1}}}};%
   }}%
 }}
 \newcommand*{{\cvsec}}[2]{{%
-  \vspace{{6pt}}\noindent\circled{{#1}}\hspace{{5pt}}{{\large\bfseries\color{{accent}} #2}}\par\vspace{{3pt}}%
+  \vspace{{4pt}}\noindent\circled{{#1}}\hspace{{4pt}}{{\large\bfseries\color{{accent}} #2}}\par\vspace{{2pt}}%
 }}
 \newcommand*{{\work}}[4]{{%
   \noindent{{\normalsize\bfseries\color{{sidecolor}} #1}}\par
   \ifx&#2&\else\noindent{{\small\bfseries\color{{accent}} #2}}\par\fi
   \ifx&#3&\else\noindent{{\small #3}}\par\fi
   \ifx&#4&\else\noindent{{\footnotesize\textbf{{Keywords:}} \textit{{#4}}}}\par\fi
-  \vspace{{5pt}}
+  \vspace{{3pt}}
 }}
 \newcommand*{{\school}}[3]{{%
   \noindent{{\normalsize\bfseries\color{{sidecolor}} #1}}\par
   \ifx&#2&\else\noindent{{\small\bfseries\color{{accent}} #2}}\par\fi
   \ifx&#3&\else\noindent{{\footnotesize\textit{{#3}}}}\par\fi
-  \vspace{{4pt}}
+  \vspace{{2.5pt}}
 }}
 
 \begin{{document}}
 \noindent
-\begin{{minipage}}[c]{{0.58\textwidth}}
-    {photo_inline}\begin{{minipage}}[c]{{0.78\linewidth}}
-        {{\fontsize{{26}}{{28}}\selectfont\bfseries\color{{sidecolor}} {first_nm}}}\\[2pt]
-        {{\fontsize{{28}}{{30}}\selectfont\mdseries\color{{accent}} {last_nm}}}\\[4pt]
-        {{\large\itshape\color{{sidecolor}} {role}}}
+\begin{{minipage}}[c]{{0.40\textwidth}}
+    {photo_inline}\begin{{minipage}}[c]{{0.92\linewidth}}
+        {{\fontsize{{24}}{{26}}\selectfont\bfseries\color{{sidecolor}} {first_nm}}}\\[2pt]
+        {{\fontsize{{26}}{{28}}\selectfont\mdseries\color{{accent}} {last_nm}}}\\[3pt]
+        {{\small\itshape\color{{sidecolor}} {role}}}
     \end{{minipage}}
 \end{{minipage}}%
 \hfill
-\begin{{minipage}}[c]{{0.40\textwidth}}
-    \begin{{flushright}}
+\begin{{minipage}}[c]{{0.58\textwidth}}
+    \footnotesize\raggedleft
     {right_contact_tex}
-    \end{{flushright}}
 \end{{minipage}}
-\vspace{{4pt}}
+\vspace{{3pt}}
 \hrule height 0.6pt
-\vspace{{4pt}}
+\vspace{{3pt}}
 
 {summary_tex}
 
@@ -2616,7 +2662,6 @@ def _render_overleaf_single_page_keywords(
 \end{{multicols}}
 \end{{document}}
 """
-
 
 def _render_google_standard(
     cv: Dict[str, Any],
