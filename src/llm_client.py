@@ -312,7 +312,7 @@ class LLMResumeGenerator:
             "2. NOUN-FIRST PROJECT DESCRIPTIONS: Project descriptions MUST start with a descriptive NOUN (e.g., 'Gerador...', 'Aplicação...', 'Página...', 'Implementação...', 'Portfólio...', 'Utilitário...', 'Jogo...', 'Plataforma...', 'Ferramenta...') or in English ('Automated generator...', 'Web application...', 'Personal portfolio...', 'Manual implementations...', 'Utility...', 'Exploration game...'). NEVER begin project descriptions with past-tense action verbs (e.g. NEVER use 'Desenvolveu', 'Criou', 'Implementou', 'Reuniu', 'Construiu', or in English 'Developed', 'Created', 'Implemented', 'Built').\n"
             "3. EXECUTIVE SUMMARY: If the summary/resumo section is sparse, missing, or contains generic website metadata (e.g. starting with 'Portfólio profissional de...'), synthesize a concise 2-3 sentence executive technical overview highlighting candidate's core expertise, academic background, and technical focus based strictly on their actual data.\n"
             "4. STRICT TRUTHFULNESS & ZERO INVENTIONS: Keep all institutions, degrees, dates, metrics, and names 100% truthful to source facts. NEVER invent or hallucinate new projects, external URLs, project links, publications, DOI links, experiences, awards, or credentials not already present in the provided LaTeX code. Only enhance existing entries.\n"
-            "5. PUBLICATIONS & AWARDS LISTING: Preserve and list ALL publications and awards individually. NEVER collapse them into a single line or summary. Each publication must include title, authors, venue, year, and DOI link. Each award must be an individual item.\n"
+            "5. PUBLICATIONS & AWARDS LISTING: Preserve and list ALL publications and awards individually. NEVER collapse them into a single line or summary. Each publication must include title, authors, venue, year, and DOI link. Each award must be an individual item. ACADEMIC GRANTS & EXTENSION FELLOWSHIPS (e.g. Bolsa / Grant in extension or research projects) already present under work experience must NEVER be duplicated or included in awards/premiações.\n"
             "6. EXACT PERIODS: Never change explicit academic or work periods into 'Período não especificado', 'Em andamento', or 'Concluído'. Keep exact years and periods (e.g. 2026 - Atual, 2019 - 2025, 2023 - 2024).\n\n"
             "PART 3: OUTPUT FORMAT\n"
             "Return ONLY the audited, polished LaTeX body from \\begin{document} to \\end{document}. "
@@ -589,7 +589,7 @@ class LLMResumeGenerator:
             for ra in all_real_awards:
                 if not any(ra.lower() in str(ca).lower() for ca in curr_aw):
                     curr_aw.append(ra)
-            cv["awards"] = sanitize_awards(curr_aw)
+            cv["awards"] = sanitize_awards(curr_aw, experiences=cv.get("experience") or [])
 
         # Atualização e preservação de períodos em formação
         real_edus = (raw_profile_data.get("portfolio") or {}).get("educations") or lattes.get("educations") or orcid.get("educations") or []
@@ -625,4 +625,4 @@ class LLMResumeGenerator:
                 exp["bullets"] = [sanitize_experience_description(b, lang=lang) for b in exp["bullets"]]
         cv["education"] = deduplicate_and_sort_educations(cv.get("education") or [], lang=lang)
         cv["publications"] = deduplicate_and_sort_publications(cv.get("publications") or [])
-        cv["awards"] = deduplicate_and_sort_awards(cv.get("awards") or [])
+        cv["awards"] = deduplicate_and_sort_awards(cv.get("awards") or [], experiences=cv.get("experience") or [])

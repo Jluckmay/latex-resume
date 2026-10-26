@@ -760,6 +760,7 @@ def extract_orcid(orcid_input: str) -> Dict[str, Any]:
         "employments": [],
         "works": [],
         "awards": [],
+        "fundings": [],
     }
 
     try:
@@ -815,7 +816,7 @@ def extract_orcid(orcid_input: str) -> Dict[str, Any]:
                     {"title": title, "journal": journal, "year": year, "doi": doi}
                 )
 
-        # Distinctions & Fundings (Grants, Bolsas, Premiações)
+        # Fundings (Grants, Bolsas, Financiamentos - não devem poluir premiações/distinções)
         for fund_grp in (activities.get("fundings") or {}).get("group") or []:
             for f_sum in fund_grp.get("funding-summary") or []:
                 f_title = (((f_sum.get("title") or {}).get("title") or {}).get("value")) or ""
@@ -827,7 +828,7 @@ def extract_orcid(orcid_input: str) -> Dict[str, Any]:
                 if f_title:
                     type_prefix = "Bolsa / Grant: " if f_type == "grant" else ""
                     org_str = f" - {f_org}" if f_org else ""
-                    result["awards"].append(f"{type_prefix}{f_title}{org_str} {yr_str}".strip())
+                    result["fundings"].append(f"{type_prefix}{f_title}{org_str} {yr_str}".strip())
 
         for dist_grp in ((activities.get("distinctions") or {}).get("affiliation-group") or []):
             for s in dist_grp.get("summaries") or []:

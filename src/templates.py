@@ -600,8 +600,13 @@ def deduplicate_and_sort_publications(publications: List[Dict[str, Any]]) -> Lis
     return merged
 
 
-def deduplicate_and_sort_awards(awards: List[Any]) -> List[str]:
+def deduplicate_and_sort_awards(
+    awards: List[Any],
+    experiences: List[Dict[str, Any]] | None = None,
+) -> List[str]:
     sanitized = _raw_sanitize_awards(awards)
+    if experiences:
+        sanitized = filter_awards_redundant_with_experience(sanitized, experiences)
     if not sanitized:
         return []
     cleaned: List[str] = []
@@ -624,7 +629,101 @@ def deduplicate_and_sort_awards(awards: List[Any]) -> List[str]:
             cleaned.append(s)
 
     cleaned.sort(key=lambda a: (extract_award_year_sort_key(a)[0], a), reverse=True)
+    if experiences:
+        cleaned = filter_awards_redundant_with_experience(cleaned, experiences)
     return cleaned
+
+
+def filter_awards_redundant_with_experience(
+    awards: List[Any],
+    experiences: List[Dict[str, Any]] | None = None,
+) -> List[str]:
+    """Remove premiações que representem bolsas, auxílios ou projetos de extensão/pesquisa
+    já listados ou contemplados na experiência profissional (ex: Bolsa de Extensão no GeoGebra).
+    """
+    if not awards:
+        return []
+
+    sanitized = _raw_sanitize_awards(awards)
+    if not sanitized:
+        return []
+
+    PRIZE_HONOR_PATTERN = re.compile(
+        r"\b(?:men[cç][aã]o\s+honrosa|1[ºªo]\s*lugar|2[ºªo]\s*lugar|3[ºªo]\s*lugar|primeiro\s+lugar|segundo\s+lugar|terceiro\s+lugar|melhor\s+artigo|best\s+paper|best\s+poster|l[aá]urea|medalha|trof[eé]u|honra\s+ao\s+m[eé]rito|vencedor|finalista|premiad[oa]|pr[eé]mio|award)\b",
+        re.IGNORECASE,
+    )
+
+    GRANT_KEYWORDS = re.compile(
+        r"\b(?:bolsa\s*/\s*grant|bolsa\s+de\s+(?:extens[aã]o|inicia[cç][aã]o|pesquisa|monitoria)|bolsa|bolsista|grant|fellowship|scholarship|financiamento|aux[ií]lio)\b",
+        re.IGNORECASE,
+    )
+
+    exp_contexts: List[Dict[str, Any]] = []
+    for exp in (experiences or []):
+        if not isinstance(exp, dict):
+            continue
+        role = str(exp.get("role") or "")
+        org = str(exp.get("organization") or "")
+        period = str(exp.get("period") or "")
+        desc = str(exp.get("description") or "")
+        bullets = " ".join(str(b) for b in (exp.get("bullets") or []))
+        full_text = f"{role} {org} {period} {desc} {bullets}".strip()
+        norm_full = normalize_text_for_cmp(full_text)
+        is_grant_exp = bool(re.search(r"\b(?:bolsista|bolsa|extens[aã]o|monitor|tutor|pesquisa|inicia[cç][aã]o)\b", full_text, re.IGNORECASE))
+        exp_contexts.append({
+            "full_text": full_text,
+            "norm": norm_full,
+            "is_grant_exp": is_grant_exp,
+        })
+
+    filtered: List[str] = []
+    for aw in sanitized:
+        aw_str = str(aw).strip()
+        if not aw_str:
+            continue
+
+        if re.search(r"^\s*bolsa\s*/\s*grant[:\s]", aw_str, re.IGNORECASE):
+            continue
+
+        # Prêmios e distinções formais legítimos são sempre mantidos
+        if PRIZE_HONOR_PATTERN.search(aw_str):
+            filtered.append(aw_str)
+            continue
+
+        norm_aw = normalize_text_for_cmp(aw_str)
+        is_grant_item = bool(GRANT_KEYWORDS.search(aw_str))
+
+        # Verifica se o item coincide com qualquer experiência profissional/acadêmica
+        is_redundant = False
+        if exp_contexts:
+            aw_tokens = {
+                w for w in re.split(r"[^a-z0-9]+", norm_aw)
+                if len(w) >= 4 and w not in {"bolsa", "grant", "federal", "university", "universidade", "campus", "para", "estudantes", "aplicada", "projeto"}
+            }
+            for ec in exp_contexts:
+                # Caso clássico: bolsa/projeto de extensão geogebra presente em experiência
+                if any(k in ec["norm"] and k in norm_aw for k in ("geogebra", "figuras dinamicas")):
+                    is_redundant = True
+                    break
+                # Se for item de bolsa/grant e compartilhar palavras significativas da experiência
+                if is_grant_item:
+                    matched = {w for w in aw_tokens if w in ec["norm"]}
+                    if len(matched) >= 2:
+                        is_redundant = True
+                        break
+                elif ec["is_grant_exp"]:
+                    matched = {w for w in aw_tokens if w in ec["norm"]}
+                    if len(matched) >= 3:
+                        is_redundant = True
+                        break
+
+        # Se for bolsa/grant sem prêmio formal e já estiver na experiência ou for concessão de bolsa
+        if is_redundant or (is_grant_item and not PRIZE_HONOR_PATTERN.search(aw_str) and any(k in norm_aw for k in ("geogebra", "figuras dinamicas"))):
+            continue
+
+        filtered.append(aw_str)
+
+    return filtered
 
 
 def _raw_sanitize_awards(awards: Any) -> List[str]:
@@ -633,6 +732,7 @@ def _raw_sanitize_awards(awards: Any) -> List[str]:
     - Remove entradas nulas, vazias ou puramente de espaços
     - Remove rigorosamente identificadores e links de ORCID, Lattes, GitHub e LinkedIn
     - Remove placeholders como N/A, None, Nenhum, Sem Prêmios
+    - Remove concessões explícitas de bolsas ou financiamentos (grants)
     Retorna apenas títulos, prêmios ou certificações legítimos.
     """
     if not awards or not isinstance(awards, (list, tuple)):
@@ -663,13 +763,18 @@ def _raw_sanitize_awards(awards: Any) -> List[str]:
             continue
         if PLACEHOLDER_PATTERN.match(val):
             continue
+        if re.search(r"^\s*bolsa\s*/\s*grant[:\s]", val, re.IGNORECASE) or re.search(r"\bbolsa\s*/\s*grant\b", val, re.IGNORECASE):
+            continue
         clean.append(val)
     return clean
 
 
-def sanitize_awards(awards: Any) -> List[str]:
+def sanitize_awards(
+    awards: Any,
+    experiences: List[Dict[str, Any]] | None = None,
+) -> List[str]:
     """Sanitiza, deduplica e ordena prêmios da mais recente à mais antiga."""
-    return deduplicate_and_sort_awards(awards)
+    return deduplicate_and_sort_awards(awards, experiences=experiences)
 
 
 def render_builtin_template(
@@ -686,7 +791,7 @@ def render_builtin_template(
     cv_clean["experience"] = deduplicate_and_sort_experiences(cv_clean.get("experience") or [], lang=norm_lang)
     cv_clean["education"] = deduplicate_and_sort_educations(cv_clean.get("education") or [], lang=norm_lang)
     cv_clean["publications"] = deduplicate_and_sort_publications(cv_clean.get("publications") or [])
-    cv_clean["awards"] = deduplicate_and_sort_awards(cv_clean.get("awards") or [])
+    cv_clean["awards"] = deduplicate_and_sort_awards(cv_clean.get("awards") or [], experiences=cv_clean["experience"])
     cv = cv_clean
     if template_id == "academic_classic":
         return _render_academic_classic(cv, links, photo_filename, norm_lang)

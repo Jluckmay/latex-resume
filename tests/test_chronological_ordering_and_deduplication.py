@@ -200,13 +200,14 @@ def test_awards_deduplication_and_reverse_chronological():
 
     dedup = deduplicate_and_sort_awards(raw_awards)
 
-    # 1. Exatamente 4 prêmios válidos (excluídos cards de destaque e duplicatas pontuadas)
-    assert len(dedup) == 4
+    # 1. Exatamente 3 prêmios legítimos (bolsas/grants e cards de destaque devidamente excluídos)
+    assert len(dedup) == 3
+    assert not any("bolsa" in a.lower() or "grant" in a.lower() for a in dedup)
 
     # 2. Ordem cronológica reversa: 2025 -> 2024 -> 2023
     assert "WSIS 2025" in dedup[0]
-    assert "SBIE 2024" in dedup[1] or "2023 - 2024" in dedup[1]
-    assert "SIA 2023" in dedup[3]
+    assert "SBIE 2024" in dedup[1]
+    assert "SIA 2023" in dedup[2]
 
 
 def test_template_rendering_respects_clean_ordering():

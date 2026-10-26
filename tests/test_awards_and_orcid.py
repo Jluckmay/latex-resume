@@ -246,3 +246,86 @@ def test_apply_fallbacks_scrubs_orcid_from_awards():
     LLMResumeGenerator._apply_fallbacks(cv, raw_data, "academico", "pt-br")
     assert cv["awards"] == []
 
+
+def test_bolsa_geogebra_filtered_from_awards_when_present_in_experience():
+    """Valida que bolsas de extensão já presentes em experiência não aparecem em premiações."""
+    from src.templates import filter_awards_redundant_with_experience, deduplicate_and_sort_awards
+
+    experiences = [
+        {
+            "role": "Bolsista de Projeto de Extensão",
+            "organization": "Universidade Federal de Viçosa",
+            "period": "2023 - 2024",
+            "bullets": [
+                "Figuras dinâmicas no GeoGebra aplicadas ao ensino de matemática.",
+            ],
+        }
+    ]
+
+    awards = [
+        "Menção Honrosa · Pôster · WSIS 2025: Explorando a Grécia Antiga",
+        "Menção Honrosa · Games · SBIE 2024: Palavras ao Ar",
+        "Bolsa / Grant: Metodologia de ensino-aprendizagem baseada no uso interativo de figuras dinâmicas no ambiente virtual geogebra aplicada a estudantes da UFV - Campus Rio Paranaíba - Federal University of Viçosa (2023 - 2024)",
+        "Segundo Lugar · Ensino · SIA 2023: Palavras ao Ar",
+    ]
+
+    filtered = filter_awards_redundant_with_experience(awards, experiences)
+    assert len(filtered) == 3
+    assert not any("geogebra" in a.lower() for a in filtered)
+    assert not any("bolsa" in a.lower() or "grant" in a.lower() for a in filtered)
+    assert any("WSIS 2025" in a for a in filtered)
+    assert any("SBIE 2024" in a for a in filtered)
+    assert any("SIA 2023" in a for a in filtered)
+
+    dedup = deduplicate_and_sort_awards(awards, experiences=experiences)
+    assert len(dedup) == 3
+    assert not any("geogebra" in a.lower() for a in dedup)
+    assert not any("bolsa" in a.lower() or "grant" in a.lower() for a in dedup)
+
+
+@pytest.mark.parametrize("template_id", list(BUILTIN_TEMPLATES.keys()))
+def test_render_template_excludes_redundant_grant_from_awards(template_id: str):
+    """Valida que a renderização dos templates exclui a bolsa de extensão de premiações."""
+    cv = {
+        "name": "João Lucas Mayrinck",
+        "title": "Cientista da Computação",
+        "email": "joao@example.com",
+        "phone": "+55 34 99999-9999",
+        "location": "Rio Paranaíba, MG",
+        "summary": "Pesquisador e desenvolvedor.",
+        "experience": [
+            {
+                "role": "Bolsista de Projeto de Extensão",
+                "organization": "Universidade Federal de Viçosa",
+                "period": "2023 - 2024",
+                "bullets": ["Figuras dinâmicas no GeoGebra aplicadas ao ensino de matemática."],
+            }
+        ],
+        "education": [
+            {"degree": "Bacharelado em Ciência da Computação", "institution": "UFV", "period": "2019 - 2025"}
+        ],
+        "awards": [
+            "Menção Honrosa · Pôster · WSIS 2025: Explorando a Grécia Antiga",
+            "Menção Honrosa · Games · SBIE 2024: Palavras ao Ar",
+            "Bolsa / Grant: Metodologia de ensino-aprendizagem baseada no uso interativo de figuras dinâmicas no ambiente virtual geogebra aplicada a estudantes da UFV - Campus Rio Paranaíba - Federal University of Viçosa (2023 - 2024)",
+            "Segundo Lugar · Ensino · SIA 2023: Palavras ao Ar",
+        ],
+    }
+
+    latex = render_builtin_template(
+        template_id,
+        cv=cv,
+        links=SAMPLE_LINKS,
+        resume_type="academico",
+        lang="pt-br",
+    )
+
+    # A bolsa NÃO deve aparecer na seção de premiações
+    assert "Bolsa / Grant" not in latex
+    # Mas a experiência de bolsista deve continuar existindo no currículo
+    assert "Bolsista de Projeto de Extens" in latex or "Extens" in latex
+    # E os prêmios legítimos devem continuar sendo renderizados
+    assert "WSIS 2025" in latex
+    assert "SBIE 2024" in latex
+    assert "SIA 2023" in latex
+
