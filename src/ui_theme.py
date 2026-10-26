@@ -337,7 +337,7 @@ def render_template_preview_html(
                 <div style="flex:1;height:1px;background:#94a3b8;"></div>
             </div>
             <div style="display:flex;justify-content:space-between;font-size:9.5px;">
-                <span><b>Português</b> (Nativo)</span><span style="color:{p_col};">● ● ● ● ●</span>
+                <span><b>Português</b> (Nativo)</span><span style="color:{p_col};">● ● ● ● ● ●</span>
             </div>
         </div>
         """
@@ -439,8 +439,8 @@ def render_template_preview_html(
                     <div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span>Docker</span><span style="color:{p_col};">● ● ● ● ○</span></div>
                     <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>AWS</span><span style="color:{p_col};">● ● ● ○ ○</span></div>
                     <div style="font-weight:800;font-size:9px;color:{p_col};border-bottom:1px solid {p_col};padding-bottom:2px;margin-bottom:4px;">IDIOMAS</div>
-                    <div style="display:flex;justify-content:space-between;"><span>Português</span><span style="color:{p_col};">● ● ● ● ●</span></div>
-                    <div style="display:flex;justify-content:space-between;"><span>Inglês</span><span style="color:{p_col};">● ● ● ● ○</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span>Português</span><span style="color:{p_col};">● ● ● ● ● ●</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span>Inglês</span><span style="color:{p_col};">● ● ● ● ○ ○</span></div>
                 </div>
                 <div style="width:66%;padding:10px 12px;font-size:9px;">
                     <div style="font-weight:800;font-size:9.5px;color:{p_col};border-bottom:1px solid #cbd5e1;padding-bottom:2px;margin-bottom:4px;">EXPERIÊNCIA PROFISSIONAL</div>

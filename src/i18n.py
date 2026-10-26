@@ -184,7 +184,7 @@ TEMPLATES_I18N: Dict[str, Dict[str, Dict[str, str]]] = {
             "name": "Modelo Russell",
             "description": (
                 "Overleaf Russell CV template (https://www.overleaf.com/read/rgfqqnnynrmv#d5b171) featuring left header photo, "
-                "FontAwesome 5 icons, 3-letter colored section titles, skill tables, and 5-dot language proficiency bars."
+                "FontAwesome 5 icons, 3-letter colored section titles, skill tables, and 6-dot language proficiency bars."
             ),
         },
         "overleaf_awesome_cv": {
@@ -205,7 +205,7 @@ TEMPLATES_I18N: Dict[str, Dict[str, Dict[str, str]]] = {
             "name": "Modelo Nico Krieger",
             "description": (
                 "Nico Krieger resume template featuring a full-width dark top header, "
-                "highlight sidebar with 5-dot skill ratings and languages, and clean main column."
+                "highlight sidebar with 5-dot skill ratings and 6-dot languages, and clean main column."
             ),
         },
         "google_standard": {

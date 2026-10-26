@@ -1389,7 +1389,7 @@ def _render_sections_body(
             max_proj = 2
             max_pubs = 2
             max_edu = 2
-            max_awards = 2
+            max_awards = 3
             max_skills = 0
         elif has_pubs:
             max_exp = 3
@@ -2962,44 +2962,68 @@ def _render_google_standard(
         mid = (len(contact_parts) + 1) // 2
         r1 = " \\quad | \\quad ".join(contact_parts[:mid])
         r2 = " \\quad | \\quad ".join(contact_parts[mid:])
-        contacts_str = f"{r1}\\\\[3pt]\n    {r2}"
+        contacts_str = f"{r1}\\\\[2pt]\n    {r2}"
     else:
         contacts_str = " \\quad | \\quad ".join(contact_parts)
 
     if photo_filename:
         header_tex = rf"""\noindent
-\begin{{minipage}}[c]{{0.78\textwidth}}
-    {{\fontsize{{24pt}}{{28pt}}\selectfont\bfseries\color{{sidecolor}} {name}}}\\[3pt]
-    {{\large\color{{accent}} {title}}}\\[4pt]
-    {{\small {contacts_str}}}
+\begin{{minipage}}[c]{{0.80\textwidth}}
+    {{\fontsize{{20pt}}{{24pt}}\selectfont\bfseries\color{{sidecolor}} {name}}}\\[2pt]
+    {{\normalsize\bfseries\color{{accent}} {title}}}\\[3pt]
+    {{\footnotesize {contacts_str}}}
 \end{{minipage}}%
 \hfill
-\begin{{minipage}}[c]{{0.20\textwidth}}
+\begin{{minipage}}[c]{{0.18\textwidth}}
     \raggedleft
-    \includegraphics[width=2.5cm,height=2.5cm,keepaspectratio]{{{photo_filename}}}
+    \includegraphics[width=2.2cm,height=2.2cm,keepaspectratio]{{{photo_filename}}}
 \end{{minipage}}
-\vspace{{3pt}}
-\hrule height 0.8pt
-\vspace{{4pt}}"""
+\vspace{{2pt}}
+{{\color{{accent}}\hrule height 0.8pt}}
+\vspace{{3pt}}"""
     else:
         header_tex = rf"""\begin{{center}}
-    {{\fontsize{{26pt}}{{30pt}}\selectfont\bfseries\color{{sidecolor}} {name}}}\\[3pt]
-    {{\large\color{{accent}} {title}}}\\[4pt]
-    {{\small {contacts_str}}}
+    {{\fontsize{{20pt}}{{24pt}}\selectfont\bfseries\color{{sidecolor}} {name}}}\\[2pt]
+    {{\normalsize\bfseries\color{{accent}} {title}}}\\[3pt]
+    {{\footnotesize {contacts_str}}}
 \end{{center}}
-\vspace{{2pt}}
-\hrule height 0.8pt
-\vspace{{4pt}}"""
+\vspace{{-2pt}}
+{{\color{{accent}}\hrule height 0.8pt}}
+\vspace{{3pt}}"""
+
+    # Single-page budgets
+    pubs = cv.get("publications") or []
+    has_pubs = bool(pubs)
+
+    if resume_type == "academico":
+        max_sum_chars = 200
+        max_edu = 2
+        max_exp = 2
+        max_proj = 1 if has_pubs else 2
+        max_pubs = 2
+        max_skills = 2
+        max_awards = 3
+    else:
+        max_sum_chars = 220
+        max_exp = 3
+        max_proj = 2
+        max_edu = 2
+        max_skills = 3
+        max_pubs = 1 if has_pubs else 0
+        max_awards = 3
 
     # Summary
     sum_block = ""
     if cv.get("summary"):
         sec_sum = "SUMMARY" if is_en else "RESUMO PROFISSIONAL"
-        sum_block = rf"\section*{{{sec_sum}}}" + "\n" + rf"{{\small {escape_latex(cv['summary'])}}}"
+        raw_sum = cv["summary"]
+        if len(raw_sum) > max_sum_chars:
+            raw_sum = raw_sum[:max_sum_chars - 3].rstrip() + "..."
+        sum_block = rf"\section*{{{sec_sum}}}" + "\n" + rf"{{\small {escape_latex(raw_sum)}}}"
 
     # Experience
     xp_block = ""
-    xp_list = cv.get("experience") or []
+    xp_list = (cv.get("experience") or [])[:max_exp]
     if xp_list:
         sec_xp = "WORK EXPERIENCE" if is_en else (t["sec_exp_acad"] if resume_type == "academico" else t["sec_exp_prof"])
         xp_lines = [rf"\section*{{{sec_xp}}}"]
@@ -3007,7 +3031,7 @@ def _render_google_standard(
             role = escape_latex(xp.get("role"))
             org = escape_latex(xp.get("organization"))
             per = escape_latex(xp.get("period"))
-            bullets = [escape_latex(sanitize_experience_description(b, lang=lang)) for b in (xp.get("bullets") or []) if str(b).strip()]
+            bullets = [escape_latex(sanitize_experience_description(b, lang=lang)) for b in (xp.get("bullets") or []) if str(b).strip()][:2]
             head_l = f"\\textbf{{{org}}}" if org else f"\\textbf{{{role}}}"
             sub_l = f"\\textit{{{role}}}" if org else ""
             item_lines = [rf"\noindent{head_l} \hfill \textbf{{{per}}}"]
@@ -3018,15 +3042,15 @@ def _render_google_standard(
                 for b in bullets:
                     item_lines.append(rf"    \item {b}")
                 item_lines.append(r"\end{itemize}")
-                item_lines.append(r"\vspace{3pt}")
+                item_lines.append(r"\vspace{2pt}")
             else:
-                item_lines.append(r"\par\vspace{3pt}")
+                item_lines.append(r"\par\vspace{2pt}")
             xp_lines.append("\n".join(item_lines))
         xp_block = "\n".join(xp_lines)
 
     # Education
     edu_block = ""
-    edu_list = cv.get("education") or []
+    edu_list = (cv.get("education") or [])[:max_edu]
     if edu_list:
         sec_edu = "EDUCATION" if is_en else t["sec_education"]
         ed_lines = [rf"\section*{{{sec_edu}}}"]
@@ -3039,19 +3063,19 @@ def _render_google_standard(
             sub_d = f"\\textit{{{deg}}}" if inst else ""
             item_lines = [rf"\noindent{head_i} \hfill \textbf{{{per}}}"]
             if sub_d and det:
-                item_lines.append(rf"\\ {sub_d} \hfill {{\small {det}}}\par\vspace{{4pt}}")
+                item_lines.append(rf"\\ {sub_d} \hfill {{\small {det}}}\par\vspace{{2pt}}")
             elif sub_d:
-                item_lines.append(rf"\\ {sub_d}\par\vspace{{4pt}}")
+                item_lines.append(rf"\\ {sub_d}\par\vspace{{2pt}}")
             elif det:
-                item_lines.append(rf"\\ {{\small {det}}}\par\vspace{{4pt}}")
+                item_lines.append(rf"\\ {{\small {det}}}\par\vspace{{2pt}}")
             else:
-                item_lines.append(r"\par\vspace{4pt}")
+                item_lines.append(r"\par\vspace{2pt}")
             ed_lines.append("\n".join(item_lines))
         edu_block = "\n".join(ed_lines)
 
     # Projects
     pj_block = ""
-    pj_list = cv.get("projects") or []
+    pj_list = (cv.get("projects") or [])[:max_proj]
     if pj_list:
         sec_pj = "KEY PROJECTS" if is_en else (t["sec_proj_acad"] if resume_type == "academico" else t["sec_proj_prof"])
         pj_lines = [rf"\section*{{{sec_pj}}}"]
@@ -3070,14 +3094,14 @@ def _render_google_standard(
                 pj_lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
                 pj_lines.append(rf"    \item {desc}")
                 pj_lines.append(r"\end{itemize}")
-                pj_lines.append(r"\vspace{2pt}")
+                pj_lines.append(r"\vspace{1pt}")
             else:
-                pj_lines.append(r"\par\vspace{2pt}")
+                pj_lines.append(r"\par\vspace{1pt}")
         pj_block = "\n".join(pj_lines)
 
     # Skills
     sk_block = ""
-    sk_list = cv.get("skills") or []
+    sk_list = (cv.get("skills") or [])[:max_skills]
     if sk_list:
         sec_sk = "TECHNICAL SKILLS" if is_en else t["sec_skills"]
         sk_lines = [rf"\section*{{{sec_sk}}}", r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]"]
@@ -3098,8 +3122,8 @@ def _render_google_standard(
         sk_block = "\n".join(sk_lines)
 
     # Publications & Awards & Languages
-    pub_block = _build_publications_block(cv.get("publications") or [], lang)
-    lg_aw_block = _build_languages_and_awards_block(cv.get("languages") or [], cv.get("awards") or [], lang)
+    pub_block = _build_publications_block(pubs, lang, max_items=max_pubs)
+    lg_aw_block = _build_languages_and_awards_block(cv.get("languages") or [], cv.get("awards") or [], lang, max_awards=max_awards)
 
     if resume_type == "academico":
         ordered = [sum_block, edu_block, pub_block, pj_block, xp_block, sk_block, lg_aw_block]
@@ -3114,7 +3138,7 @@ def _render_google_standard(
 \usepackage[T1]{{fontenc}}
 \usepackage[{t['babel']}]{{babel}}
 \usepackage{{lmodern}}
-\usepackage[margin=0.5in]{{geometry}}
+\usepackage[left=1.0cm,right=1.0cm,top=0.8cm,bottom=0.8cm]{{geometry}}
 \usepackage{{xcolor}}
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
@@ -3134,8 +3158,8 @@ def _render_google_standard(
 \pagestyle{{empty}}
 \setlength{{\parindent}}{{0pt}}
 
-\titleformat{{\section}}{{\large\bfseries\scshape\color{{sidecolor}}}}{{}}{{0em}}{{}}[\vspace{{1pt}}\titlerule]
-\titlespacing*{{\section}}{{0pt}}{{7pt}}{{3pt}}
+\titleformat{{\section}}{{\normalsize\bfseries\scshape\color{{accent}}}}{{}}{{0em}}{{}}[\vspace{{1pt}}{{\color{{accent}}\titlerule}}]
+\titlespacing*{{\section}}{{0pt}}{{5pt}}{{2pt}}
 
 \begin{{document}}
 {header_tex}

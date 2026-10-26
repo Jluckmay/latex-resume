@@ -265,3 +265,56 @@ def test_tech_sidebar_balanced_columns_layout():
     assert r"\noindent\textbf{Introduction to Game Development Teaching Assistant} \hfill {\small\textit{2025}}" in main_part
     assert r"\textit{Federal University of Viçosa (UFV · Game Dev)}" in main_part
 
+
+def test_google_standard_strictly_one_page_academic_and_professional(tmp_path):
+    """Garante que o template Padrão Google produz estritamente 1 página conforme sua descrição."""
+    for resume_type in ["profissional", "academico"]:
+        for lang in ["pt-br", "en-us"]:
+            tex = render_builtin_template(
+                "google_standard",
+                SAMPLE_MASSIVE_PROFILE,
+                SAMPLE_LINKS,
+                resume_type=resume_type,
+                lang=lang,
+            )
+            tex_file = tmp_path / f"google_{resume_type}_{lang}.tex"
+            tex_file.write_text(tex, encoding="utf-8")
+
+            res = subprocess.run(
+                ["pdflatex", "-interaction=nonstopmode", str(tex_file)],
+                cwd=str(tmp_path),
+                capture_output=True,
+                text=True,
+            )
+            assert res.returncode == 0, f"pdflatex compilation failed for Google Standard ({resume_type}, {lang}):\n{res.stdout[-600:]}"
+
+            pdf_file = tmp_path / f"google_{resume_type}_{lang}.pdf"
+            assert pdf_file.exists()
+
+            reader = pypdf.PdfReader(str(pdf_file))
+            assert len(reader.pages) == 1, (
+                f"Expected strictly 1 page for Google Standard ({resume_type}, {lang}), got {len(reader.pages)}"
+            )
+
+
+def test_google_standard_gayle_mcdowell_layout_and_accent():
+    """Valida se o template Google Standard utiliza cor de destaque Google Blue e formatação Gayle McDowell."""
+    tex = render_builtin_template(
+        "google_standard",
+        SAMPLE_MASSIVE_PROFILE,
+        SAMPLE_LINKS,
+        resume_type="profissional",
+        lang="en-us",
+    )
+    # Deve conter a cor de destaque Google Blue
+    assert r"\definecolor{accent}{HTML}{0B57D0}" in tex
+    # Deve conter títulos de seção com accent
+    assert r"\titleformat{\section}{\normalsize\bfseries\scshape\color{accent}}" in tex
+    # Deve conter divisória horizontal com accent
+    assert r"{\color{accent}\titlerule}" in tex
+    assert r"{\color{accent}\hrule height 0.8pt}" in tex
+    # Experiência: Organização em negrito e cargo em itálico abaixo (Gayle Laakmann McDowell SWE layout)
+    assert r"\noindent\textbf{Federal University of Minas Gerais (DCC / UFMG)} \hfill \textbf{2026}" in tex
+    assert r"\textit{Student Electoral Board Member}" in tex
+
+
