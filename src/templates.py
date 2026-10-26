@@ -1829,6 +1829,71 @@ def _acv_sec_cmd(raw_title: str) -> str:
     return rf"\cvsection{{{clean}}}"
 
 
+def get_language_proficiency_score_6(lg_str: str, default_first: bool = False) -> Tuple[str, int]:
+    """Retorna (nome_limpo_idioma, score_de_1_a_6) para a escala CEFR de 6 níveis (A1=1, A2=2, B1=3, B2=4, C1=5, C2=6).
+
+    Mapeamento:
+    - 6 (C2): Nativo / Native, Fluente / Fluent, Domínio Pleno, Bilíngue, C2
+    - 5 (C1): Avançado / Advanced, Operacional Eficaz, C1
+    - 4 (B2): Intermediário Superior / Upper Intermediate, Independente, B2
+    - 3 (B1): Intermediário / Intermediate, Limiar, B1
+    - 2 (A2): Elementar / Elementary, Básico / Basic, A2
+    - 1 (A1): Iniciante / Beginner, Básico Inicial, Pouco, A1
+    """
+    s = str(lg_str or "").strip()
+    if not s:
+        return ("", 3)
+
+    m = re.match(r"^([^\(\[]+)(?:\s*[\(\[](.*?)[\)\]])?$", s)
+    clean_name = m.group(1).strip() if m else s
+    prof_note = m.group(2).strip().lower() if m and m.group(2) else ""
+    full_low = s.lower()
+
+    # 1. Checagem explícita de códigos CEFR (A1, A2, B1, B2, C1, C2)
+    if re.search(r"\b(?:c2|c-2)\b", prof_note) or re.search(r"\b(?:c2|c-2)\b", full_low):
+        return (clean_name, 6)
+    if re.search(r"\b(?:c1|c-1)\b", prof_note) or re.search(r"\b(?:c1|c-1)\b", full_low):
+        return (clean_name, 5)
+    if re.search(r"\b(?:b2|b-2)\b", prof_note) or re.search(r"\b(?:b2|b-2)\b", full_low):
+        return (clean_name, 4)
+    if re.search(r"\b(?:b1|b-1)\b", prof_note) or re.search(r"\b(?:b1|b-1)\b", full_low):
+        return (clean_name, 3)
+    if re.search(r"\b(?:a2|a-2)\b", prof_note) or re.search(r"\b(?:a2|a-2)\b", full_low):
+        return (clean_name, 2)
+    if re.search(r"\b(?:a1|a-1)\b", prof_note) or re.search(r"\b(?:a1|a-1)\b", full_low):
+        return (clean_name, 1)
+
+    # 2. Termos descritivos mapeados para a escala CEFR (1..6)
+    if any(k in prof_note for k in ("nativo", "native", "materno", "mother tongue", "bilíngue", "bilingual")):
+        return (clean_name, 6)
+    if any(k in prof_note for k in ("fluente", "fluent", "proficiente", "proficient", "domínio pleno", "dominio pleno", "pleno")):
+        return (clean_name, 6)
+    if any(k in prof_note for k in ("avançado", "avancado", "advanced", "operacional")):
+        return (clean_name, 5)
+    if any(k in prof_note for k in ("intermediário superior", "intermediario superior", "upper intermediate", "upper-intermediate", "independente")):
+        return (clean_name, 4)
+    if any(k in prof_note for k in ("intermediário", "intermediario", "intermediate")):
+        return (clean_name, 3)
+    if any(k in prof_note for k in ("básico", "basico", "basic", "elementar", "elementary")):
+        return (clean_name, 2)
+    if any(k in prof_note for k in ("iniciante", "beginner", "pouco", "introdutório", "introdutorio")):
+        return (clean_name, 1)
+
+    # 3. Heurísticas baseadas no nome do idioma quando não há especificação de nível
+    norm_name = "".join(
+        c for c in unicodedata.normalize("NFKD", clean_name) if unicodedata.category(c) != "Mn"
+    ).lower()
+
+    if "portugu" in norm_name or default_first:
+        return (clean_name, 6)
+    if "ingl" in norm_name or "engl" in norm_name:
+        return (clean_name, 3)
+    if any(k in norm_name for k in ("espanh", "span", "libra")):
+        return (clean_name, 2)
+
+    return (clean_name, 3)
+
+
 def _build_acv_sections(
     cv: Dict[str, Any],
     resume_type: str,
@@ -1975,37 +2040,13 @@ def _build_acv_sections(
         if with_lang_circles:
             l_rows: List[str] = []
             for idx, lg in enumerate(langs):
-                low_lg = lg.lower()
-                m = re.match(r"^([^\(]+)(?:\s*\((.*?)\))?$", lg)
-                clean_name = m.group(1).strip() if m else lg
-                prof_note = m.group(2).strip().lower() if m and m.group(2) else ""
-
-                if any(k in prof_note or k in low_lg for k in ("fluente", "fluent", "nativo", "native")):
-                    filled = 5
-                elif any(k in prof_note or k in low_lg for k in ("avançado", "avancado", "advanced")):
-                    filled = 4
-                elif any(k in prof_note or k in low_lg for k in ("intermediário", "intermediario", "intermediate")):
-                    filled = 3
-                elif any(k in prof_note or k in low_lg for k in ("iniciante", "básico", "basico", "beginner", "basic", "pouco")):
-                    filled = 2
-                else:
-                    if "portugu" in low_lg:
-                        filled = 5
-                    elif "ingl" in low_lg or "engl" in low_lg:
-                        filled = 3
-                    elif any(k in low_lg for k in ("espanh", "span", "libra")):
-                        filled = 2
-                    elif idx == 0:
-                        filled = 5
-                    else:
-                        filled = 3
-
+                clean_name, filled = get_language_proficiency_score_6(lg, default_first=(idx == 0))
                 full_circle = r"\faIcon[solid]{circle}"
                 empty_circle = r"\faIcon[regular]{circle}"
-                dots = " ".join([full_circle] * filled + [empty_circle] * (5 - filled))
+                dots = " ".join([full_circle] * filled + [empty_circle] * (6 - filled))
                 l_rows.append(rf"    \textbf{{\color{{sidecolor}} {escape_latex(clean_name)}}} & {{\color{{accent}} {dots}}} \\")
             l_body = (
-                r"\noindent\begin{tabular}{@{} p{0.55\textwidth} >{\raggedleft\arraybackslash}p{0.40\textwidth} @{}}"
+                r"\noindent\begin{tabular}{@{} p{0.50\textwidth} >{\raggedleft\arraybackslash}p{0.45\textwidth} @{}}"
                 + "\n"
                 + "\n".join(l_rows)
                 + "\n"
@@ -3123,24 +3164,17 @@ def _render_nico_krieger(
     else:
         skill_block = ""
 
-    # 4. Languages with 5-dot rating
+    # 4. Languages with 6-dot CEFR rating (A1 to C2)
     lang_lbl = "LANGUAGES" if is_en else "IDIOMAS"
     lang_lines: List[str] = [rf"{{\large\bfseries\color{{accent}} {lang_lbl}}}\\[-2pt]", r"\rule{\linewidth}{0.8pt}\\[5pt]"]
     languages = cv.get("languages") or []
     if languages:
-        for lg in languages:
+        for idx, lg in enumerate(languages):
             lg_str = str(lg).strip()
             if not lg_str:
                 continue
-            lower_lg = lg_str.lower()
-            if any(k in lower_lg for k in ("nativo", "native", "fluente", "fluent", "avançado", "advanced", "5")):
-                rating = 5
-            elif any(k in lower_lg for k in ("intermediário", "intermediate", "pleno", "4")):
-                rating = 4
-            else:
-                rating = 3
-            clean_name = re.sub(r"\s*[\(\[].*?[\)\]]", "", lg_str).strip() or lg_str
-            lang_lines.append(rf"{{\small\textbf{{{escape_latex(clean_name)}}}}} \hfill \skilldots{{{rating}}}\\[3pt]")
+            clean_name, rating = get_language_proficiency_score_6(lg_str, default_first=(idx == 0))
+            lang_lines.append(rf"{{\small\textbf{{{escape_latex(clean_name)}}}}} \hfill \langdots{{{rating}}}\\[3pt]")
         lang_block = "\n".join(lang_lines)
     else:
         lang_block = ""
@@ -3288,6 +3322,18 @@ def _render_nico_krieger(
         \fill[lightgray] (\x*0.28cm,0) circle (2.2pt);%
       \else%
         \fill[accent] (\x*0.28cm,0) circle (2.2pt);%
+      \fi%
+    }}%
+  \end{{tikzpicture}}%
+}}
+
+\newcommand{{\langdots}}[1]{{%
+  \begin{{tikzpicture}}[baseline=-0.35ex]%
+    \foreach \x in {{1,...,6}}{{%
+      \ifnum\x>#1\relax%
+        \fill[lightgray] (\x*0.24cm,0) circle (2.0pt);%
+      \else%
+        \fill[accent] (\x*0.24cm,0) circle (2.0pt);%
       \fi%
     }}%
   \end{{tikzpicture}}%

@@ -200,7 +200,12 @@ def test_russell_cv_language_circles_solid():
         "projects": [],
         "publications": [],
         "skills": [],
-        "languages": ["Português (Nativo)", "Inglês (Intermediário)"],
+        "languages": [
+            "Portuguese (Native)",
+            "English (Intermediate)",
+            "Spanish (Basic)",
+            "Libras (Basic)",
+        ],
         "awards": [],
     }
     links = {"github": "https://github.com/jluckmay"}
@@ -208,6 +213,27 @@ def test_russell_cv_language_circles_solid():
     tex = render_builtin_template("overleaf_russell_ti", cv, links, lang="en-us")
     assert r"\faIcon[solid]{circle}" in tex
     assert r"\faIcon{circle}" not in tex
+
+    # Cada linha de idioma deve conter exatamente 6 bullets somados (representando A1, A2, B1, B2, C1, C2)
+    for line in tex.splitlines():
+        if r"\faIcon[solid]{circle}" in line:
+            solids = line.count(r"\faIcon[solid]{circle}")
+            regulars = line.count(r"\faIcon[regular]{circle}")
+            assert solids + regulars == 6, f"Linha não possui 6 bullets: {line}"
+            if "Portuguese" in line:
+                assert solids == 6 and regulars == 0  # C2
+            elif "English" in line:
+                assert solids == 3 and regulars == 3  # B1
+            elif "Spanish" in line or "Libras" in line:
+                assert solids == 2 and regulars == 4  # A2
+
+    # Verifica também no template Nico Krieger
+    tex_nico = render_builtin_template("nico_krieger", cv, links, lang="en-us")
+    assert r"\newcommand{\langdots}[1]" in tex_nico
+    assert r"\foreach \x in {1,...,6}" in tex_nico
+    assert r"\langdots{6}" in tex_nico  # Portuguese C2
+    assert r"\langdots{3}" in tex_nico  # English B1
+    assert r"\langdots{2}" in tex_nico  # Spanish / Libras A2
 
 
 def test_clean_publication_venue_removes_title_duplication():
