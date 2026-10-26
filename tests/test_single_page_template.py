@@ -135,3 +135,69 @@ def test_single_page_keywords_strictly_one_page_professional(tmp_path):
 
     reader = pypdf.PdfReader(str(pdf_file))
     assert len(reader.pages) == 1, f"Expected strictly 1 page, got {len(reader.pages)}"
+
+def test_minimal_ats_strictly_one_page_academic_and_professional(tmp_path):
+    """Garante que o template Minimal ATS produz estritamente 1 página nos modos acadêmico e profissional."""
+    for resume_type in ["academico", "profissional"]:
+        tex = render_builtin_template(
+            "minimal_ats",
+            SAMPLE_MASSIVE_PROFILE,
+            SAMPLE_LINKS,
+            resume_type=resume_type,
+            lang="en-us",
+        )
+        tex_file = tmp_path / f"min_{resume_type}.tex"
+        tex_file.write_text(tex, encoding="utf-8")
+
+        res = subprocess.run(
+            ["pdflatex", "-interaction=nonstopmode", str(tex_file)],
+            cwd=str(tmp_path),
+            capture_output=True,
+            text=True,
+        )
+        assert res.returncode == 0, f"pdflatex compilation failed for {resume_type}:\n{res.stdout[-600:]}"
+
+        pdf_file = tmp_path / f"min_{resume_type}.pdf"
+        assert pdf_file.exists()
+
+        reader = pypdf.PdfReader(str(pdf_file))
+        assert len(reader.pages) == 1, f"Expected strictly 1 page for Minimal ATS ({resume_type}), got {len(reader.pages)}"
+
+
+def test_minimal_ats_experience_two_tier_layout():
+    """Valida se as experiências no Minimal ATS utilizam formatação em dois níveis para evitar quebras de data."""
+    tex = render_builtin_template(
+        "minimal_ats",
+        SAMPLE_MASSIVE_PROFILE,
+        SAMPLE_LINKS,
+        resume_type="profissional",
+        lang="en-us",
+    )
+    # Role e período na primeira linha, organização na segunda linha
+    assert r"\noindent\textbf{Introduction to Game Development Teaching Assistant} \hfill \textit{2025}" in tex
+    assert r"\textit{Federal University of Viçosa (UFV · Game Dev)}" in tex
+    # Não deve ter '--- \textit{Federal University' na mesma linha que cause quebra anômala
+    assert r"Teaching Assistant --- \textit{Federal" not in tex
+
+
+def test_minimal_ats_publications_sanitizes_conference_as_authors():
+    """Garante que títulos de anais/workshops não sejam indevidamente renderizados como autores."""
+    profile_with_bogus_author = dict(SAMPLE_MASSIVE_PROFILE)
+    profile_with_bogus_author["publications"] = [
+        {
+            "title": "PDI Interativo",
+            "authors": "Anais do XVI Workshop de Sistemas de Informação",
+            "venue": "XVI Workshop de Sistemas de Informação",
+            "year": "2025",
+        }
+    ]
+    tex = render_builtin_template(
+        "minimal_ats",
+        profile_with_bogus_author,
+        SAMPLE_LINKS,
+        resume_type="profissional",
+        lang="en-us",
+    )
+    # Não deve renderizar o nome do workshop como autor
+    assert "Anais do XVI Workshop de Sistemas de Informação." not in tex
+

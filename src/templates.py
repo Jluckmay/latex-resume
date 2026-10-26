@@ -1367,23 +1367,73 @@ def _render_header_with_optional_photo(
 """
 
 
-def _render_sections_body(cv: Dict[str, Any], resume_type: str, lang: str = "pt-br") -> str:
+def _render_sections_body(
+    cv: Dict[str, Any],
+    resume_type: str,
+    lang: str = "pt-br",
+    is_single_page: bool = False,
+) -> str:
     """Constrói as seções do corpo na ordem e idioma ideais para currículo Acadêmico ou Profissional."""
     t = LATEX_I18N[normalize_lang(lang)]
     is_en = normalize_lang(lang).startswith("en")
     blocks: List[str] = []
 
+    pubs = cv.get("publications") or []
+    projs = cv.get("projects") or []
+    has_pubs = bool(pubs)
+    has_projs = bool(projs)
+
+    if is_single_page:
+        if has_pubs and has_projs:
+            max_exp = 2
+            max_proj = 2
+            max_pubs = 2
+            max_edu = 2
+            max_awards = 2
+            max_skills = 0
+        elif has_pubs:
+            max_exp = 3
+            max_proj = 0
+            max_pubs = 3
+            max_edu = 2
+            max_awards = 3
+            max_skills = 0
+        elif has_projs:
+            max_exp = 3
+            max_proj = 2
+            max_pubs = 0
+            max_edu = 2
+            max_awards = 3
+            max_skills = 1
+        else:
+            max_exp = 4
+            max_proj = 0
+            max_pubs = 0
+            max_edu = 2
+            max_awards = 3
+            max_skills = 2
+    else:
+        max_exp = None
+        max_proj = None
+        max_pubs = None
+        max_edu = None
+        max_awards = None
+        max_skills = None
+
     if cv.get("summary"):
         sec_title = t["sec_summary_acad"] if resume_type == "academico" else t["sec_summary_prof"]
-        blocks.append(rf"\section*{{{sec_title}}}" + "\n" + escape_latex(cv["summary"]))
+        raw_sum = cv["summary"]
+        if is_single_page and len(raw_sum) > 280:
+            raw_sum = raw_sum[:277].rstrip() + "..."
+        blocks.append(rf"\section*{{{sec_title}}}" + "\n" + escape_latex(raw_sum))
 
-    edu_block = _build_education_block(cv.get("education") or [], lang)
-    exp_block = _build_experience_block(cv.get("experience") or [], resume_type, lang)
-    pub_block = _build_publications_block(cv.get("publications") or [], lang)
-    proj_block = _build_projects_block(cv.get("projects") or [], resume_type, lang)
-    skill_block = _build_skills_block(cv.get("skills") or [], lang)
+    edu_block = _build_education_block(cv.get("education") or [], lang, max_items=max_edu)
+    exp_block = _build_experience_block(cv.get("experience") or [], resume_type, lang, max_items=max_exp)
+    pub_block = _build_publications_block(cv.get("publications") or [], lang, max_items=max_pubs)
+    proj_block = _build_projects_block(cv.get("projects") or [], resume_type, lang, max_items=max_proj)
+    skill_block = _build_skills_block(cv.get("skills") or [], lang, max_items=max_skills)
     lang_award_block = _build_languages_and_awards_block(
-        cv.get("languages") or [], cv.get("awards") or [], lang
+        cv.get("languages") or [], cv.get("awards") or [], lang, max_awards=max_awards
     )
 
     if resume_type == "academico":
@@ -1398,12 +1448,17 @@ def _render_sections_body(cv: Dict[str, Any], resume_type: str, lang: str = "pt-
     return "\n\n".join(blocks)
 
 
-def _build_education_block(educations: List[Dict[str, Any]], lang: str = "pt-br") -> str:
+def _build_education_block(
+    educations: List[Dict[str, Any]],
+    lang: str = "pt-br",
+    max_items: Optional[int] = None,
+) -> str:
     if not educations:
         return ""
     t = LATEX_I18N[normalize_lang(lang)]
     entries: List[str] = []
-    for ed in educations:
+    edus = educations[:max_items] if max_items else educations
+    for ed in edus:
         deg = escape_latex(ed.get("degree"))
         inst = escape_latex(ed.get("institution"))
         per = escape_latex(ed.get("period"))
@@ -1419,19 +1474,28 @@ def _build_education_block(educations: List[Dict[str, Any]], lang: str = "pt-br"
     return rf"\section*{{{t['sec_education']}}}" + "\n\n" + "\n\n".join(entries)
 
 
-def _build_experience_block(experiences: List[Dict[str, Any]], resume_type: str, lang: str = "pt-br") -> str:
+def _build_experience_block(
+    experiences: List[Dict[str, Any]],
+    resume_type: str,
+    lang: str = "pt-br",
+    max_items: Optional[int] = None,
+) -> str:
     if not experiences:
         return ""
     t = LATEX_I18N[normalize_lang(lang)]
     title = t["sec_exp_acad"] if resume_type == "academico" else t["sec_exp_prof"]
     lines = [rf"\section*{{{title}}}"]
-    for xp in experiences:
+    exps = experiences[:max_items] if max_items else experiences
+    for xp in exps:
         role = escape_latex(xp.get("role"))
         org = escape_latex(xp.get("organization"))
         per = escape_latex(xp.get("period"))
         bullets = [escape_latex(sanitize_experience_description(b, lang=lang)) for b in (xp.get("bullets") or []) if str(b).strip()]
-        header_left = f"{role} --- \\textit{{{org}}}" if org else role
-        lines.append(rf"\noindent\textbf{{{header_left}}} \hfill \textit{{{per}}}")
+        # Two-tier professional layout: avoids awkward wrap with date pushed to next line
+        head_lines = [rf"\noindent\textbf{{{role}}} \hfill \textit{{{per}}}"]
+        if org:
+            head_lines.append(rf"\textit{{{org}}}")
+        lines.append(r" \\ ".join(head_lines))
         if bullets:
             lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
             for b in bullets:
@@ -1443,7 +1507,12 @@ def _build_experience_block(experiences: List[Dict[str, Any]], resume_type: str,
     return "\n".join(lines)
 
 
-def _build_projects_block(projects: List[Dict[str, Any]], resume_type: str, lang: str = "pt-br") -> str:
+def _build_projects_block(
+    projects: List[Dict[str, Any]],
+    resume_type: str,
+    lang: str = "pt-br",
+    max_items: Optional[int] = None,
+) -> str:
     if not projects:
         return ""
     is_en = normalize_lang(lang).startswith("en")
@@ -1451,7 +1520,8 @@ def _build_projects_block(projects: List[Dict[str, Any]], resume_type: str, lang
     title = t["sec_proj_acad"] if resume_type == "academico" else t["sec_proj_prof"]
     lines = [rf"\section*{{{title}}}"]
     lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
-    for pj in projects:
+    projs = projects[:max_items] if max_items else projects
+    for pj in projs:
         nm = escape_latex(pj.get("name") or "").strip()
         if not nm:
             continue
@@ -1477,20 +1547,32 @@ def _build_projects_block(projects: List[Dict[str, Any]], resume_type: str, lang
     return "\n".join(lines)
 
 
-def _build_publications_block(publications: List[Dict[str, Any]], lang: str = "pt-br") -> str:
+def _build_publications_block(
+    publications: List[Dict[str, Any]],
+    lang: str = "pt-br",
+    max_items: Optional[int] = None,
+) -> str:
     if not publications:
         return ""
     t = LATEX_I18N[normalize_lang(lang)]
     lines = [rf"\section*{{{t['sec_publications']}}}"]
     lines.append(r"\begin{enumerate}[leftmargin=1.5em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
-    for pb in publications:
+    pubs = publications[:max_items] if max_items else publications
+    for pb in pubs:
         title = escape_latex(pb.get("title") or "").strip()
         title = re.sub(r"-(Resumo Estendido|Short Paper|Extended Abstract)\b", r" (\1)", title, flags=re.IGNORECASE)
         venue = escape_latex(pb.get("venue") or "").strip()
         year = escape_latex(pb.get("year") or "").strip()
         authors = escape_latex(pb.get("authors") or "").strip()
-        if authors and (authors.lower() in title.lower() or title.lower() in authors.lower()):
-            authors = ""
+        if authors:
+            auth_low = authors.lower()
+            if (
+                auth_low in title.lower()
+                or title.lower() in auth_low
+                or (venue and (auth_low in venue.lower() or venue.lower() in auth_low))
+                or any(kw in auth_low for kw in ("workshop", "anais", "congresso", "simposio", "simpósio", "conferencia", "conferência", "conference", "proceedings", "journal", "revista"))
+            ):
+                authors = ""
         doi = (pb.get("doi") or "").strip()
         pub_url = (pb.get("url") or "").strip()
         if not pub_url and doi:
@@ -1514,13 +1596,18 @@ def _build_publications_block(publications: List[Dict[str, Any]], lang: str = "p
     return "\n".join(lines)
 
 
-def _build_skills_block(skills: List[Dict[str, Any]], lang: str = "pt-br") -> str:
+def _build_skills_block(
+    skills: List[Dict[str, Any]],
+    lang: str = "pt-br",
+    max_items: Optional[int] = None,
+) -> str:
     if not skills:
         return ""
     t = LATEX_I18N[normalize_lang(lang)]
     lines = [rf"\section*{{{t['sec_skills']}}}"]
     lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
-    for sk in skills:
+    sks = skills[:max_items] if max_items else skills
+    for sk in sks:
         if isinstance(sk, dict):
             cat = escape_latex(sk.get("category"))
             items = escape_latex(sk.get("items"))
@@ -1541,7 +1628,12 @@ def _build_skills_block(skills: List[Dict[str, Any]], lang: str = "pt-br") -> st
     return "\n".join(lines)
 
 
-def _build_languages_and_awards_block(languages: List[str], awards: List[str], lang: str = "pt-br") -> str:
+def _build_languages_and_awards_block(
+    languages: List[str],
+    awards: List[str],
+    lang: str = "pt-br",
+    max_awards: Optional[int] = None,
+) -> str:
     t = LATEX_I18N[normalize_lang(lang)]
     parts: List[str] = []
     clean_langs = [str(x).strip() for x in (languages or []) if str(x).strip()]
@@ -1553,12 +1645,12 @@ def _build_languages_and_awards_block(languages: List[str], awards: List[str], l
     if clean_awards:
         lines = [rf"\section*{{{t['sec_awards']}}}"]
         lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
-        for aw in clean_awards:
+        aws = clean_awards[:max_awards] if max_awards else clean_awards
+        for aw in aws:
             lines.append(rf"    \item {escape_latex(aw)}")
         lines.append(r"\end{itemize}")
         parts.append("\n".join(lines))
     return "\n\n".join(parts)
-
 
 def _render_modern_pro(
     cv: Dict[str, Any],
@@ -1791,14 +1883,15 @@ def _render_minimal_ats(
     else:
         contact_str = " | ".join(contact_items)
     header = _render_header_with_optional_photo(name, title, contact_str, photo_filename, accent_cmd="")
-    body = _render_sections_body(cv, resume_type, lang)
+    # Minimal ATS is strictly a single-page template
+    body = _render_sections_body(cv, resume_type, lang, is_single_page=True)
 
     return rf"""\documentclass[10pt,a4paper]{{article}}
 \usepackage[utf8]{{inputenc}}
 \usepackage[T1]{{fontenc}}
 \usepackage[{t['babel']}]{{babel}}
 \usepackage{{lmodern}}
-\usepackage[margin=1.3cm]{{geometry}}
+\usepackage[left=1.0cm,right=1.0cm,top=0.8cm,bottom=0.8cm]{{geometry}}
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
 \usepackage{{titlesec}}
@@ -1814,15 +1907,16 @@ def _render_minimal_ats(
 \pagestyle{{empty}}
 \setlength{{\parindent}}{{0pt}}
 
-\titleformat{{\section}}{{\normalsize\bfseries\scshape}}{{}}{{0em}}{{}}[\titlerule]
-\titlespacing*{{\section}}{{0pt}}{{8pt}}{{3pt}}
+\titleformat{{name=\section,numberless}}{{\normalsize\bfseries\scshape}}{{}}{{0em}}{{}}[\vspace{{1pt}}\titlerule]
+\titlespacing*{{name=\section,numberless}}{{0pt}}{{6pt}}{{2pt}}
+\titleformat{{\section}}{{\normalsize\bfseries\scshape}}{{}}{{0em}}{{}}[\vspace{{1pt}}\titlerule]
+\titlespacing*{{\section}}{{0pt}}{{6pt}}{{2pt}}
 
 \begin{{document}}
 {header}
 {body}
 \end{{document}}
 """
-
 
 def _split_first_last_name(raw_name: str) -> tuple[str, str]:
     """Divide o nome completo em (Primeiro(s) Nome(s), Sobrenome(s)) no estilo Russell / Awesome-CV / my_cv."""
