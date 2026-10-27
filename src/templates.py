@@ -1809,13 +1809,13 @@ def _render_tech_sidebar(
         sidebar_edu = "\n".join(edu_lines)
 
     # 4. Competências Técnicas na barra lateral
-    sidebar_skills = _build_skills_block(cv.get("skills") or [], lang, max_items=2)
+    sidebar_skills = _build_skills_block(cv.get("skills") or [], lang)
 
     # 5. Idiomas na barra lateral
     clean_langs = [str(x).strip() for x in (cv.get("languages") or []) if str(x).strip()]
     sidebar_langs = ""
     if clean_langs:
-        l_items = "\n".join(rf"    \item {{\footnotesize {escape_latex(x)}}}" for x in clean_langs[:4])
+        l_items = "\n".join(rf"    \item {{\footnotesize {escape_latex(x)}}}" for x in clean_langs)
         sidebar_langs = (
             rf"\section*{{{t['sec_languages']}}}"
             + f"\n\\begin{{itemize}}[leftmargin=1.1em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]\n{l_items}\n\\end{{itemize}}"
@@ -1825,7 +1825,7 @@ def _render_tech_sidebar(
     clean_awards = sanitize_awards(cv.get("awards") or [], lang=lang)
     sidebar_awards = ""
     if clean_awards:
-        a_items = "\n".join(rf"    \item {{\footnotesize {escape_latex(x)}}}" for x in clean_awards[:3])
+        a_items = "\n".join(rf"    \item {{\footnotesize {escape_latex(x)}}}" for x in clean_awards)
         sidebar_awards = (
             rf"\section*{{{t['sec_awards']}}}"
             + f"\n\\begin{{itemize}}[leftmargin=1.1em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]\n{a_items}\n\\end{{itemize}}"
@@ -1851,35 +1851,15 @@ def _render_tech_sidebar(
     projs = cv.get("projects") or []
     has_projs = bool(projs)
 
-    if has_pubs and has_projs:
-        max_exp = 3
-        max_proj = 2
-        max_pubs = 2
-    elif has_pubs:
-        max_exp = 3
-        max_proj = 0
-        max_pubs = 3
-    elif has_projs:
-        max_exp = 3
-        max_proj = 3
-        max_pubs = 0
-    else:
-        max_exp = 4
-        max_proj = 0
-        max_pubs = 0
-
     # Resumo / Perfil
     summary_block = ""
     if cv.get("summary"):
         sec_title = t["sec_summary_acad"] if resume_type == "academico" else t["sec_summary_prof"]
-        raw_sum = cv["summary"]
-        if len(raw_sum) > 280:
-            raw_sum = raw_sum[:277].rstrip() + "..."
-        summary_block = rf"\section*{{{sec_title}}}" + "\n" + rf"{{\small {escape_latex(raw_sum)}}}"
+        summary_block = rf"\section*{{{sec_title}}}" + "\n" + rf"{{\small {escape_latex(cv['summary'])}}}"
 
-    # Experiência com formatação profissional em 2 níveis
+    # Experiência com formatação profissional em 2 níveis (preserva histórico completo sem truncamento)
     exp_block = ""
-    exps = (cv.get("experience") or [])[:max_exp]
+    exps = cv.get("experience") or []
     if exps:
         exp_lines = [rf"\section*{{{t['sec_exp_acad'] if resume_type == 'academico' else t['sec_exp_prof']}}}"]
         for xp in exps:
@@ -1897,27 +1877,25 @@ def _render_tech_sidebar(
             exp_lines.append(r" \\ ".join(head_lines))
             if bullets:
                 exp_lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
-                for b in bullets[:2]:
+                for b in bullets:
                     exp_lines.append(rf"    \item {{\small {b}}}")
                 exp_lines.append(r"\end{itemize}\vspace{2pt}")
             else:
                 exp_lines.append(r"\par\vspace{3pt}")
         exp_block = "\n".join(exp_lines)
 
-    # Projetos
+    # Projetos (preserva projetos completos)
     proj_block = ""
-    if has_projs and max_proj:
+    if has_projs:
         proj_lines = [rf"\section*{{{t['sec_proj_acad'] if resume_type == 'academico' else t['sec_proj_prof']}}}"]
         proj_lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
-        for pj in projs[:max_proj]:
+        for pj in projs:
             nm = escape_latex(pj.get("name") or "").strip()
             if not nm:
                 continue
             tech = escape_latex(pj.get("tech") or "").strip()
             url = (pj.get("url") or "").strip()
             desc = escape_latex(sanitize_project_description(pj.get("description") or "", lang)).strip()
-            if len(desc) > 130:
-                desc = desc[:127].rstrip() + "..."
             if url and url.startswith("http"):
                 head = rf"\href{{{escape_url(url)}}}{{\textbf{{{nm}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
             else:
@@ -1928,12 +1906,12 @@ def _render_tech_sidebar(
         proj_lines.append(r"\end{itemize}")
         proj_block = "\n".join(proj_lines)
 
-    # Publicações com limpeza de falsos autores
+    # Publicações com limpeza de falsos autores (preserva lista completa)
     pub_block = ""
-    if has_pubs and max_pubs:
+    if has_pubs:
         pub_lines = [rf"\section*{{{t['sec_publications']}}}"]
         pub_lines.append(r"\begin{enumerate}[leftmargin=1.5em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
-        for pb in pubs[:max_pubs]:
+        for pb in pubs:
             title_p = escape_latex(pb.get("title") or "").strip()
             venue = escape_latex(pb.get("venue") or "").strip()
             year = escape_latex(pb.get("year") or "").strip()

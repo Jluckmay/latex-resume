@@ -202,8 +202,8 @@ def test_minimal_ats_publications_sanitizes_conference_as_authors():
     # Não deve renderizar o nome do workshop como autor
     assert "Anais do XVI Workshop de Sistemas de Informação." not in tex
 
-def test_tech_sidebar_strictly_one_page_and_no_blank_page(tmp_path):
-    """Garante que o template Tech Sidebar produz estritamente 1 página preenchida, sem página inicial em branco."""
+def test_tech_sidebar_no_blank_page_and_full_content(tmp_path):
+    """Garante que o template Tech Sidebar não cria página inicial em branco e preserva o conteúdo completo sem truncamento indevido."""
     for resume_type in ["profissional", "academico"]:
         tex = render_builtin_template(
             "tech_sidebar",
@@ -227,10 +227,15 @@ def test_tech_sidebar_strictly_one_page_and_no_blank_page(tmp_path):
         assert pdf_file.exists()
 
         reader = pypdf.PdfReader(str(pdf_file))
-        assert len(reader.pages) == 1, f"Expected strictly 1 page for Tech Sidebar ({resume_type}), got {len(reader.pages)}"
-
+        assert len(reader.pages) >= 1
         page1_text = reader.pages[0].extract_text().strip()
         assert len(page1_text) > 1000, f"Page 1 is unexpectedly empty or sparse: len={len(page1_text)}"
+
+        full_text = "\n".join(p.extract_text() for p in reader.pages)
+        # Garante que experiências, projetos e publicações completas são preservados
+        assert "Programming Teaching Assistant" in full_text
+        assert "Math-O-Ween" in full_text
+        assert "PDI Interativo" in full_text
 
 
 def test_tech_sidebar_balanced_columns_layout():
