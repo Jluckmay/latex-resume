@@ -6,6 +6,9 @@
     <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.googleapis.com https:; font-src 'self' https://fonts.gstatic.com https://*.gstatic.com https: data: blob:; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; worker-src 'self' blob: data: https://cdnjs.cloudflare.com; connect-src 'self' http://127.0.0.1:5000 http://localhost:5000 https://*.onrender.com https://cdnjs.cloudflare.com; frame-src 'self' blob: data: chrome-extension:; object-src 'self' blob: data:; img-src 'self' data: blob:;">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <meta http-equiv="Permissions-Policy" content="unload=()">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <meta name="backend-enclave" content="protected-aes-transport">
     <script>
         // Supressão imediata no topo do <head> de ruídos de extensões (Passkeys, Google Password Manager, Autofill, 1Password, Bitwarden)
@@ -3559,20 +3562,25 @@
                     || errMsg.toLowerCase().includes("load resource")
                     || errMsg.toLowerCase().includes("abort")
                     || errMsg.toLowerCase().includes("timeout")
+                    || errMsg.toLowerCase().includes("tempo limite")
+                    || errMsg.toLowerCase().includes("signal")
                     || err.name === "AbortError"
                 );
                 if (isNetErr) {
                     errMsg = (state.uiLang === "en-us")
                         ? "Unable to reach the Render backend. The free cloud instance sleeps after inactivity and takes 30-50s to wake up. Please wait a moment and click 'Generate Resume' again, or select 'No AI / Offline (0 Tokens)'."
                         : "Não foi possível conectar ao servidor backend (Render). No plano gratuito do Render, o servidor hiberna após inatividade e leva de 30 a 50 segundos para despertar. Aguarde um instante e clique em 'Gerar Currículo' novamente, ou selecione 'Sem IA / Offline (0 Tokens)' para compilar diretamente sem rede.";
-                } else if (errMsg.includes("RuntimeError") && !errMsg.toLowerCase().includes("chave") && !errMsg.toLowerCase().includes("key")) {
-                    errMsg += (state.uiLang === "en-us")
-                        ? "\n\n💡 Tip: Select 'NVIDIA NIM (Server Default)' to use the backend server's active key, or select 'No AI / Offline (0 Tokens)'."
-                        : "\n\n💡 Dica: Selecione 'NVIDIA NIM (Padrão do Servidor)' para utilizar a chave ativa configurada no servidor backend, ou selecione 'Sem IA / Offline (0 Tokens)'.";
+                    alert(errMsg);
+                } else {
+                    if (errMsg.includes("RuntimeError") && !errMsg.toLowerCase().includes("chave") && !errMsg.toLowerCase().includes("key")) {
+                        errMsg += (state.uiLang === "en-us")
+                            ? "\n\n💡 Tip: Select 'NVIDIA NIM (Server Default)' to use the backend server's active key, or select 'No AI / Offline (0 Tokens)'."
+                            : "\n\n💡 Dica: Selecione 'NVIDIA NIM (Padrão do Servidor)' para utilizar a chave ativa configurada no servidor backend, ou selecione 'Sem IA / Offline (0 Tokens)'.";
+                    }
+                    alert((state.uiLang === "en-us"
+                        ? "Error communicating with backend: "
+                        : "Erro ao comunicar com o servidor: ") + errMsg);
                 }
-                alert((state.uiLang === "en-us"
-                    ? "Error communicating with backend: "
-                    : "Erro ao comunicar com o servidor: ") + errMsg);
                 if (errMsg.toLowerCase().includes("chave") || errMsg.toLowerCase().includes("key")) {
                     const keyInput = document.getElementById("inp-api-key");
                     if (keyInput) {

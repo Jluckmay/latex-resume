@@ -3639,7 +3639,7 @@ def _render_nico_krieger(
         awards_block = ""
 
     sidebar_sections = [s for s in (contact_block, edu_block, skill_block, lang_block, awards_block) if s]
-    sidebar_content = "\n\n\\vspace{5pt}\n\n".join(sidebar_sections)
+    sidebar_content = "\n\n\\vspace{4pt}\n\n".join(sidebar_sections)
 
     # 7. Main Column: Experience, Projects, Publications (Education moved to sidebar)
     pubs_all = cv.get("publications") or []
@@ -3650,10 +3650,10 @@ def _render_nico_krieger(
         len(cv.get("experience") or []),
         len(projs_all),
         len(pubs_all),
-        budget=45.0,
+        budget=41.0,
         weight_exp=4.0,
         weight_proj=2.8,
-        weight_pub=1.8,
+        weight_pub=2.2,
         resume_type=resume_type,
     )
 
@@ -3706,11 +3706,11 @@ def _render_nico_krieger(
                 nm_head = rf"\textbf{{{nm}}}"
             pj_lines.append(rf"{nm_head}\\[0.5pt]")
             if tech:
-                pj_lines.append(rf"{{\small\color{{graytext}}\textbf{{Stack:}} {tech}}}\\[1pt]")
+                pj_lines.append(rf"{{\small\color{{graytext}}\textbf{{Stack:}} {tech}}}\\[0.5pt]")
             if desc:
-                pj_lines.append(rf"{{\small {desc}}}\\[2pt]")
+                pj_lines.append(rf"{{\small {desc}}}\par\vspace{{1.5pt}}")
             else:
-                pj_lines.append(r"\vspace{2pt}")
+                pj_lines.append(r"\vspace{1.5pt}")
         main_sections.append("\n".join(pj_lines))
 
     # Publications
@@ -3738,18 +3738,18 @@ def _render_nico_krieger(
                 meta_items.append(rf"\href{{{escape_url(doi_url)}}}{{\faIcon{{link}}\ DOI: {escape_latex(clean_doi)}}}")
             meta_str = ", ".join(meta_items)
             is_last = (idx == len(pubs) - 1)
-            trail = "" if is_last else r"\\[2pt]"
-            pb_lines.append(rf"\textbf{{{title_pb}}}\\" + (rf"{{\small {meta_str}}}{trail}" if meta_str else trail))
+            trail = "" if is_last else r"\par\vspace{1.5pt}"
+            pb_lines.append(rf"\textbf{{{title_pb}}}\\[0.5pt]" + (rf"{{\small {meta_str}}}{trail}" if meta_str else trail))
         main_sections.append("\n".join(pb_lines))
 
-    main_content = "\n\n\\vspace{4pt}\n\n".join(main_sections)
+    main_content = "\n\n\\vspace{2.5pt}\n\n".join(main_sections)
 
     return rf"""% Template Nico Krieger (my-resume) - Full-Width Dark Header & Two-Column Highlight Sidebar
 \documentclass[10pt,a4paper]{{article}}
 \usepackage[utf8]{{inputenc}}
 \usepackage[T1]{{fontenc}}
 \usepackage[{t['babel']}]{{babel}}
-\usepackage[left=0cm,right=0.9cm,top=0cm,bottom=0.6cm,noheadfoot]{{geometry}}
+\usepackage[left=0cm,right=0.9cm,top=0cm,bottom=0.45cm,noheadfoot]{{geometry}}
 \usepackage{{xcolor}}
 \usepackage{{paracol}}
 \usepackage{{tikz}}
