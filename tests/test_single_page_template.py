@@ -255,15 +255,16 @@ def test_tech_sidebar_balanced_columns_layout():
     # Separação das colunas via \switchcolumn
     sidebar_part, main_part = tex.split(r"\switchcolumn")
 
-    # Sidebar deve conter Educação, Contatos, Idiomas e Prêmios
+    # Sidebar deve conter Educação, Contatos, Resumo Profissional, Idiomas e Prêmios
     assert "Education" in sidebar_part
     assert "M.Sc. in Computer Science" in sidebar_part
     assert "lucas.mayrinck@dcc.ufmg.br" in sidebar_part
+    assert "Professional Summary" in sidebar_part
     assert "Languages" in sidebar_part
     assert "Awards, Honors" in sidebar_part
 
-    # Main Body deve conter Perfil, Experiência e Projetos
-    assert "Professional Summary" in main_part
+    # Main Body deve conter Experiência e Projetos (resumo movido para a esquerda para layout compacto)
+    assert "Professional Summary" not in main_part
     assert "Professional Experience" in main_part
     assert "Featured" in main_part
     assert "Introduction to Game Development Teaching Assistant" in main_part

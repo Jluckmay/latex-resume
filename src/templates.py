@@ -1831,9 +1831,17 @@ def _render_tech_sidebar(
             + f"\n\\begin{{itemize}}[leftmargin=1.1em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]\n{a_items}\n\\end{{itemize}}"
         )
 
+    # Resumo / Perfil na barra lateral (compacta o documento e equilibra o peso visual)
+    summary_block = ""
+    if cv.get("summary"):
+        sec_title = t["sec_summary_acad"] if resume_type == "academico" else t["sec_summary_prof"]
+        summary_block = rf"\section*{{{sec_title}}}" + "\n" + rf"{{\footnotesize {escape_latex(cv['summary'])}}}"
+
     sidebar_blocks = [
         rf"\section*{{{t['sec_contact']}}}" + "\n" + sidebar_contacts,
     ]
+    if summary_block:
+        sidebar_blocks.append(summary_block)
     if sidebar_edu:
         sidebar_blocks.append(sidebar_edu)
     if sidebar_skills:
@@ -1845,17 +1853,11 @@ def _render_tech_sidebar(
 
     sidebar_content = "\n\n".join(sidebar_blocks)
 
-    # 7. Coluna Principal (Main Body): Profile + Experience + Projects + Publications
+    # 7. Coluna Principal (Main Body): Experience + Projects + Publications
     pubs = cv.get("publications") or []
     has_pubs = bool(pubs)
     projs = cv.get("projects") or []
     has_projs = bool(projs)
-
-    # Resumo / Perfil
-    summary_block = ""
-    if cv.get("summary"):
-        sec_title = t["sec_summary_acad"] if resume_type == "academico" else t["sec_summary_prof"]
-        summary_block = rf"\section*{{{sec_title}}}" + "\n" + rf"{{\small {escape_latex(cv['summary'])}}}"
 
     # Experiência com formatação profissional em 2 níveis (preserva histórico completo sem truncamento)
     exp_block = ""
@@ -1948,9 +1950,9 @@ def _render_tech_sidebar(
         pub_block = "\n".join(pub_lines)
 
     if resume_type == "academico":
-        ordered = [summary_block, exp_block, pub_block, proj_block]
+        ordered = [exp_block, pub_block, proj_block]
     else:
-        ordered = [summary_block, exp_block, proj_block, pub_block]
+        ordered = [exp_block, proj_block, pub_block]
 
     main_body = "\n\n".join(b for b in ordered if b)
 
