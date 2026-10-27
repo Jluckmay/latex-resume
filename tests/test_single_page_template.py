@@ -437,4 +437,92 @@ def test_nico_krieger_previews_have_education_in_sidebar():
     assert "FORMAÇÃO ACADÊMICA" in nico_js_match.group(0)
 
 
+def test_location_auto_resolved_when_user_location_omitted(tmp_path):
+    """Garante que a localização é inferida das fontes (GitHub / Portfólio) mesmo se omitida no formulário."""
+    from src.pipeline import build_resume_pipeline
+
+    res = build_resume_pipeline(
+        resume_type="profissional",
+        github_input="https://github.com/jluckmay",
+        portfolio_url="https://jluckmay.github.io",
+        template_id="overleaf_single_page_keywords",
+        user_name="João Lucas Mayrinck",
+        user_location="",  # Omitida pelo usuário
+        provider="none",
+        use_ai=False,
+        build_dir=tmp_path,
+        lang="pt-br",
+    )
+    assert res.success is True
+    assert "Belo Horizonte" in res.latex_code
+    assert r"\faIcon{map-marker-alt}" in res.latex_code
+
+
+def test_single_page_keywords_and_minimal_ats_fill_page_richly(tmp_path):
+    """Garante que perfis com muitas experiências e publicações aproveitam bem o espaço da página única sem subutilização."""
+    profile_rich = {
+        "name": "João Lucas Mayrinck",
+        "title": "Especialista em Tecnologia & Desenvolvimento",
+        "summary": "Pesquisador e desenvolvedor com atuação em engenharia de software e jogos digitais.",
+        "email": "lucas.mayrinck@dcc.ufmg.br",
+        "location": "Belo Horizonte, MG",
+        "education": [
+            {"degree": "Mestrado em Ciência da Computação", "institution": "UFMG", "period": "2026 - Atual"},
+            {"degree": "Bacharelado em Sistemas de Informação", "institution": "UFV", "period": "2019 - 2025"},
+        ],
+        "languages": ["Português (Fluente)", "Inglês (Intermediário)", "Espanhol (Iniciante)", "Libras (Iniciante)"],
+        "awards": [
+            "Menção Honrosa – WSIS 2025",
+            "Menção Honrosa – SBIE 2024",
+            "Segundo Lugar – SIA 2023",
+        ],
+        "experience": [
+            {"role": "Comissão eleitoral", "organization": "CAPosComp/UFMG", "period": "2026", "bullets": ["Apoio à representação discente."]},
+            {"role": "Monitor de Jogos", "organization": "UFV", "period": "2025", "bullets": ["Mentoria de estudantes."]},
+            {"role": "Bolsista de Extensão", "organization": "UFV", "period": "2023 - 2024", "bullets": ["Desenvolvimento no GeoGebra."]},
+            {"role": "Frontend Developer", "organization": "Health Lake", "period": "2021 - 2023", "bullets": ["Desenvolvimento web."]},
+            {"role": "Tutor de Informática", "organization": "UFV", "period": "2022", "bullets": ["Ensino de informática básica."]},
+        ],
+        "publications": [
+            {"title": "Math-0-Ween: Jogo Educacional", "venue": "RBIE", "year": "2026"},
+            {"title": "PDI Interativo: Estudo e Experimentação", "venue": "Anais WSIS", "year": "2025"},
+            {"title": "Jogo Digital no Ensino de Frações", "venue": "Anais WSIS", "year": "2025"},
+            {"title": "Otimização por Simulated Annealing", "venue": "Anais WSIS", "year": "2025"},
+            {"title": "Gamificação no Ensino de Física", "venue": "Anais WSIS", "year": "2025"},
+        ],
+        "projects": [],
+    }
+    links = {
+        "portfolio": "https://jluckmay.github.io",
+        "github": "https://github.com/jluckmay",
+    }
+
+    # 1. Minimal ATS deve incluir até 5 experiências e 5 publicações e ter exatamente 1 página
+    tex_ats = render_builtin_template("minimal_ats", profile_rich, links, resume_type="profissional", lang="pt-br")
+    f_ats = tmp_path / "fill_ats.tex"
+    f_ats.write_text(tex_ats, encoding="utf-8")
+    subprocess.run(["pdflatex", "-interaction=nonstopmode", str(f_ats)], cwd=str(tmp_path), capture_output=True)
+    pdf_ats = tmp_path / "fill_ats.pdf"
+    assert pdf_ats.exists()
+    reader_ats = pypdf.PdfReader(str(pdf_ats))
+    assert len(reader_ats.pages) == 1
+    t_ats = reader_ats.pages[0].extract_text()
+    assert "Tutor de Informática" in t_ats
+    assert "Gamificação no Ensino de Física" in t_ats
+
+    # 2. Overleaf Single Page Keywords deve incluir até 5 experiências e 5 publicações e ter exatamente 1 página
+    tex_kw = render_builtin_template("overleaf_single_page_keywords", profile_rich, links, resume_type="profissional", lang="pt-br")
+    f_kw = tmp_path / "fill_kw.tex"
+    f_kw.write_text(tex_kw, encoding="utf-8")
+    subprocess.run(["pdflatex", "-interaction=nonstopmode", str(f_kw)], cwd=str(tmp_path), capture_output=True)
+    pdf_kw = tmp_path / "fill_kw.pdf"
+    assert pdf_kw.exists()
+    reader_kw = pypdf.PdfReader(str(pdf_kw))
+    assert len(reader_kw.pages) == 1
+    t_kw = reader_kw.pages[0].extract_text()
+    assert "Tutor de Informática" in t_kw
+    assert "Gamificação no Ensino de Física" in t_kw
+
+
+
 

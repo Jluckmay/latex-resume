@@ -164,8 +164,18 @@ def build_resume_pipeline(
                     effective_email = m.group(0).strip()
                     break
 
+    effective_location = (
+        user_location.strip()
+        or portfolio_data.get("location")
+        or gh_data.get("location")
+        or li_data.get("location")
+        or lattes_data.get("location")
+        or ""
+    ).strip()
+
     links = {
         "email": effective_email,
+        "location": effective_location,
         "linkedin": li_data.get("url") or li_url_norm or (linkedin_url.strip() if linkedin_url else ""),
         "github": gh_data.get("url") or gh_url_norm or (github_input.strip() if github_input else ""),
         "orcid": orcid_data.get("url") or orcid_url_norm or (orcid_input.strip() if orcid_input else ""),
@@ -199,7 +209,7 @@ def build_resume_pipeline(
             "role": user_role.strip(),
             "email": effective_email,
             "phone": user_phone.strip(),
-            "location": user_location.strip(),
+            "location": effective_location,
         },
         "links": links,
         "github": gh_data,

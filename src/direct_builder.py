@@ -435,7 +435,14 @@ def build_structured_cv_deterministically(
 
     phone = (user_meta.get("phone") or "").strip()
 
-    location = (user_meta.get("location") or gh.get("location") or "").strip()
+    location = (
+        user_meta.get("location")
+        or portfolio.get("location")
+        or gh.get("location")
+        or li.get("location")
+        or lattes.get("location")
+        or ""
+    ).strip()
 
 
 

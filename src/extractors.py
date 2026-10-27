@@ -658,6 +658,22 @@ def extract_github(github_input: str, target_lang: str = "pt-br") -> Dict[str, A
         r_user = requests.get(f"https://api.github.com/users/{username}", headers=headers, timeout=10)
         if r_user.status_code != 200:
             result["error"] = f"HTTP {r_user.status_code}"
+            # Resilient HTML fallback: when unauthenticated API hits rate limit (HTTP 403 on Render), scrape public HTML
+            try:
+                r_html = requests.get(f"https://github.com/{username}", headers={"User-Agent": USER_AGENT}, timeout=10)
+                if r_html.status_code == 200:
+                    soup_gh = BeautifulSoup(r_html.text, "html.parser")
+                    name_el = soup_gh.find(itemprop="name") or soup_gh.find(class_=re.compile(r"p-name|vcard-fullname"))
+                    if name_el and name_el.get_text(strip=True):
+                        result["name"] = name_el.get_text(strip=True)
+                    loc_el = soup_gh.find(itemprop="homeLocation") or soup_gh.find(class_=re.compile(r"p-label"))
+                    if loc_el and loc_el.get_text(strip=True):
+                        result["location"] = loc_el.get_text(strip=True)
+                    bio_el = soup_gh.find(class_=re.compile(r"user-profile-bio|p-note"))
+                    if bio_el and bio_el.get_text(strip=True):
+                        result["bio"] = bio_el.get_text(strip=True)
+            except Exception:
+                pass
             return result
 
         u = r_user.json()
@@ -1577,10 +1593,25 @@ def extract_portfolio(portfolio_url: str = "") -> Dict[str, Any]:
         if not languages:
             languages = extract_languages_from_text(body_text)
 
+        # 6. Extração estruturada de Localização do Portfólio
+        portfolio_loc = ""
+        meta_loc = soup.find("meta", attrs={"name": re.compile(r"location|geo\.placename", re.I)})
+        if meta_loc and meta_loc.get("content"):
+            portfolio_loc = meta_loc["content"].strip()
+        if not portfolio_loc:
+            m_loc = re.search(r"\b([A-ZÀ-Ú][a-zà-ú]+(?:\s+[A-ZÀ-Ú][a-zà-ú]+)*\s*[·,\-]\s*(?:Minas Gerais|MG|São Paulo|SP|Rio de Janeiro|RJ|Brasília|DF|Paraná|PR|Santa Catarina|SC|Rio Grande do Sul|RS|Bahia|BA|Ceará|CE|Pernambuco|PE|Brasil|Brazil))\b", body_text)
+            if m_loc:
+                cand = m_loc.group(1).strip()
+                cand = re.sub(r"\s*[·–—]\s*", ", ", cand)
+                cand = re.sub(r",\s*,+", ", ", cand).strip(", ")
+                if 4 < len(cand) < 60:
+                    portfolio_loc = cand
+
         result.update(
             {
                 "title": title,
                 "description": desc,
+                "location": portfolio_loc,
                 "headings": headings,
                 "raw_text": body_text,
                 "languages": languages,

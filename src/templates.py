@@ -1385,28 +1385,28 @@ def _render_sections_body(
 
     if is_single_page:
         if has_pubs and has_projs:
-            max_exp = 2
+            max_exp = 3
             max_proj = 2
             max_pubs = 2
             max_edu = 2
             max_awards = 3
             max_skills = 0
         elif has_pubs:
-            max_exp = 3
+            max_exp = 5
             max_proj = 0
-            max_pubs = 3
+            max_pubs = 5
             max_edu = 2
             max_awards = 3
             max_skills = 0
         elif has_projs:
-            max_exp = 3
-            max_proj = 2
+            max_exp = 5
+            max_proj = 3
             max_pubs = 0
             max_edu = 2
             max_awards = 3
             max_skills = 1
         else:
-            max_exp = 4
+            max_exp = 6
             max_proj = 0
             max_pubs = 0
             max_edu = 2
@@ -2695,10 +2695,25 @@ def _render_overleaf_single_page_keywords(
 
     pubs = cv.get("publications") or []
     has_pubs = bool(pubs)
+    projs = cv.get("projects") or []
+    has_projs = bool(projs)
 
-    max_work = 4 if has_pubs else 5
-    max_proj = 4 if has_pubs else 5
-    max_pubs = 4
+    if has_pubs and has_projs:
+        max_work = 4
+        max_proj = 2
+        max_pubs = 3
+    elif has_pubs:
+        max_work = 5
+        max_proj = 0
+        max_pubs = 6
+    elif has_projs:
+        max_work = 5
+        max_proj = 4
+        max_pubs = 0
+    else:
+        max_work = 6
+        max_proj = 0
+        max_pubs = 0
 
     # Coluna 1: WORK + EDUCATION + AWARDS
     work_lbl = "WORK" if is_en else "EXPERIÊNCIA"
