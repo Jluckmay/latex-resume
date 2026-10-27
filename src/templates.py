@@ -1556,7 +1556,7 @@ def _build_publications_block(
         return ""
     t = LATEX_I18N[normalize_lang(lang)]
     lines = [rf"\section*{{{t['sec_publications']}}}"]
-    lines.append(r"\begin{enumerate}[leftmargin=1.5em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
+    lines.append(r"\begin{enumerate}[label=\arabic*.,leftmargin=1.5em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
     pubs = publications[:max_items] if max_items else publications
     for pb in pubs:
         title = escape_latex(pb.get("title") or "").strip()
@@ -1952,7 +1952,7 @@ def _render_tech_sidebar(
     pub_block = ""
     if has_pubs and max_pubs > 0:
         pub_lines = [rf"\section*{{{t['sec_publications']}}}"]
-        pub_lines.append(r"\begin{enumerate}[leftmargin=1.5em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
+        pub_lines.append(r"\begin{enumerate}[label=\arabic*.,leftmargin=1.5em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
         for pb in pubs[:max_pubs]:
             title_p = escape_latex(pb.get("title") or "").strip()
             venue = escape_latex(pb.get("venue") or "").strip()
@@ -2311,7 +2311,7 @@ def _build_acv_sections(
     pub_block = ""
     pubs = cv.get("publications") or []
     if pubs:
-        pb_lines = [r"\begin{enumerate}[leftmargin=1.5em,itemsep=2pt,topsep=2pt]"]
+        pb_lines = [r"\begin{enumerate}[label=\arabic*.,leftmargin=1.5em,itemsep=2pt,topsep=2pt]"]
         for pb in pubs:
             title = escape_latex(pb.get("title") or "").strip()
             title = re.sub(r"-(Resumo Estendido|Short Paper|Extended Abstract)\b", r" (\1)", title, flags=re.IGNORECASE)
@@ -2478,7 +2478,6 @@ def _render_overleaf_russell_ti(
 \usepackage{{xcolor}}
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
-\usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
 \usepackage{{etoolbox}}
 
@@ -2602,7 +2601,6 @@ def _render_overleaf_awesome_cv(
 \usepackage{{xcolor}}
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
-\usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
 \usepackage{{etoolbox}}
 
@@ -2892,7 +2890,6 @@ def _render_overleaf_single_page_keywords(
 \usepackage{{xcolor}}
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
-\usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
 \usepackage{{etoolbox}}
 

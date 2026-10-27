@@ -233,6 +233,7 @@ def sanitize_latex_layout(tex: str) -> str:
     cleaned = "\n".join(fixed_lines)
     cleaned = clean_latex_project_verbs(cleaned)
     cleaned = clean_latex_experience_verbs(cleaned)
+    cleaned = sanitize_publications_layout(cleaned)
     return cleaned
 
 
@@ -412,6 +413,77 @@ def clean_latex_experience_verbs(tex: str) -> str:
         return f"{header}{b}"
 
     return exp_sec_pattern.sub(repl_sec, tex)
+
+
+def is_venue_continuation(item_text: str) -> bool:
+    """Verifica se um \\item em publicações é apenas a continuação (venue, data, DOI) de um título anterior."""
+    clean = item_text.strip()
+    if r"\textbf{" in clean:
+        return False
+    low = clean.lower()
+    venue_markers = [
+        "doi:", "doi.org", "revista", "anais", "workshop", "journal", "proceedings",
+        "conference", "editora", "symposium", "simpósio", "isbn", "issn", "vol.", "pp.", "págs."
+    ]
+    return any(k in low for k in venue_markers) or clean.startswith(r"\textit{") or clean.startswith(r"{\small \textit{")
+
+
+def sanitize_publications_layout(tex: str) -> str:
+    """Garante numeração sequencial estrita (1, 2, 3...) na seção de publicações e produção científica.
+
+    Corrige saídas de LLM que geram múltiplos ambientes \\begin{enumerate} separados por publicação
+    ou dividem o título e o local/DOI da mesma publicação em dois \\item separados.
+    """
+    if not tex or not tex.strip():
+        return tex
+
+    pub_sec_pattern = re.compile(
+        r"(\\cvsection\{[^}]*(?:Publica|Produção Científica|Publications)[^}]*\}|"
+        r"\\section\*?\{[^}]*(?:Publica|Produção Científica|Publications)[^}]*\}|"
+        r"\{\\large\\bfseries\\color\{accent\}\s*(?:PUBLICATIONS|PUBLICAÇÕES|PRODUÇÃO CIENTÍFICA)[^}]*\})"
+        r"(.*?)"
+        r"(?=(\\(?:section\*?|cvsection|subsection)\b|\{\\large\\bfseries|\\end\{document\}|\Z))",
+        re.IGNORECASE | re.DOTALL,
+    )
+
+    def fix_pub_section(match):
+        header = match.group(1)
+        body = match.group(2)
+
+        enum_blocks = re.findall(r"\\begin\{enumerate\}(?:\[[^\]]*\])?(.*?)\\end\{enumerate\}", body, re.DOTALL)
+        if not enum_blocks:
+            return match.group(0)
+
+        raw_items: List[str] = []
+        for b in enum_blocks:
+            its = [it.strip() for it in re.split(r"\\item\b", b) if it.strip()]
+            raw_items.extend(its)
+
+        if not raw_items:
+            return match.group(0)
+
+        merged_items: List[str] = []
+        for it in raw_items:
+            if merged_items and is_venue_continuation(it):
+                merged_items[-1] = merged_items[-1].rstrip() + " " + it.lstrip()
+            else:
+                merged_items.append(it)
+
+        new_enum = "\\begin{enumerate}[label=\\arabic*.,leftmargin=1.5em,itemsep=2pt,topsep=2pt]\n"
+        for it in merged_items:
+            new_enum += f"    \\item {it}\n"
+        new_enum += "\\end{enumerate}\n"
+
+        first_enum = body.find(r"\begin{enumerate}")
+        last_enum = body.rfind(r"\end{enumerate}")
+        if first_enum != -1 and last_enum != -1:
+            last_enum += len(r"\end{enumerate}")
+            cleaned_body = body[:first_enum] + new_enum + body[last_enum:]
+        else:
+            cleaned_body = body
+        return f"{header}{cleaned_body}"
+
+    return pub_sec_pattern.sub(fix_pub_section, tex)
 
 
 def compile_latex_to_pdf(

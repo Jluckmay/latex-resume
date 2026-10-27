@@ -484,3 +484,45 @@ def test_index_html_scholar_and_github_fields_order():
     assert man_scholar_pos < man_github_pos, "Google Scholar deve preceder GitHub no formulário manual"
 
 
+def test_publications_sequential_numbering_and_sanitization():
+    """Valida se publicações são numeradas sequencialmente (1, 2, 3...) e higienizadas se separadas."""
+    import re
+    from src.compiler import sanitize_latex_layout
+    from src.templates import render_builtin_template
+    from tests.test_single_page_template import SAMPLE_MASSIVE_PROFILE, SAMPLE_LINKS
+
+    # 1. Awesome CV direto
+    tex_acv = render_builtin_template("overleaf_awesome_cv", SAMPLE_MASSIVE_PROFILE, SAMPLE_LINKS, lang="pt-br")
+    assert r"\begin{enumerate}[label=\arabic*.," in tex_acv
+
+    # 2. Russell CV direto
+    tex_rus = render_builtin_template("overleaf_russell_ti", SAMPLE_MASSIVE_PROFILE, SAMPLE_LINKS, lang="pt-br")
+    assert r"\begin{enumerate}[label=\arabic*.," in tex_rus
+
+    # 3. Sanitização de saídas de LLM que separam cada publicação em um enumerate próprio
+    broken_tex = r"""
+\cvsection{Produção Científica e Publicações}
+\begin{enumerate}[leftmargin=1.5em]
+    \item {\small Autor 1. \textbf{Título 1}}
+    \item {\small \textit{Revista 1}, 2026. DOI: 10.1234/test}
+\end{enumerate}
+\begin{enumerate}[leftmargin=1.5em]
+    \item {\small \textbf{Título 2}}
+    \item {\small \textit{Anais do Congresso}, 2025. DOI: 10.5678/test}
+\end{enumerate}
+\cvsection{Próxima Seção}
+"""
+    cleaned = sanitize_latex_layout(broken_tex)
+    # Deve conter apenas um único \begin{enumerate}[label=\arabic*., ...]
+    assert cleaned.count(r"\begin{enumerate}[label=\arabic*.") == 1
+    assert cleaned.count(r"\end{enumerate}") == 1
+    # Título e venue do item 1 devem ter sido consolidados em um único \item
+    items = [it.strip() for it in re.split(r"\\item\b", cleaned) if it.strip()]
+    # O primeiro item é a introdução antes de \item, sobram 2 items de publicações
+    pub_items = [it for it in items if "Título" in it]
+    assert len(pub_items) == 2
+    assert "Revista 1" in pub_items[0]
+    assert "Anais do Congresso" in pub_items[1]
+
+
+
