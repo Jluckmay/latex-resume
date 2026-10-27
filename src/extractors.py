@@ -1349,6 +1349,13 @@ def extract_portfolio(portfolio_url: str = "") -> Dict[str, Any]:
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
 
+    parsed_host = urllib.parse.urlparse(url).netloc or urllib.parse.urlparse(url).path
+    if "." not in parsed_host:
+        # e.g. "jluckmay" -> "jluckmay.github.io"
+        clean_user = parsed_host.strip("/")
+        if clean_user:
+            url = f"https://{clean_user}.github.io"
+
     result: Dict[str, Any] = {
         "url": url,
         "languages": [],

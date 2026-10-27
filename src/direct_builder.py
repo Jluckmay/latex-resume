@@ -1231,12 +1231,18 @@ def build_structured_cv_deterministically(
         skills = list(manual["skills"])
 
     if manual.get("languages"):
-        for lg in manual["languages"]:
+        man_langs = manual["languages"]
+        if isinstance(man_langs, str):
+            man_langs = [it.strip() for it in re.split(r"[\r\n,;]+", man_langs) if it.strip()]
+        for lg in man_langs:
             if not any(lg.lower() in x.lower() for x in languages):
                 languages.append(lg)
 
     if manual.get("awards"):
-        man_aw = sanitize_awards(manual["awards"], experiences=experience, lang=lang)
+        man_awards = manual["awards"]
+        if isinstance(man_awards, str):
+            man_awards = [line.strip() for line in re.split(r"[\r\n;]+", man_awards) if line.strip()]
+        man_aw = sanitize_awards(man_awards, experiences=experience, lang=lang)
         for a in man_aw:
             if not any(are_awards_duplicate(a, x) for x in awards):
                 awards.append(a)

@@ -382,10 +382,40 @@ def test_nico_krieger_education_in_sidebar_and_tight_spacing():
     assert "PUBLICAÇÕES" in main_pt
 
     # 3. Espaçamentos reduzidos e regras com \nopagebreak
-    assert r"\rule{\linewidth}{0.8pt}\nopagebreak\\[4pt]" in tex_pt
+    assert r"\rule{\linewidth}{0.8pt}\nopagebreak\\[3pt]" in tex_pt
     assert r"\begin{itemize}[leftmargin=1.1em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]" in tex_pt
-    assert r"\vspace{3pt}" in main_pt
-    assert r"\vspace{2.5pt}" in main_pt
+    assert r"\vspace{2pt}" in main_pt
+
+
+def test_nico_krieger_single_page_layout(tmp_path):
+    """Garante que o template Nico Krieger produz 1 página com perfil completo sem transbordamento órfão."""
+    tex = render_builtin_template(
+        "nico_krieger",
+        SAMPLE_MASSIVE_PROFILE,
+        SAMPLE_LINKS,
+        resume_type="profissional",
+        lang="pt-br",
+    )
+    tex_file = tmp_path / "nico_test.tex"
+    tex_file.write_text(tex, encoding="utf-8")
+    res = subprocess.run(
+        ["pdflatex", "-interaction=nonstopmode", str(tex_file)],
+        cwd=str(tmp_path),
+        capture_output=True,
+        text=True,
+    )
+    assert res.returncode == 0, f"pdflatex compilation failed:\n{res.stdout[-600:]}"
+    pdf_file = tmp_path / "nico_test.pdf"
+    assert pdf_file.exists()
+    reader = pypdf.PdfReader(str(pdf_file))
+    assert len(reader.pages) == 1, f"Expected 1 page for Nico Krieger, got {len(reader.pages)}"
+    text = reader.pages[0].extract_text()
+    assert "CONTATO" in text
+    assert "FORMAÇÃO ACADÊMICA" in text
+    assert "IDIOMAS" in text
+    assert "PRÊMIOS & DESTAQUES" in text
+    assert "EXPERIÊNCIA PROFISSIONAL" in text
+    assert "PUBLICA" in text
 
 
 def test_nico_krieger_previews_have_education_in_sidebar():

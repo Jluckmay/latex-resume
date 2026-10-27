@@ -137,6 +137,13 @@ def build_resume_pipeline(
         else {}
     )
     portfolio_data = extract_portfolio(portfolio_url) if portfolio_url else {}
+    if (not portfolio_data or portfolio_data.get("error")) and gh_nick:
+        candidate_gh_pages = f"https://{gh_nick}.github.io"
+        gh_pages_data = extract_portfolio(candidate_gh_pages)
+        if gh_pages_data and not gh_pages_data.get("error"):
+            portfolio_data = gh_pages_data
+            if not portfolio_url:
+                portfolio_url = candidate_gh_pages
 
     effective_email = (
         user_email.strip()
