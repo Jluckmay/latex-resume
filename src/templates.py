@@ -43,7 +43,7 @@ BUILTIN_TEMPLATES: Dict[str, Dict[str, str]] = {
     },
     "bubble": {
         "id": "bubble",
-        "name": "BubbleCV (Linha do Tempo / James Bond) / BubbleCV",
+        "name": "BubbleCV",
         "recommended_for": "profissional",
         "url": "https://www.overleaf.com/latex/templates/bubblecv/bcynnjktwqsx",
         "description": (

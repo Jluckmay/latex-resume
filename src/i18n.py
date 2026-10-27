@@ -95,7 +95,7 @@ TEMPLATES_I18N: Dict[str, Dict[str, Dict[str, str]]] = {
             ),
         },
         "bubble": {
-            "name": "BubbleCV (Linha do Tempo)",
+            "name": "BubbleCV",
             "description": (
                 "Modelo Overleaf BubbleCV (https://www.overleaf.com/latex/templates/bubblecv/bcynnjktwqsx) com linha do tempo vertical contínua, "
                 "bolhas TikZ para datas e cabeçalho, barras de progresso para competências/idiomas e design de alto impacto visual."
@@ -174,7 +174,7 @@ TEMPLATES_I18N: Dict[str, Dict[str, Dict[str, str]]] = {
             ),
         },
         "bubble": {
-            "name": "BubbleCV (Timeline & Bubbles)",
+            "name": "BubbleCV",
             "description": (
                 "Overleaf BubbleCV template (https://www.overleaf.com/latex/templates/bubblecv/bcynnjktwqsx) featuring continuous vertical timeline, "
                 "TikZ circular nodes for dates and sections, progress bars for skills/languages, and striking high-density single-page layout."
