@@ -3332,18 +3332,25 @@
                 }
 
                 let resp = null;
-                const maxGenAttempts = isRender ? 6 : 1;
+                const maxGenAttempts = isRender ? 3 : 1;
+                const genTimeoutMs = isRender ? 120000 : 60000;
                 for (let genAttempt = 1; genAttempt <= maxGenAttempts; genAttempt++) {
                     if (genAttempt > 1) {
                         btnTxt.textContent = (state.uiLang === "en-us")
                             ? `⏳ Render server waking up (${genAttempt}/${maxGenAttempts}), please wait (~45s)...`
                             : `⏳ Despertando servidor Render (${genAttempt}/${maxGenAttempts}), aguarde (~45s)...`;
-                        await new Promise(r => setTimeout(r, 6000));
+                        await new Promise(r => setTimeout(r, 4000));
                     }
 
                     try {
                         const genController = new AbortController();
-                        const genTimeoutId = setTimeout(() => genController.abort(), 25000);
+                        const genTimeoutId = setTimeout(() => {
+                            try {
+                                genController.abort(new Error((state.uiLang === "en-us") ? "Server request timeout (120s)" : "Tempo limite de requisição ao servidor (120s)"));
+                            } catch (_) {
+                                genController.abort();
+                            }
+                        }, genTimeoutMs);
                         resp = await fetch(`${base}/api/generate`, {
                             method: "POST",
                             signal: genController.signal,
@@ -3358,6 +3365,7 @@
                         clearTimeout(genTimeoutId);
 
                         if ((resp.status === 502 || resp.status === 503 || resp.status === 504) && isRender && genAttempt < maxGenAttempts) {
+                            console.info(`[Render Enclave] Gateway HTTP ${resp.status} em aquecimento, tentativa ${genAttempt}/${maxGenAttempts}...`);
                             continue;
                         }
                         break;
@@ -3544,7 +3552,14 @@
                 }
             } catch (err) {
                 let errMsg = err.message || "Erro desconhecido / Unknown error";
-                const isNetErr = errMsg.toLowerCase().includes("failed to fetch") || errMsg.toLowerCase().includes("networkerror") || errMsg.toLowerCase().includes("load resource");
+                const isNetErr = (
+                    errMsg.toLowerCase().includes("failed to fetch")
+                    || errMsg.toLowerCase().includes("networkerror")
+                    || errMsg.toLowerCase().includes("load resource")
+                    || errMsg.toLowerCase().includes("abort")
+                    || errMsg.toLowerCase().includes("timeout")
+                    || err.name === "AbortError"
+                );
                 if (isNetErr) {
                     errMsg = (state.uiLang === "en-us")
                         ? "Unable to reach the Render backend. The free cloud instance sleeps after inactivity and takes 30-50s to wake up. Please wait a moment and click 'Generate Resume' again, or select 'No AI / Offline (0 Tokens)'."
