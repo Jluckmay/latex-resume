@@ -2744,12 +2744,12 @@ def _render_overleaf_single_page_keywords(
 
     if has_pubs and has_projs:
         max_work = 4
-        max_proj = 2
-        max_pubs = 3
+        max_proj = 3
+        max_pubs = 5
     elif has_pubs:
         max_work = 5
         max_proj = 0
-        max_pubs = 6
+        max_pubs = 7
     elif has_projs:
         max_work = 5
         max_proj = 4
@@ -3647,9 +3647,9 @@ def _render_nico_krieger(
 
     if resume_type == "academico":
         if has_pubs and has_projs:
-            max_exp = 3
-            max_proj = 1
-            max_pubs = 3
+            max_exp = 4
+            max_proj = 3
+            max_pubs = 4
         elif has_pubs:
             max_exp = 5
             max_proj = 0
@@ -3660,9 +3660,9 @@ def _render_nico_krieger(
             max_pubs = 0
     else:
         if has_pubs and has_projs:
-            max_exp = 3
-            max_proj = 2
-            max_pubs = 2
+            max_exp = 4
+            max_proj = 3
+            max_pubs = 3
         elif has_pubs:
             max_exp = 5
             max_proj = 0
@@ -3759,13 +3759,12 @@ def _render_nico_krieger(
 
     main_content = "\n\n\\vspace{4pt}\n\n".join(main_sections)
 
-    v_offset = r"\vspace*{-0.6cm}%"
     return rf"""% Template Nico Krieger (my-resume) - Full-Width Dark Header & Two-Column Highlight Sidebar
 \documentclass[10pt,a4paper]{{article}}
 \usepackage[utf8]{{inputenc}}
 \usepackage[T1]{{fontenc}}
 \usepackage[{t['babel']}]{{babel}}
-\usepackage[left=0cm,right=0.9cm,top=0.6cm,bottom=0.6cm,noheadfoot]{{geometry}}
+\usepackage[left=0cm,right=0.9cm,top=0cm,bottom=0.6cm,noheadfoot]{{geometry}}
 \usepackage{{xcolor}}
 \usepackage{{paracol}}
 \usepackage{{tikz}}
@@ -3814,8 +3813,7 @@ def _render_nico_krieger(
 }}
 
 \begin{{document}}
-
-{v_offset}
+\noindent
 \makebox[\textwidth][l]{{%
 {header_tex}
 }}
