@@ -1448,9 +1448,10 @@ def _render_sections_body(
         sum_cost = 3.5 if raw_sum else 0.0
         edu_cost = 5.0 if cv.get("education") else 0.0
         aw_cost = 3.0 if cv.get("awards") else 0.0
+        lang_cost = 2.0 if cv.get("languages") else 0.0
         sk_cost = 2.0 if cv.get("skills") else 0.0
-        base_budget = 52.0
-        avail_budget = max(15.0, base_budget - sum_cost - edu_cost - aw_cost - sk_cost)
+        base_budget = 50.0
+        avail_budget = max(15.0, base_budget - sum_cost - edu_cost - aw_cost - lang_cost - sk_cost)
         max_exp, max_proj, max_pubs = _allocate_single_page_budget(
             len(cv.get("experience") or []),
             len(projs),
@@ -1458,7 +1459,7 @@ def _render_sections_body(
             budget=avail_budget,
             weight_exp=4.0,
             weight_proj=2.8,
-            weight_pub=1.8,
+            weight_pub=2.0,
             resume_type=resume_type,
         )
     else:
@@ -1519,7 +1520,7 @@ def _build_education_block(
             entry_lines.append(rf"\textit{{{inst}}}")
         elif det:
             entry_lines.append(rf"{{\small {det}}}")
-        entries.append(r" \\ ".join(entry_lines) + r"\par\vspace{4pt}")
+        entries.append(r" \\ ".join(entry_lines) + r"\par\vspace{2pt}")
     return rf"\section*{{{t['sec_education']}}}" + "\n\n" + "\n\n".join(entries)
 
 
@@ -2101,7 +2102,7 @@ def _render_minimal_ats(
 \usepackage[T1]{{fontenc}}
 \usepackage[{t['babel']}]{{babel}}
 \usepackage{{lmodern}}
-\usepackage[left=1.0cm,right=1.0cm,top=0.8cm,bottom=0.8cm]{{geometry}}
+\usepackage[left=1.0cm,right=1.0cm,top=0.6cm,bottom=0.6cm]{{geometry}}
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
 \usepackage{{titlesec}}
@@ -2118,9 +2119,9 @@ def _render_minimal_ats(
 \setlength{{\parindent}}{{0pt}}
 
 \titleformat{{name=\section,numberless}}{{\normalsize\bfseries\scshape}}{{}}{{0em}}{{}}[\vspace{{1pt}}\titlerule]
-\titlespacing*{{name=\section,numberless}}{{0pt}}{{6pt}}{{2pt}}
+\titlespacing*{{name=\section,numberless}}{{0pt}}{{4.5pt}}{{1.5pt}}
 \titleformat{{\section}}{{\normalsize\bfseries\scshape}}{{}}{{0em}}{{}}[\vspace{{1pt}}\titlerule]
-\titlespacing*{{\section}}{{0pt}}{{6pt}}{{2pt}}
+\titlespacing*{{\section}}{{0pt}}{{4.5pt}}{{1.5pt}}
 
 \begin{{document}}
 {header}
@@ -3070,11 +3071,12 @@ def _render_google_standard(
 
     raw_sum = cv.get("summary") or ""
     sum_cost = 3.5 if raw_sum else 0.0
-    edu_cost = 5.5 if cv.get("education") else 0.0
-    skill_cost = 3.5 if cv.get("skills") else 0.0
+    edu_cost = 5.0 if cv.get("education") else 0.0
+    skill_cost = 3.0 if cv.get("skills") else 0.0
     aw_cost = 3.0 if cv.get("awards") else 0.0
-    base_budget = 52.0
-    avail_budget = max(15.0, base_budget - sum_cost - edu_cost - skill_cost - aw_cost)
+    lang_cost = 2.0 if cv.get("languages") else 0.0
+    base_budget = 50.0
+    avail_budget = max(15.0, base_budget - sum_cost - edu_cost - skill_cost - aw_cost - lang_cost)
 
     max_exp, max_proj, max_pubs = _allocate_single_page_budget(
         len(cv.get("experience") or []),
@@ -3083,7 +3085,7 @@ def _render_google_standard(
         budget=avail_budget,
         weight_exp=4.0,
         weight_proj=2.8,
-        weight_pub=1.8,
+        weight_pub=2.0,
         resume_type=resume_type,
     )
 
@@ -3213,7 +3215,7 @@ def _render_google_standard(
 \usepackage[T1]{{fontenc}}
 \usepackage[{t['babel']}]{{babel}}
 \usepackage{{lmodern}}
-\usepackage[left=1.0cm,right=1.0cm,top=0.8cm,bottom=0.8cm]{{geometry}}
+\usepackage[left=1.0cm,right=1.0cm,top=0.6cm,bottom=0.6cm]{{geometry}}
 \usepackage{{xcolor}}
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
@@ -3234,7 +3236,7 @@ def _render_google_standard(
 \setlength{{\parindent}}{{0pt}}
 
 \titleformat{{\section}}{{\normalsize\bfseries\scshape\color{{accent}}}}{{}}{{0em}}{{}}[\vspace{{1pt}}{{\color{{accent}}\titlerule}}]
-\titlespacing*{{\section}}{{0pt}}{{5pt}}{{2pt}}
+\titlespacing*{{\section}}{{0pt}}{{4pt}}{{1.5pt}}
 
 \begin{{document}}
 {header_tex}
