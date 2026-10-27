@@ -1367,6 +1367,65 @@ def _render_header_with_optional_photo(
 """
 
 
+def _allocate_single_page_budget(
+    total_exp: int,
+    total_proj: int,
+    total_pubs: int,
+    budget: float,
+    weight_exp: float = 4.0,
+    weight_proj: float = 2.8,
+    weight_pub: float = 1.8,
+    resume_type: str = "profissional",
+    header_exp: float = 2.5,
+    header_proj: float = 2.5,
+    header_pub: float = 2.5,
+) -> tuple[int, int, int]:
+    """Distribui dinamicamente a capacidade vertical da página entre experiências, projetos e publicações.
+
+    Garante utilização ótima do espaço da página única sem ultrapassar o limite de 1 página.
+    Se o usuário não possuir projetos ou publicações, toda a capacidade restante flui automaticamente
+    para experiências; se tiver poucas experiências, a capacidade expande para projetos e publicações.
+    """
+    n_exp = 0
+    n_proj = 0
+    n_pub = 0
+
+    def cur_cost(e: int, p: int, u: int) -> float:
+        c = 0.0
+        if e > 0:
+            c += header_exp + e * weight_exp
+        if p > 0:
+            c += header_proj + p * weight_proj
+        if u > 0:
+            c += header_pub + u * weight_pub
+        return c
+
+    # Sequência de rodízio equilibrada baseada no tipo de currículo
+    if resume_type == "academico":
+        order = ["exp", "pub", "proj", "pub", "exp", "pub"]
+    else:
+        order = ["exp", "proj", "pub", "exp", "proj", "pub"]
+
+    changed = True
+    while changed:
+        changed = False
+        for kind in order:
+            if kind == "exp" and n_exp < total_exp:
+                if cur_cost(n_exp + 1, n_proj, n_pub) <= budget:
+                    n_exp += 1
+                    changed = True
+            elif kind == "proj" and n_proj < total_proj:
+                if cur_cost(n_exp, n_proj + 1, n_pub) <= budget:
+                    n_proj += 1
+                    changed = True
+            elif kind == "pub" and n_pub < total_pubs:
+                if cur_cost(n_exp, n_proj, n_pub + 1) <= budget:
+                    n_pub += 1
+                    changed = True
+
+    return n_exp, n_proj, n_pub
+
+
 def _render_sections_body(
     cv: Dict[str, Any],
     resume_type: str,
@@ -1380,38 +1439,28 @@ def _render_sections_body(
 
     pubs = cv.get("publications") or []
     projs = cv.get("projects") or []
-    has_pubs = bool(pubs)
-    has_projs = bool(projs)
 
     if is_single_page:
-        if has_pubs and has_projs:
-            max_exp = 3
-            max_proj = 2
-            max_pubs = 2
-            max_edu = 2
-            max_awards = 3
-            max_skills = 0
-        elif has_pubs:
-            max_exp = 5
-            max_proj = 0
-            max_pubs = 5
-            max_edu = 2
-            max_awards = 3
-            max_skills = 0
-        elif has_projs:
-            max_exp = 5
-            max_proj = 3
-            max_pubs = 0
-            max_edu = 2
-            max_awards = 3
-            max_skills = 1
-        else:
-            max_exp = 6
-            max_proj = 0
-            max_pubs = 0
-            max_edu = 2
-            max_awards = 3
-            max_skills = 2
+        max_edu = 2
+        max_awards = 3
+        max_skills = 1 if cv.get("skills") else 0
+        raw_sum = cv.get("summary") or ""
+        sum_cost = 3.5 if raw_sum else 0.0
+        edu_cost = 5.0 if cv.get("education") else 0.0
+        aw_cost = 3.0 if cv.get("awards") else 0.0
+        sk_cost = 2.0 if cv.get("skills") else 0.0
+        base_budget = 52.0
+        avail_budget = max(15.0, base_budget - sum_cost - edu_cost - aw_cost - sk_cost)
+        max_exp, max_proj, max_pubs = _allocate_single_page_budget(
+            len(cv.get("experience") or []),
+            len(projs),
+            len(pubs),
+            budget=avail_budget,
+            weight_exp=4.0,
+            weight_proj=2.8,
+            weight_pub=1.8,
+            resume_type=resume_type,
+        )
     else:
         max_exp = None
         max_proj = None
@@ -1859,45 +1908,21 @@ def _render_tech_sidebar(
 
     # 7. Coluna Principal (Main Body): Experience + Projects + Publications
     pubs = cv.get("publications") or []
-    has_pubs = bool(pubs)
     projs = cv.get("projects") or []
+    has_pubs = bool(pubs)
     has_projs = bool(projs)
 
-    # Orçamento adaptativo para garantir rigorosamente página única
-    if resume_type == "academico":
-        if has_pubs and has_projs:
-            max_exp = 3
-            max_proj = 2
-            max_pubs = 4
-        elif has_pubs:
-            max_exp = 4
-            max_proj = 0
-            max_pubs = 6
-        elif has_projs:
-            max_exp = 4
-            max_proj = 3
-            max_pubs = 0
-        else:
-            max_exp = 5
-            max_proj = 0
-            max_pubs = 0
-    else:
-        if has_pubs and has_projs:
-            max_exp = 3
-            max_proj = 3
-            max_pubs = 2
-        elif has_projs:
-            max_exp = 4
-            max_proj = 4
-            max_pubs = 0
-        elif has_pubs:
-            max_exp = 4
-            max_proj = 0
-            max_pubs = 4
-        else:
-            max_exp = 5
-            max_proj = 0
-            max_pubs = 0
+    # Alocação dinâmica de capacidade vertical para a coluna principal
+    max_exp, max_proj, max_pubs = _allocate_single_page_budget(
+        len(cv.get("experience") or []),
+        len(projs),
+        len(pubs),
+        budget=50.0,
+        weight_exp=3.8,
+        weight_proj=2.8,
+        weight_pub=1.8,
+        resume_type=resume_type,
+    )
 
     # Experiência com formatação profissional em 2 níveis
     exp_block = ""
@@ -2736,26 +2761,33 @@ def _render_overleaf_single_page_keywords(
 \vspace{{3pt}}"""
 
     pubs = cv.get("publications") or []
-    has_pubs = bool(pubs)
     projs = cv.get("projects") or []
-    has_projs = bool(projs)
+    clean_awards = sanitize_awards(cv.get("awards"), lang=lang)
+    langs = [str(x).strip() for x in (cv.get("languages") or []) if str(x).strip()]
 
-    if has_pubs and has_projs:
-        max_work = 4
-        max_proj = 3
-        max_pubs = 5
-    elif has_pubs:
-        max_work = 5
-        max_proj = 0
-        max_pubs = 7
-    elif has_projs:
-        max_work = 5
-        max_proj = 4
-        max_pubs = 0
-    else:
-        max_work = 6
-        max_proj = 0
-        max_pubs = 0
+    # Alocação dinâmica para Coluna 1 (Work + Education + Awards)
+    n_edu = min(2, len(cv.get("education") or []))
+    n_aw = min(4, len(clean_awards))
+    cost_other_left = (n_edu * 3.2 + (2.0 if n_edu else 0.0)) + (n_aw * 1.4 + (1.8 if n_aw else 0.0))
+    left_budget = 36.0
+    avail_work = max(10.0, left_budget - cost_other_left)
+    max_work = min(len(cv.get("experience") or []), max(1, int((avail_work - 2.0) / 3.4)))
+
+    # Alocação dinâmica para Coluna 2 (Projects + Publications + Skills + Languages)
+    lang_cost = 2.0 if langs else 0.0
+    n_sk = min(2, len(cv.get("skills") or []))
+    skill_cost = (n_sk * 2.2 + 2.0) if n_sk else 0.0
+    right_budget = 36.0
+    avail_proj_pub = max(10.0, right_budget - lang_cost - skill_cost)
+    _, max_proj, max_pubs = _allocate_single_page_budget(
+        0,
+        len(projs),
+        len(pubs),
+        budget=avail_proj_pub,
+        weight_proj=2.5,
+        weight_pub=1.8,
+        resume_type=resume_type,
+    )
 
     # Coluna 1: WORK + EDUCATION + AWARDS
     work_lbl = "WORK" if is_en else "EXPERIÊNCIA"
@@ -2784,10 +2816,9 @@ def _render_overleaf_single_page_keywords(
     edu_sec = (rf"\cvsec{{\faIcon{{graduation-cap}}}}{{{edu_lbl}}}" + "\n" + "\n\n".join(edu_rows)) if edu_rows else ""
 
     aw_sec = ""
-    clean_awards = sanitize_awards(cv.get("awards"), lang=lang)
     if clean_awards:
         aw_lbl = "AWARDS" if is_en else r"PRÊMIOS \& CERTIFICAÇÕES"
-        a_rows = [rf"    \item {escape_latex(a)}" for a in clean_awards[:3]]
+        a_rows = [rf"    \item {escape_latex(a)}" for a in clean_awards[:n_aw]]
         aw_sec = (
             rf"\cvsec{{\faIcon{{star}}}}{{{aw_lbl}}}"
             + "\n\\begin{itemize}[leftmargin=1.1em,noitemsep,topsep=1pt]\n"
@@ -2864,10 +2895,6 @@ def _render_overleaf_single_page_keywords(
             + "\n\\end{itemize}"
         )
 
-    lg_sec = ""
-    langs = [str(x).strip() for x in (cv.get("languages") or []) if str(x).strip()]
-    if langs:
-        lg_lbl = "LANGUAGES / INTERESTS" if is_en else "IDIOMAS"
     lg_sec = ""
     if langs:
         lg_lbl = "LANGUAGES / INTERESTS" if is_en else "IDIOMAS"
@@ -3033,54 +3060,32 @@ def _render_google_standard(
 {{\color{{accent}}\hrule height 0.8pt}}
 \vspace{{3pt}}"""
 
-    # Single-page budgets
+    # Alocação dinâmica de capacidade vertical para página única estrita
     pubs = cv.get("publications") or []
     projs = cv.get("projects") or []
-    has_pubs = bool(pubs)
-    has_projs = bool(projs)
+    max_sum_chars = 200 if resume_type == "academico" else 220
+    max_edu = 2
+    max_skills = 2 if resume_type == "academico" else 3
+    max_awards = 3
 
-    if resume_type == "academico":
-        max_sum_chars = 200
-        max_edu = 2
-        max_skills = 2
-        max_awards = 3
-        if has_pubs and has_projs:
-            max_exp = 4
-            max_proj = 2
-            max_pubs = 4
-        elif has_pubs:
-            max_exp = 4
-            max_proj = 0
-            max_pubs = 6
-        elif has_projs:
-            max_exp = 4
-            max_proj = 3
-            max_pubs = 0
-        else:
-            max_exp = 5
-            max_proj = 0
-            max_pubs = 0
-    else:
-        max_sum_chars = 220
-        max_edu = 2
-        max_skills = 3
-        max_awards = 3
-        if has_pubs and has_projs:
-            max_exp = 4
-            max_proj = 3
-            max_pubs = 2
-        elif has_projs:
-            max_exp = 4
-            max_proj = 4
-            max_pubs = 0
-        elif has_pubs:
-            max_exp = 4
-            max_proj = 0
-            max_pubs = 4
-        else:
-            max_exp = 5
-            max_proj = 0
-            max_pubs = 0
+    raw_sum = cv.get("summary") or ""
+    sum_cost = 3.5 if raw_sum else 0.0
+    edu_cost = 5.5 if cv.get("education") else 0.0
+    skill_cost = 3.5 if cv.get("skills") else 0.0
+    aw_cost = 3.0 if cv.get("awards") else 0.0
+    base_budget = 52.0
+    avail_budget = max(15.0, base_budget - sum_cost - edu_cost - skill_cost - aw_cost)
+
+    max_exp, max_proj, max_pubs = _allocate_single_page_budget(
+        len(cv.get("experience") or []),
+        len(projs),
+        len(pubs),
+        budget=avail_budget,
+        weight_exp=4.0,
+        weight_proj=2.8,
+        weight_pub=1.8,
+        resume_type=resume_type,
+    )
 
     # Summary
     sum_block = ""
@@ -3639,35 +3644,18 @@ def _render_nico_krieger(
     # 7. Main Column: Experience, Projects, Publications (Education moved to sidebar)
     pubs_all = cv.get("publications") or []
     projs_all = cv.get("projects") or []
-    has_pubs = bool(pubs_all)
-    has_projs = bool(projs_all)
 
-    if resume_type == "academico":
-        if has_pubs and has_projs:
-            max_exp = 4
-            max_proj = 3
-            max_pubs = 4
-        elif has_pubs:
-            max_exp = 5
-            max_proj = 0
-            max_pubs = 7
-        else:
-            max_exp = 5
-            max_proj = 4
-            max_pubs = 0
-    else:
-        if has_pubs and has_projs:
-            max_exp = 4
-            max_proj = 3
-            max_pubs = 3
-        elif has_pubs:
-            max_exp = 5
-            max_proj = 0
-            max_pubs = 7
-        else:
-            max_exp = 5
-            max_proj = 4
-            max_pubs = 0
+    # Alocação dinâmica de capacidade vertical para a coluna principal
+    max_exp, max_proj, max_pubs = _allocate_single_page_budget(
+        len(cv.get("experience") or []),
+        len(projs_all),
+        len(pubs_all),
+        budget=45.0,
+        weight_exp=4.0,
+        weight_proj=2.8,
+        weight_pub=1.8,
+        resume_type=resume_type,
+    )
 
     main_sections: List[str] = []
 
