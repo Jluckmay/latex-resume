@@ -3565,7 +3565,7 @@ def _render_nico_krieger(
 {contact_body}"""
 
     # 3. Education in Sidebar (transferred to left column for visual balance)
-    edus = (cv.get("education") or [])[:2]
+    edus = (cv.get("education") or [])[:3]
     if edus:
         edu_lbl = "EDUCATION" if is_en else "FORMAÇÃO ACADÊMICA"
         ed_lines = [rf"{{\large\bfseries\color{{accent}} {edu_lbl}}}\\[-3pt]", r"\rule{\linewidth}{0.8pt}\nopagebreak\\[3pt]"]
@@ -3589,7 +3589,7 @@ def _render_nico_krieger(
     else:
         edu_block = ""
 
-    # 4. Skills with 5-dot rating
+    # 4. Skills with 5-dot rating (or About Me summary fallback to utilize sidebar space richly)
     skill_lbl = "SKILLS" if is_en else "HABILIDADES"
     skill_lines: List[str] = [rf"{{\large\bfseries\color{{accent}} {skill_lbl}}}\\[-3pt]", r"\rule{\linewidth}{0.8pt}\nopagebreak\\[3pt]"]
     skills = cv.get("skills") or []
@@ -3611,6 +3611,14 @@ def _render_nico_krieger(
                     rating = 5 if idx == 0 else (4 if idx < 3 else 3)
                     skill_lines.append(rf"{{\small\textbf{{{escape_latex(p)}}}}} \hfill \skilldots{{{rating}}}\\[2.5pt]")
         skill_block = "\n".join(skill_lines)
+    elif cv.get("summary"):
+        sum_lbl = "ABOUT ME" if is_en else "SOBRE MIM"
+        sum_raw = escape_latex(cv["summary"].strip())
+        if len(sum_raw) > 320:
+            sum_raw = sum_raw[:317].rstrip() + "..."
+        skill_block = rf"""{{\large\bfseries\color{{accent}} {sum_lbl}}}\\[-3pt]
+\rule{{\linewidth}}{{0.8pt}}\nopagebreak\\[3pt]
+{{\small {sum_raw}}}"""
     else:
         skill_block = ""
 
@@ -3634,14 +3642,15 @@ def _render_nico_krieger(
     aw_lbl = r"AWARDS \& HONORS" if is_en else r"PRÊMIOS \& DESTAQUES"
     if clean_awards:
         aw_lines = [rf"{{\large\bfseries\color{{accent}} {aw_lbl}}}\\[-3pt]", r"\rule{\linewidth}{0.8pt}\nopagebreak\\[3pt]"]
-        for aw in clean_awards[:4]:
+        for aw in clean_awards[:6]:
             aw_lines.append(rf"{{\small $\cdot$ {escape_latex(aw)}}}\\[2pt]")
         awards_block = "\n".join(aw_lines)
     else:
         awards_block = ""
 
     sidebar_sections = [s for s in (contact_block, edu_block, skill_block, lang_block, awards_block) if s]
-    sidebar_content = "\n\n\\vspace{4pt}\n\n".join(sidebar_sections)
+    sidebar_gap = r"\vspace{6pt}" if len(sidebar_sections) <= 4 else r"\vspace{4pt}"
+    sidebar_content = f"\n\n{sidebar_gap}\n\n".join(sidebar_sections)
 
     # 7. Main Column: Experience, Projects, Publications (Education moved to sidebar)
     pubs_all = cv.get("publications") or []
@@ -3652,7 +3661,7 @@ def _render_nico_krieger(
         len(cv.get("experience") or []),
         len(projs_all),
         len(pubs_all),
-        budget=41.0,
+        budget=44.0,
         weight_exp=4.0,
         weight_proj=2.8,
         weight_pub=2.2,
@@ -3663,6 +3672,12 @@ def _render_nico_krieger(
 
     # Experience
     exps = (cv.get("experience") or [])[:max_exp]
+    total_main_items = len(exps) + min(len(projs_all), max_proj) + min(len(pubs_all), max_pubs)
+    is_sparse = total_main_items <= 10
+    xp_gap = r"\vspace{2.5pt}" if is_sparse else r"\vspace{2pt}"
+    pub_gap = r"\par\vspace{2pt}" if is_sparse else r"\par\vspace{1.5pt}"
+    sec_gap = r"\vspace{4.5pt}" if is_sparse else r"\vspace{2.5pt}"
+
     if exps:
         exp_title = "PROFESSIONAL EXPERIENCE" if is_en else "EXPERIÊNCIA PROFISSIONAL"
         xp_lines = [rf"{{\large\bfseries\color{{accent}} {exp_title}}}\\[-3pt]", r"\rule{\linewidth}{0.8pt}\nopagebreak\\[3pt]"]
@@ -3687,7 +3702,8 @@ def _render_nico_krieger(
                 xp_lines.append(r"\end{itemize}")
             else:
                 xp_lines.append(r"\vspace{1.5pt}")
-            xp_lines.append(r"\vspace{2pt}")
+            if xp != exps[-1]:
+                xp_lines.append(xp_gap)
         main_sections.append("\n".join(xp_lines))
 
     # Projects
@@ -3712,6 +3728,8 @@ def _render_nico_krieger(
             if desc:
                 pj_lines.append(rf"{{\small {desc}}}\par\vspace{{1.5pt}}")
             else:
+                pj_lines.append(r"\vspace{1.5pt}")
+            if pj != projs[-1]:
                 pj_lines.append(r"\vspace{1.5pt}")
         main_sections.append("\n".join(pj_lines))
 
@@ -3740,11 +3758,11 @@ def _render_nico_krieger(
                 meta_items.append(rf"\href{{{escape_url(doi_url)}}}{{\faIcon{{link}}\ DOI: {escape_latex(clean_doi)}}}")
             meta_str = ", ".join(meta_items)
             is_last = (idx == len(pubs) - 1)
-            trail = "" if is_last else r"\par\vspace{1.5pt}"
+            trail = "" if is_last else pub_gap
             pb_lines.append(rf"\textbf{{{title_pb}}}\\[0.5pt]" + (rf"{{\small {meta_str}}}{trail}" if meta_str else trail))
         main_sections.append("\n".join(pb_lines))
 
-    main_content = "\n\n\\vspace{2.5pt}\n\n".join(main_sections)
+    main_content = f"\n\n{sec_gap}\n\n".join(main_sections)
 
     return rf"""% Template Nico Krieger (my-resume) - Full-Width Dark Header & Two-Column Highlight Sidebar
 \documentclass[10pt,a4paper]{{article}}

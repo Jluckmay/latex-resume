@@ -203,7 +203,7 @@ def sanitize_latex_layout(tex: str) -> str:
         re.IGNORECASE,
     )
     sec_header_pattern = re.compile(
-        r"^\s*\\(?:section|subsection|subsubsection|cvsection|cventry|resumeSubHeadingListStart)\b",
+        r"^\s*(?:\\(?:section|subsection|subsubsection|cvsection|cventry|resumeSubHeadingListStart|rule|switchcolumn)\b|\{\s*\\(?:large|Large|LARGE|normalsize)\b|\\(?:large|Large|LARGE)\b)",
         re.IGNORECASE,
     )
 
