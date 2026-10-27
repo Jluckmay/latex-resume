@@ -538,5 +538,25 @@ def test_single_page_keywords_and_minimal_ats_fill_page_richly(tmp_path):
     assert "Gamificação no Ensino de Física" in t_kw
 
 
+def test_bubble_cv_template_compiles_single_page(tmp_path):
+    """Verifica compilação e restrição estrita a 1 página do template BubbleCV."""
+    links = {
+        "portfolio": "https://jluckmay.github.io",
+        "github": "https://github.com/jluckmay",
+        "linkedin": "https://linkedin.com/in/jluckmay",
+    }
+    tex_bubble = render_builtin_template("bubble", SAMPLE_MASSIVE_PROFILE, links, resume_type="profissional", lang="pt-br")
+    f_bubble = tmp_path / "bubble_cv.tex"
+    f_bubble.write_text(tex_bubble, encoding="utf-8")
+    subprocess.run(["pdflatex", "-interaction=nonstopmode", str(f_bubble)], cwd=str(tmp_path), capture_output=True)
+    pdf_bubble = tmp_path / "bubble_cv.pdf"
+    assert pdf_bubble.exists()
+    reader = pypdf.PdfReader(str(pdf_bubble))
+    assert len(reader.pages) == 1
+    text = reader.pages[0].extract_text()
+    assert "João Lucas Mayrinck" in text
+
+
+
 
 

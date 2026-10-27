@@ -193,8 +193,12 @@ with col_left:
         tpl_labels = {
             tpl_loc.get(k, {}).get("name", v["name"]): k
             for k, v in BUILTIN_TEMPLATES.items()
+            if (k != "academic_classic" or resume_type == "academico")
+            and (k != "modern_pro" or resume_type != "academico")
         }
-        default_idx = 1 if resume_type == "academico" else list(tpl_labels.values()).index("ai_ats_max")
+        default_tpl = "academic_classic" if resume_type == "academico" else "ai_ats_max"
+        tpl_values = list(tpl_labels.values())
+        default_idx = tpl_values.index(default_tpl) if default_tpl in tpl_values else 0
         chosen_label = st.selectbox(
             txt["tpl_select_label"],
             options=list(tpl_labels.keys()),

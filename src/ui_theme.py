@@ -286,6 +286,85 @@ def render_template_preview_html(
         </div>
         """
 
+    if template_id in ("bubble", "bubble_cv", "bubblecv", "overleaf_bubble"):
+        return f"""
+        <div style="background:#ffffff;color:#1e293b;border-radius:10px;border:1px solid #cbd5e1;
+                    box-shadow:0 6px 18px rgba(15,23,42,0.08);padding:14px;font-family:'Segoe UI',system-ui,sans-serif;
+                    font-size:10.5px;line-height:1.3;min-height:255px;position:relative;overflow:hidden;">
+            <!-- Timeline vertical line -->
+            <div style="position:absolute;left:24px;top:0;bottom:0;width:2px;background:#cbd5e0;z-index:1;"></div>
+
+            <!-- Header -->
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;position:relative;z-index:2;">
+                <div style="width:36px;height:36px;border-radius:50%;background:{p_col};color:#fff;border:2px solid #fff;
+                            box-shadow:0 0 0 1px {p_col};display:flex;align-items:center;justify-content:center;
+                            font-weight:900;font-size:13px;flex-shrink:0;">
+                    LS
+                </div>
+                <div>
+                    <div style="font-size:15px;font-weight:900;color:{p_col};letter-spacing:-0.2px;">Lucas Silva</div>
+                    <div style="font-size:9.5px;color:{s_col};font-style:italic;">{role_txt}</div>
+                </div>
+            </div>
+
+            <!-- Content Columns -->
+            <div style="display:flex;gap:14px;position:relative;z-index:2;">
+                <!-- Main Column (62%) -->
+                <div style="flex:1.6;padding-left:14px;">
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                        <div style="width:14px;height:14px;border-radius:50%;background:{p_col};color:#fff;display:flex;align-items:center;justify-content:center;font-size:7px;margin-left:-21px;border:1.5px solid #fff;">💼</div>
+                        <div style="font-weight:800;font-size:10.5px;color:{p_col};">{lbl_exp}</div>
+                    </div>
+                    <div style="position:relative;margin-bottom:8px;">
+                        <div style="width:8px;height:8px;border-radius:50%;background:{s_col};border:1.5px solid #fff;position:absolute;left:-18px;top:4px;"></div>
+                        <div style="display:flex;justify-content:space-between;font-weight:700;font-size:9.5px;color:#0f172a;">
+                            <span>Lead AI Engineer</span><span style="color:#64748b;font-size:8px;">2023–Present</span>
+                        </div>
+                        <div style="color:{p_col};font-weight:600;font-size:8.5px;">Tech Innovations Inc.</div>
+                        <div style="color:#475569;font-size:8.5px;margin-top:2px;">• Scalable LLM synthesis (-78% tokens) & zero-leakage security.</div>
+                    </div>
+
+                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                        <div style="width:14px;height:14px;border-radius:50%;background:{p_col};color:#fff;display:flex;align-items:center;justify-content:center;font-size:7px;margin-left:-21px;border:1.5px solid #fff;">🎓</div>
+                        <div style="font-weight:800;font-size:10.5px;color:{p_col};">{lbl_edu}</div>
+                    </div>
+                    <div style="position:relative;">
+                        <div style="width:8px;height:8px;border-radius:50%;background:{s_col};border:1.5px solid #fff;position:absolute;left:-18px;top:4px;"></div>
+                        <div style="display:flex;justify-content:space-between;font-weight:700;font-size:9.5px;color:#0f172a;">
+                            <span>M.Sc. Computer Science</span><span style="color:#64748b;font-size:8px;">2021–2023</span>
+                        </div>
+                        <div style="color:{p_col};font-weight:600;font-size:8.5px;">Universidade de São Paulo (USP)</div>
+                    </div>
+                </div>
+
+                <!-- Sidebar (38%) -->
+                <div style="flex:1;border-left:1px dashed #e2e8f0;padding-left:10px;font-size:8.5px;">
+                    <div style="font-weight:800;font-size:9.5px;color:{p_col};margin-bottom:4px;">{lbl_cnt}</div>
+                    <div style="color:#475569;line-height:1.45;margin-bottom:8px;">
+                        ✉️ lucas@email.com<br>
+                        📱 +55 11 99999-8888<br>
+                        🌐 portfolio.dev<br>
+                        🔗 in/lucassilva
+                    </div>
+                    <div style="font-weight:800;font-size:9.5px;color:{p_col};margin-bottom:4px;">{lbl_sk}</div>
+                    <div style="margin-bottom:6px;">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:1px;"><span>Python & AI</span><span style="color:#64748b;">95%</span></div>
+                        <div style="background:#edf2f7;height:4px;border-radius:2px;overflow:hidden;"><div style="width:95%;height:100%;background:{s_col};"></div></div>
+                    </div>
+                    <div style="margin-bottom:6px;">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:1px;"><span>Docker & Cloud</span><span style="color:#64748b;">85%</span></div>
+                        <div style="background:#edf2f7;height:4px;border-radius:2px;overflow:hidden;"><div style="width:85%;height:100%;background:{s_col};"></div></div>
+                    </div>
+                    <div style="font-weight:800;font-size:9.5px;color:{p_col};margin-bottom:4px;">IDIOMAS</div>
+                    <div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:1px;"><span>English</span><span style="color:#64748b;">Fluent</span></div>
+                        <div style="background:#edf2f7;height:4px;border-radius:2px;overflow:hidden;"><div style="width:90%;height:100%;background:{s_col};"></div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        """
+
     if template_id == "minimal_ats":
         return f"""
         <div style="background:#ffffff;color:#18181b;border-radius:10px;border:1px solid #cbd5e1;

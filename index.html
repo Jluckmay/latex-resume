@@ -924,13 +924,13 @@
                 <!-- Built-in Templates Visual Picker -->
                 <div id="builtin-tpl-container">
                     <div class="tpl-grid">
-                        <div class="tpl-option" data-tpl="modern_pro" onclick="selectTemplate('modern_pro')">
-                            <div class="tpl-option-title" id="tpl-name-modern">Moderno Executivo</div>
-                            <div class="tpl-option-desc" id="tpl-desc-modern">Coluna única com cabeçalho destacado, foto opcional e links clicáveis.</div>
+                        <div class="tpl-option" id="tpl-slot-dynamic" data-tpl="modern_pro" onclick="selectTemplate(this.getAttribute('data-tpl'))">
+                            <div class="tpl-option-title" id="tpl-name-dynamic">Moderno Executivo</div>
+                            <div class="tpl-option-desc" id="tpl-desc-dynamic">Coluna única com cabeçalho destacado, foto opcional e links clicáveis.</div>
                         </div>
-                        <div class="tpl-option" data-tpl="academic_classic" onclick="selectTemplate('academic_classic')">
-                            <div class="tpl-option-title" id="tpl-name-acad">Acadêmico Clássico</div>
-                            <div class="tpl-option-desc" id="tpl-desc-acad">Foco em Formação, Artigos com DOI, Projetos de Pesquisa, Lattes e ORCID.</div>
+                        <div class="tpl-option" id="tpl-slot-bubble" data-tpl="bubble" onclick="selectTemplate('bubble')">
+                            <div class="tpl-option-title" id="tpl-name-bubble">BubbleCV (Linha do Tempo)</div>
+                            <div class="tpl-option-desc" id="tpl-desc-bubble">Timeline contínua em segundo plano, nós TikZ circulares, barras de progresso e página única.</div>
                         </div>
                         <div class="tpl-option" data-tpl="tech_sidebar" onclick="selectTemplate('tech_sidebar')">
                             <div class="tpl-option-title" id="tpl-name-sidebar">Tech Duas Colunas</div>
@@ -1545,6 +1545,8 @@
                 tplModernDesc: "Coluna única com cabeçalho destacado, foto opcional e links clicáveis.",
                 tplAcadName: "Acadêmico Clássico",
                 tplAcadDesc: "Foco em Formação, Artigos com DOI, Projetos de Pesquisa, Lattes e ORCID.",
+                tplBubbleName: "BubbleCV (Linha do Tempo)",
+                tplBubbleDesc: "Timeline contínua em segundo plano, nós TikZ circulares, barras de progresso e página única.",
                 tplSideName: "Tech Duas Colunas",
                 tplSideDesc: "Barra lateral para foto, skills e idiomas; coluna principal para experiência.",
                 tplAtsName: "Minimalista ATS",
@@ -1649,6 +1651,8 @@
                 tplModernDesc: "Single-column layout with accented header, optional photo, and clickable links.",
                 tplAcadName: "Academic Classic",
                 tplAcadDesc: "Focused on Education, Peer-Reviewed Papers (DOI), Research Grants, Lattes & ORCID.",
+                tplBubbleName: "BubbleCV (Timeline & Bubbles)",
+                tplBubbleDesc: "Continuous timeline background, TikZ circular nodes, skill progress bars & single-page layout.",
                 tplSideName: "Tech Two-Column",
                 tplSideDesc: "Sidebar for photo, stack & languages; main column for experience & projects.",
                 tplAtsName: "Minimalist ATS",
@@ -2195,10 +2199,17 @@
             document.getElementById("ui-tpl-source-lbl").textContent = t.tplSourceLbl;
             document.getElementById("btn-src-builtin").textContent = t.srcBuiltin;
             document.getElementById("btn-src-custom").textContent = t.srcCustom;
-            document.getElementById("tpl-name-modern").textContent = t.tplModernName;
-            document.getElementById("tpl-desc-modern").textContent = t.tplModernDesc;
-            document.getElementById("tpl-name-acad").textContent = t.tplAcadName;
-            document.getElementById("tpl-desc-acad").textContent = t.tplAcadDesc;
+            const dynamicTitle = document.getElementById("tpl-name-dynamic");
+            const dynamicDesc = document.getElementById("tpl-desc-dynamic");
+            if (state.resumeType === "academico") {
+                if (dynamicTitle) dynamicTitle.textContent = t.tplAcadName;
+                if (dynamicDesc) dynamicDesc.textContent = t.tplAcadDesc;
+            } else {
+                if (dynamicTitle) dynamicTitle.textContent = t.tplModernName;
+                if (dynamicDesc) dynamicDesc.textContent = t.tplModernDesc;
+            }
+            if (document.getElementById("tpl-name-bubble")) document.getElementById("tpl-name-bubble").textContent = t.tplBubbleName;
+            if (document.getElementById("tpl-desc-bubble")) document.getElementById("tpl-desc-bubble").textContent = t.tplBubbleDesc;
             document.getElementById("tpl-name-sidebar").textContent = t.tplSideName;
             document.getElementById("tpl-desc-sidebar").textContent = t.tplSideDesc;
             document.getElementById("tpl-name-ats").textContent = t.tplAtsName;
@@ -2499,6 +2510,33 @@
             state.resumeType = type;
             document.getElementById("btn-type-prof").classList.toggle("active", type === "profissional");
             document.getElementById("btn-type-acad").classList.toggle("active", type === "academico");
+
+            const dynamicSlot = document.getElementById("tpl-slot-dynamic");
+            const dynamicTitle = document.getElementById("tpl-name-dynamic");
+            const dynamicDesc = document.getElementById("tpl-desc-dynamic");
+            const isEn = (document.getElementById("resume-lang-select")?.value || state.uiLang) === "en-us";
+            const t = I18N[isEn ? "en-us" : "pt-br"];
+
+            if (type === "academico") {
+                if (dynamicSlot) dynamicSlot.setAttribute("data-tpl", "academic_classic");
+                if (dynamicTitle) dynamicTitle.textContent = t.tplAcadName;
+                if (dynamicDesc) dynamicDesc.textContent = t.tplAcadDesc;
+                if (state.templateId === "modern_pro") {
+                    selectTemplate("academic_classic");
+                } else if (dynamicSlot) {
+                    dynamicSlot.classList.toggle("active", state.templateId === "academic_classic");
+                }
+            } else {
+                if (dynamicSlot) dynamicSlot.setAttribute("data-tpl", "modern_pro");
+                if (dynamicTitle) dynamicTitle.textContent = t.tplModernName;
+                if (dynamicDesc) dynamicDesc.textContent = t.tplModernDesc;
+                if (state.templateId === "academic_classic") {
+                    selectTemplate("modern_pro");
+                } else if (dynamicSlot) {
+                    dynamicSlot.classList.toggle("active", state.templateId === "modern_pro");
+                }
+            }
+
             renderLivePreview();
         }
 
@@ -2660,6 +2698,79 @@
                     <div style="font-size:9.5px;color:#334155;">
                         1. <b>Token-Efficient Reasoning in Large Language Models</b>. <i>JAIR</i>, 2025. <span style="color:${pCol};">DOI:10.1000/jair</span><br>
                         2. <b>Graph Neural Networks in Bioinformatics</b>. 2024.
+                    </div>
+                </div>`;
+            } else if (state.templateId === "bubble" || state.templateId === "bubble_cv") {
+                html = `
+                <div style="background:#fff;color:#1e293b;border-radius:10px;border:1px solid #cbd5e1;padding:14px;font-family:'Segoe UI',sans-serif;font-size:10.5px;min-height:240px;position:relative;overflow:hidden;">
+                    <!-- Timeline vertical line -->
+                    <div style="position:absolute;left:24px;top:0;bottom:0;width:2px;background:#cbd5e0;z-index:1;"></div>
+
+                    <!-- Header -->
+                    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;position:relative;z-index:2;">
+                        <div style="width:36px;height:36px;border-radius:50%;background:${pCol};color:#fff;border:2px solid #fff;box-shadow:0 0 0 1px ${pCol};display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;flex-shrink:0;">
+                            ${nameVal.split(' ').map(p => p[0]).filter(Boolean).slice(0,2).join('').toUpperCase() || 'CV'}
+                        </div>
+                        <div>
+                            <div style="font-size:15px;font-weight:900;color:${pCol};letter-spacing:-0.2px;">${nameVal}</div>
+                            <div style="font-size:9.5px;color:#64748b;font-style:italic;">${roleVal}</div>
+                        </div>
+                    </div>
+
+                    <!-- Columns -->
+                    <div style="display:flex;gap:14px;position:relative;z-index:2;">
+                        <!-- Main column (62%) -->
+                        <div style="flex:1.6;padding-left:14px;">
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                                <div style="width:14px;height:14px;border-radius:50%;background:${pCol};color:#fff;display:flex;align-items:center;justify-content:center;font-size:7px;margin-left:-21px;border:1.5px solid #fff;">💼</div>
+                                <div style="font-weight:800;font-size:10.5px;color:${pCol};">${lblExp}</div>
+                            </div>
+                            <div style="position:relative;margin-bottom:8px;">
+                                <div style="width:8px;height:8px;border-radius:50%;background:${sCol};border:1.5px solid #fff;position:absolute;left:-18px;top:4px;"></div>
+                                <div style="display:flex;justify-content:space-between;font-weight:700;font-size:9.5px;color:#0f172a;">
+                                    <span>Lead AI Engineer</span><span style="color:#64748b;font-size:8px;">2023–Now</span>
+                                </div>
+                                <div style="color:${pCol};font-weight:600;font-size:8.5px;">Tech Innovations Inc.</div>
+                                <div style="color:#475569;font-size:8.5px;margin-top:2px;">• Liderança técnica e otimização de LLMs (-78% tokens).</div>
+                            </div>
+
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                                <div style="width:14px;height:14px;border-radius:50%;background:${pCol};color:#fff;display:flex;align-items:center;justify-content:center;font-size:7px;margin-left:-21px;border:1.5px solid #fff;">🎓</div>
+                                <div style="font-weight:800;font-size:10.5px;color:${pCol};">${lblEdu}</div>
+                            </div>
+                            <div style="position:relative;">
+                                <div style="width:8px;height:8px;border-radius:50%;background:${sCol};border:1.5px solid #fff;position:absolute;left:-18px;top:4px;"></div>
+                                <div style="display:flex;justify-content:space-between;font-weight:700;font-size:9.5px;color:#0f172a;">
+                                    <span>B.S. Ciência da Computação</span><span style="color:#64748b;font-size:8px;">2018–2022</span>
+                                </div>
+                                <div style="color:${pCol};font-weight:600;font-size:8.5px;">Universidade de São Paulo (USP)</div>
+                            </div>
+                        </div>
+
+                        <!-- Sidebar (38%) -->
+                        <div style="flex:1;border-left:1px dashed #e2e8f0;padding-left:10px;font-size:8.5px;">
+                            <div style="font-weight:800;font-size:9.5px;color:${pCol};margin-bottom:4px;">CONTATO</div>
+                            <div style="color:#475569;line-height:1.45;margin-bottom:8px;">
+                                ✉️ email@domain.com<br>
+                                📱 +55 11 99999-8888<br>
+                                🌐 ${portDisp}<br>
+                                🔗 ${liNick}
+                            </div>
+                            <div style="font-weight:800;font-size:9.5px;color:${pCol};margin-bottom:4px;">COMPETÊNCIAS</div>
+                            <div style="margin-bottom:6px;">
+                                <div style="display:flex;justify-content:space-between;margin-bottom:1px;"><span>Python</span><span style="color:#64748b;">95%</span></div>
+                                <div style="background:#edf2f7;height:4px;border-radius:2px;overflow:hidden;"><div style="width:95%;height:100%;background:${sCol};"></div></div>
+                            </div>
+                            <div style="margin-bottom:6px;">
+                                <div style="display:flex;justify-content:space-between;margin-bottom:1px;"><span>Docker & AI</span><span style="color:#64748b;">85%</span></div>
+                                <div style="background:#edf2f7;height:4px;border-radius:2px;overflow:hidden;"><div style="width:85%;height:100%;background:${sCol};"></div></div>
+                            </div>
+                            <div style="font-weight:800;font-size:9.5px;color:${pCol};margin-bottom:4px;">IDIOMAS</div>
+                            <div>
+                                <div style="display:flex;justify-content:space-between;margin-bottom:1px;"><span>Português</span><span style="color:#64748b;">Nativo</span></div>
+                                <div style="background:#edf2f7;height:4px;border-radius:2px;overflow:hidden;"><div style="width:100%;height:100%;background:${sCol};"></div></div>
+                            </div>
+                        </div>
                     </div>
                 </div>`;
             } else if (state.templateId === "minimal_ats") {

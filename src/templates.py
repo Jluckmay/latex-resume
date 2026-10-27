@@ -41,6 +41,16 @@ BUILTIN_TEMPLATES: Dict[str, Dict[str, str]] = {
             "Projetos de Pesquisa, Docência, Prêmios, Lattes e ORCID."
         ),
     },
+    "bubble": {
+        "id": "bubble",
+        "name": "BubbleCV (Linha do Tempo / James Bond) / BubbleCV",
+        "recommended_for": "profissional",
+        "url": "https://www.overleaf.com/latex/templates/bubblecv/bcynnjktwqsx",
+        "description": (
+            "Modelo Overleaf BubbleCV (por Mateusz Baran) com linha do tempo vertical em segundo plano, "
+            "bolhas circulares TikZ para datas e seções, barras de progresso na coluna lateral e layout de página única."
+        ),
+    },
     "tech_sidebar": {
         "id": "tech_sidebar",
         "name": "Tech & Engenharia Duas Colunas (Barra Lateral) / Tech Sidebar",
@@ -1312,6 +1322,8 @@ def render_builtin_template(
     cv = cv_clean
     if template_id == "academic_classic":
         return _render_academic_classic(cv, links, resume_type, photo_filename, norm_lang)
+    if template_id in ("bubble", "bubble_cv", "bubblecv", "overleaf_bubble", "modelo_bubble"):
+        return _render_bubble(cv, links, resume_type, photo_filename, norm_lang)
     if template_id == "tech_sidebar":
         return _render_tech_sidebar(cv, links, resume_type, photo_filename, norm_lang)
     if template_id == "minimal_ats":
@@ -3845,3 +3857,413 @@ def _render_nico_krieger(
 
 \end{{document}}
 """
+
+
+def _extract_bubble_initials(name: str) -> str:
+    """Extrai até 2 iniciais maiúsculas para o nó circular do cabeçalho."""
+    parts = [p for p in name.split() if p]
+    if not parts:
+        return "CV"
+    if len(parts) == 1:
+        return parts[0][:2].upper()
+    return (parts[0][0] + parts[-1][0]).upper()
+
+
+def _parse_bubble_dates(period_str: str) -> tuple[str, str]:
+    """Separa período em data inicial e final para alinhamento na linha do tempo."""
+    if not period_str:
+        return "", ""
+    parts = re.split(r"\s*(?:--|—|–|-|\ba\b|\bto\b)\s*", str(period_str).strip())
+    if len(parts) >= 2:
+        return parts[0].strip(), parts[1].strip()
+    return parts[0].strip(), ""
+
+
+def _bubble_skill_fraction(level_str: str) -> float:
+    """Converte nível textual em percentual float [0.0, 1.0] para a barra de progresso."""
+    s = str(level_str).lower()
+    if any(k in s for k in ("nativo", "native", "c2", "master", "expert")):
+        return 1.0
+    if any(k in s for k in ("fluente", "fluent", "avancado", "avançado", "advanced", "c1")):
+        return 0.88
+    if any(k in s for k in ("intermediario", "intermediário", "intermediate", "b2", "b1", "medio", "médio")):
+        return 0.65
+    if any(k in s for k in ("basico", "básico", "basic", "a2", "a1", "iniciante", "beginner")):
+        return 0.40
+    return 0.80
+
+
+def _render_bubble(
+    cv: Dict[str, Any],
+    links: Dict[str, str],
+    resume_type: str = "profissional",
+    photo_filename: str | None = None,
+    lang: str = "pt-br",
+) -> str:
+    """Renderiza o modelo 'BubbleCV' (https://www.overleaf.com/latex/templates/bubblecv/bcynnjktwqsx).
+
+    Baseado no design de Mateusz Baran com linha do tempo contínua em segundo plano,
+    bolhas circulares TikZ para eventos e seções, barras de progresso para competências/idiomas
+    e alocação dinâmica estrita para preservação de página única.
+    """
+    t = LATEX_I18N[normalize_lang(lang)]
+    is_en = normalize_lang(lang) == "en-us"
+    raw_name = cv.get("name") or t["default_candidate"]
+    default_tl = t["default_researcher"] if resume_type == "academico" else t["default_tech_title"]
+    role = escape_latex(cv.get("title") or default_tl)
+    initials = _extract_bubble_initials(raw_name)
+
+    # 1. Header (Avatar Bubble + Name & Role)
+    if photo_filename:
+        avatar_tikz = rf"""\begin{{tikzpicture}}[baseline=-0.5ex]%
+    \draw[draw=cvbordercolor, fill=cvcolor, line width=\cvavatarborderwidth mm] (0,0) circle (\dimexpr\cvavatarradius mm - \cvavatarborderwidth mm / 2\relax);%
+    \clip (0,0) circle (\dimexpr\cvavatarradius mm - \cvavatarborderwidth mm\relax);%
+    \node at (0,0) {{\includegraphics[width=\dimexpr\cvavatarradius mm * 2\relax,height=\dimexpr\cvavatarradius mm * 2\relax,keepaspectratio]{{{photo_filename}}}}};%
+  \end{{tikzpicture}}%"""
+    else:
+        avatar_tikz = rf"""\begin{{tikzpicture}}[baseline=-0.5ex]%
+    \draw[draw=cvbordercolor, fill=cvcolor, line width=\cvavatarborderwidth mm] (0,0) circle (\dimexpr\cvavatarradius mm - \cvavatarborderwidth mm / 2\relax);%
+    \node at (0,0) {{\color{{white}}\fontsize{{18pt}}{{18pt}}\selectfont\textbf{{{initials}}}}};%
+  \end{{tikzpicture}}%"""
+
+    header_tex = rf"""\vspace*{{-5mm}}%
+\noindent%
+\hspace{{-\timelinespace mm}}%
+\hspace{{-\cvavatarradius mm}}%
+\begin{{minipage}}{{\dimexpr(\cvavatarradius mm * 2)}}%
+  {avatar_tikz}
+\end{{minipage}}%
+\hspace{{5mm}}%
+\begin{{minipage}}{{\dimexpr(\linewidth + \timelinespace mm - \cvavatarradius mm - 5mm)}}%
+  {{\fontsize{{20pt}}{{23pt}}\bfseries\color{{cvcolor}} {escape_latex(raw_name)}}}\\[3pt]%
+  {{\fontsize{{11pt}}{{13pt}}\itshape\color{{black!75}} {role}}}%
+\end{{minipage}}%"""
+
+    # 2. Main Column: Experience, Education, Projects/Publications
+    main_items: List[str] = []
+    exps = cv.get("experience") or []
+    projs = cv.get("projects") or []
+    pubs = cv.get("publications") or []
+    edus = cv.get("education") or []
+
+    n_exp, n_proj, n_pub = _allocate_single_page_budget(
+        len(exps), len(projs), len(pubs), budget=34.0, weight_exp=4.2, weight_proj=2.8, weight_pub=2.2, resume_type=resume_type
+    )
+
+    # Experience section
+    if n_exp > 0:
+        exp_lbl = "EXPERIENCE" if is_en else "EXPERIÊNCIA PROFISSIONAL"
+        main_items.append(rf"\bubblemaintitle{{\faBriefcase}}{{{exp_lbl}}}")
+        for exp in exps[:n_exp]:
+            r_txt = escape_latex(exp.get("role") or "")
+            c_txt = escape_latex(exp.get("company") or exp.get("organization") or "")
+            start_d, end_d = _parse_bubble_dates(exp.get("period") or "")
+            desc_raw = str(exp.get("description") or "")
+            desc_lines = [l.strip(" \t•-*") for l in desc_raw.splitlines() if l.strip(" \t•-*")]
+            if desc_lines:
+                bullets = desc_lines[:2]
+                body = "\\begin{itemize}\n" + "\n".join(rf"  \item {escape_latex(b)}" for b in bullets) + "\n\\end{itemize}"
+            else:
+                body = ""
+            main_items.append(rf"\bubbleevent{{{escape_latex(start_d)}}}{{{escape_latex(end_d)}}}{{{r_txt}}}{{{c_txt}}}{{{body}}}")
+
+    # Education section
+    if edus:
+        edu_lbl = "EDUCATION" if is_en else "FORMAÇÃO ACADÊMICA"
+        main_items.append(rf"\bubblemaintitle{{\faGraduationCap}}{{{edu_lbl}}}")
+        for ed in edus[:2]:
+            deg = escape_latex(ed.get("degree") or "")
+            inst = escape_latex(ed.get("institution") or "")
+            det = escape_latex(ed.get("details") or "")
+            start_d, end_d = _parse_bubble_dates(ed.get("period") or "")
+            body = rf"\textit{{{det}}}" if det else ""
+            main_items.append(rf"\bubbleevent{{{escape_latex(start_d)}}}{{{escape_latex(end_d)}}}{{{deg}}}{{{inst}}}{{{body}}}")
+
+    # Projects section
+    if n_proj > 0:
+        proj_lbl = "KEY PROJECTS" if is_en else "PROJETOS RELEVANTES"
+        main_items.append(rf"\bubblemaintitle{{\faRocket}}{{{proj_lbl}}}")
+        for p in projs[:n_proj]:
+            p_name = escape_latex(p.get("name") or "")
+            p_tech = p.get("technologies") or p.get("tech") or ""
+            if isinstance(p_tech, list):
+                tech_str = ", ".join(p_tech)
+            else:
+                tech_str = str(p_tech)
+            tech_disp = rf"\textbf{{Stack:}} {escape_latex(tech_str)}" if tech_str else ""
+            p_desc = escape_latex(p.get("description") or "")
+            if len(p_desc) > 130:
+                p_desc = p_desc[:127].rstrip() + "..."
+            main_items.append(rf"\bubbleevent{{\faCode}}{{}}{{{p_name}}}{{{tech_disp}}}{{{p_desc}}}")
+
+    # Publications section (if any budget or academic)
+    if n_pub > 0:
+        pub_lbl = "PUBLICATIONS" if is_en else "PUBLICAÇÕES CIENTÍFICAS"
+        main_items.append(rf"\bubblemaintitle{{\faBook}}{{{pub_lbl}}}")
+        for pb in pubs[:n_pub]:
+            t_pub = escape_latex(pb.get("title") or "")
+            v_pub = escape_latex(pb.get("venue") or "")
+            y_pub = escape_latex(str(pb.get("year") or ""))
+            doi_pub = pb.get("doi") or ""
+            doi_tex = rf" \href{{{escape_url('https://doi.org/' + doi_pub)}}}{{[\textbf{{DOI}}]}}" if doi_pub else ""
+            main_items.append(rf"\bubbleevent{{{y_pub}}}{{}}{{{t_pub}}}{{{v_pub}{doi_tex}}}{{}}")
+
+    main_content = "\n\n".join(main_items)
+
+    # 3. Sidebar Column: Contact, Profile, Skills, Languages, Awards
+    side_items: List[str] = []
+
+    # Contacts
+    cnt_lbl = "CONTACT" if is_en else "CONTATO"
+    side_items.append(rf"\bubblesidebartitle{{\faAddressCard}}{{{cnt_lbl}}}")
+    clean_em = (cv.get("email") or links.get("email") or "").strip()
+    if clean_em:
+        side_items.append(rf"\bubblesideitem{{\faEnvelope}}{{\href{{{escape_url('mailto:' + clean_em)}}}{{{escape_latex(clean_em)}}}}}")
+    if cv.get("phone"):
+        side_items.append(rf"\bubblesideitem{{\faPhone}}{{{escape_latex(cv['phone'])}}}")
+    if cv.get("location"):
+        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
+        side_items.append(rf"\bubblesideitem{{\faMapMarker*}}{{\href{{{escape_url(maps_url)}}}{{{escape_latex(cv['location'])}}}}}")
+    if links.get("portfolio"):
+        port_disp = escape_latex(simplify_url_display(links["portfolio"]))
+        side_items.append(rf"\bubblesideitem{{\faGlobe}}{{\href{{{escape_url(links['portfolio'])}}}{{\textbf{{{port_disp}}}}}}}")
+    if links.get("linkedin"):
+        li_disp = escape_latex(_get_platform_display(links, "linkedin", candidate_name=raw_name))
+        side_items.append(rf"\bubblesideitem{{\faLinkedin}}{{\href{{{escape_url(links['linkedin'])}}}{{\textbf{{{li_disp}}}}}}}")
+    if links.get("github"):
+        gh_disp = escape_latex(_get_platform_display(links, "github", candidate_name=raw_name))
+        side_items.append(rf"\bubblesideitem{{\faGithub}}{{\href{{{escape_url(links['github'])}}}{{\textbf{{{gh_disp}}}}}}}")
+    if links.get("orcid"):
+        orcid_disp = escape_latex(_get_platform_display(links, "orcid", candidate_name=raw_name))
+        side_items.append(rf"\bubblesideitem{{\faOrcid}}{{\href{{{escape_url(links['orcid'])}}}{{\textbf{{{orcid_disp}}}}}}}")
+    if links.get("lattes"):
+        lattes_disp = escape_latex(_get_platform_display(links, "lattes", candidate_name=raw_name))
+        side_items.append(rf"\bubblesideitem{{\faGraduationCap}}{{\href{{{escape_url(links['lattes'])}}}{{\textbf{{{lattes_disp}}}}}}}")
+
+    # Summary in Sidebar if present
+    summary_raw = cv.get("summary") or ""
+    if summary_raw.strip():
+        prof_lbl = "PROFILE" if is_en else "PERFIL"
+        sum_disp = escape_latex(summary_raw.strip())
+        if len(sum_disp) > 220:
+            sum_disp = sum_disp[:217].rstrip() + "..."
+        side_items.append(rf"\bubblesidebartitle{{\faUser}}{{{prof_lbl}}}")
+        side_items.append(rf"\noindent{{\small\color{{black!85}} {sum_disp}}}\vspace{{2mm}}\par")
+
+    # Skills with progress bars
+    skills = cv.get("skills") or []
+    if skills:
+        sk_lbl = "SKILLS" if is_en else "COMPETÊNCIAS"
+        side_items.append(rf"\bubblesidebartitle{{\faCogs}}{{{sk_lbl}}}")
+        count_sk = 0
+        for sk in skills:
+            if isinstance(sk, dict):
+                raw_items = str(sk.get("items") or "")
+                parts = [p.strip() for p in raw_items.split(",") if p.strip()]
+                for idx, p in enumerate(parts):
+                    if count_sk >= 6:
+                        break
+                    frac = 0.95 if idx == 0 else (0.85 if idx < 3 else 0.70)
+                    lvl_txt = "Avançado" if frac >= 0.85 else "Intermediário"
+                    if is_en:
+                        lvl_txt = "Advanced" if frac >= 0.85 else "Intermediate"
+                    side_items.append(rf"\bubbleskill{{{escape_latex(p)}}}{{{lvl_txt}}}{{{frac:.2f}}}")
+                    count_sk += 1
+            elif isinstance(sk, str) and sk.strip():
+                parts = [p.strip() for p in sk.split(",") if p.strip()]
+                for idx, p in enumerate(parts):
+                    if count_sk >= 6:
+                        break
+                    frac = 0.95 if idx == 0 else (0.85 if idx < 3 else 0.70)
+                    lvl_txt = "Avançado" if frac >= 0.85 else "Intermediário"
+                    if is_en:
+                        lvl_txt = "Advanced" if frac >= 0.85 else "Intermediate"
+                    side_items.append(rf"\bubbleskill{{{escape_latex(p)}}}{{{lvl_txt}}}{{{frac:.2f}}}")
+                    count_sk += 1
+
+    # Languages
+    langs = cv.get("languages") or []
+    if langs:
+        lang_lbl = "LANGUAGES" if is_en else "IDIOMAS"
+        side_items.append(rf"\bubblesidebartitle{{\faLanguage}}{{{lang_lbl}}}")
+        for lg in langs[:3]:
+            if isinstance(lg, dict):
+                lname = escape_latex(lg.get("language") or lg.get("name") or "")
+                lvl = escape_latex(lg.get("level") or "Fluente")
+                frac = _bubble_skill_fraction(lvl)
+                side_items.append(rf"\bubbleskill{{{lname}}}{{{lvl}}}{{{frac:.2f}}}")
+            elif isinstance(lg, str) and lg.strip():
+                lname = escape_latex(lg.strip())
+                side_items.append(rf"\bubbleskill{{{lname}}}{{Fluente}}{{0.85}}")
+
+    # Awards
+    awards = cv.get("awards") or []
+    if awards:
+        aw_lbl = "AWARDS" if is_en else "PRÊMIOS"
+        side_items.append(rf"\bubblesidebartitle{{\faTrophy}}{{{aw_lbl}}}")
+        for aw in awards[:2]:
+            if isinstance(aw, dict):
+                aw_txt = escape_latex(aw.get("title") or "")
+            else:
+                aw_txt = escape_latex(str(aw))
+            if len(aw_txt) > 80:
+                aw_txt = aw_txt[:77].rstrip() + "..."
+            side_items.append(rf"\bubblesideitem{{\faAward}}{{{aw_txt}}}")
+
+    sidebar_content = "\n\n".join(side_items)
+
+    tex = rf"""\documentclass[10pt,a4paper]{{article}}
+\usepackage[utf8]{{inputenc}}
+\usepackage[T1]{{fontenc}}
+\usepackage[a4paper,top=10mm,bottom=10mm,left=35mm,right=10mm]{{geometry}}
+\setlength{{\topskip}}{{0mm}}
+\setlength{{\parindent}}{{0mm}}
+\pagenumbering{{gobble}}
+\usepackage{{xcolor}}
+\usepackage{{tikz}}
+\usepackage{{paracol}}
+\usepackage{{enumitem}}
+\usepackage{{tabularx}}
+\usepackage{{etoolbox}}
+\usepackage{{fontawesome5}}
+\usepackage[hidelinks]{{hyperref}}
+\usepackage{{background}}
+
+\input{{glyphtounicode}}
+\pdfgentounicode=1
+
+\setlist[itemize]{{noitemsep, nolistsep, leftmargin=*, topsep=1pt, parsep=0pt, partopsep=0pt}}
+
+\definecolor{{cvcolor}}{{HTML}}{{1A365D}}
+\definecolor{{cvaccent}}{{HTML}}{{2B6CB0}}
+\definecolor{{cvtimelinecolor}}{{HTML}}{{CBD5E0}}
+\definecolor{{cvbordercolor}}{{HTML}}{{FFFFFF}}
+\definecolor{{cvlightcolor}}{{HTML}}{{EDF2F7}}
+
+\newcommand\cvavatarradius{{18}}
+\newcommand\cvavatarborderwidth{{0.8}}
+\newcommand\cvtimelineoffset{{25}}
+\newcommand\cvtimelinewidth{{0.6}}
+\newcommand\cvmainbubbleradius{{5}}
+\newcommand\cvmainbubbleborderwidth{{0.8}}
+\newcommand\cveventdatewidth{{16}}
+\newcommand\cveventbubbleradius{{2.6}}
+\newcommand\cveventbubbleborderwidth{{0.8}}
+\newcommand\cvsidebarbubbleradius{{5}}
+\newcommand\cvsidebarbubbleborderwidth{{0.8}}
+\newcommand\cvsidebaroffset{{2}}
+\newcommand\timelinespace{{10}}
+
+\SetBgScale{{1}}
+\SetBgAngle{{0}}
+\SetBgColor{{cvtimelinecolor}}
+\SetBgContents{{\rule{{\cvtimelinewidth mm}}{{\textheight}}}}
+\SetBgHshift{{\dimexpr(\cvtimelineoffset mm - 105 mm)}}
+
+\newcommand{{\drawbubble}}[5]{{%
+  \begin{{tikzpicture}}[baseline=-0.5ex]%
+    \draw[draw=#4, fill=#3, line width=#2mm] (0,0) circle (\dimexpr#1mm-#2mm/2\relax);%
+    \node at (0,0) {{#5}};%
+  \end{{tikzpicture}}%
+}}
+
+\newcommand{{\bubblemaintitle}}[2]{{%
+  \vspace{{3mm}}%
+  \noindent%
+  \hspace{{-\timelinespace mm}}%
+  \hspace{{-\cvmainbubbleradius mm}}%
+  \begin{{minipage}}{{\dimexpr(\cvmainbubbleradius mm * 2)}}%
+    \drawbubble{{\cvmainbubbleradius}}{{\cvmainbubbleborderwidth}}{{cvcolor}}{{cvbordercolor}}{{\color{{white}}\fontsize{{8pt}}{{8pt}}\selectfont #1}}%
+  \end{{minipage}}%
+  \hspace{{\dimexpr(\timelinespace mm - \cvmainbubbleradius mm)}}%
+  \begin{{minipage}}{{\linewidth}}%
+    {{\fontsize{{12pt}}{{14pt}}\bfseries\color{{cvcolor}} #2}}%
+  \end{{minipage}}%
+  \vspace{{2mm}}\par%
+}}
+
+\newcommand{{\bubblesidebartitle}}[2]{{%
+  \vspace{{3mm}}%
+  \noindent%
+  \begin{{minipage}}{{\dimexpr(\cvsidebarbubbleradius mm * 2)}}%
+    \drawbubble{{\cvsidebarbubbleradius}}{{\cvsidebarbubbleborderwidth}}{{cvcolor}}{{cvbordercolor}}{{\color{{white}}\fontsize{{8pt}}{{8pt}}\selectfont #1}}%
+  \end{{minipage}}%
+  \hspace{{\cvsidebaroffset mm}}%
+  \begin{{minipage}}{{\dimexpr(\linewidth - \cvsidebarbubbleradius mm * 2 - \cvsidebaroffset mm)}}%
+    {{\fontsize{{11pt}}{{13pt}}\bfseries\color{{cvcolor}} #2}}%
+  \end{{minipage}}%
+  \vspace{{2mm}}\par%
+}}
+
+\newcommand{{\bubbleevent}}[5]{{%
+  \noindent%
+  \hspace{{-\cveventbubbleradius mm}}%
+  \hspace{{-\timelinespace mm}}%
+  \hspace{{-\cveventdatewidth mm}}%
+  \begin{{minipage}}[t]{{\cveventdatewidth mm}}%
+    \centering\footnotesize\bfseries\color{{gray!80!black}}%
+    \ifstrempty{{#2}}{{%
+      #1%
+    }}{{%
+      #2\\[-1pt]$\uparrow$\\[-1pt]#1%
+    }}%
+  \end{{minipage}}%
+  \begin{{minipage}}[t]{{\dimexpr(\cveventbubbleradius mm * 2)}}%
+    \vspace{{0pt}}%
+    \drawbubble{{\cveventbubbleradius}}{{\cveventbubbleborderwidth}}{{cvaccent}}{{cvbordercolor}}{{}}%
+  \end{{minipage}}%
+  \hspace{{\dimexpr(\timelinespace mm - \cveventbubbleradius mm)}}%
+  \begin{{minipage}}[t]{{\linewidth}}%
+    \vspace{{0pt}}%
+    {{\bfseries\fontsize{{10pt}}{{12pt}}\selectfont #3}}%
+    \ifstrempty{{#4}}{{}}{{\\[1pt]{{\small\itshape\color{{black!75}} #4}}}}%
+    \ifstrempty{{#5}}{{}}{{\\[2pt]{{\small #5}}}}%
+  \end{{minipage}}%
+  \vspace{{2.5mm}}\par%
+}}
+
+\newcommand{{\bubblesideitem}}[2]{{%
+  \noindent%
+  \begin{{minipage}}[t]{{4mm}}%
+    \raggedright\color{{cvaccent}}\fontsize{{9pt}}{{9pt}}\selectfont #1%
+  \end{{minipage}}%
+  \hspace{{1.5mm}}%
+  \begin{{minipage}}[t]{{\dimexpr(\linewidth - 5.5mm)}}%
+    \raggedright\small #2%
+  \end{{minipage}}%
+  \vspace{{2mm}}\par%
+}}
+
+\newcommand{{\bubbleskill}}[3]{{%
+  \noindent%
+  \begin{{tabularx}}{{\linewidth}}{{@{{}}X>{{\raggedleft\arraybackslash}}r@{{}}}}%
+    \textbf{{\small #1}} & {{\footnotesize\color{{gray!70!black}} #2}}%
+  \end{{tabularx}}\\[-3pt]%
+  \begin{{tikzpicture}}[scale=1,rounded corners=0.8mm]%
+    \fill [cvlightcolor] (0,0) rectangle (\linewidth, 3.5pt);%
+    \fill [cvaccent] (0,0) rectangle (#3\linewidth, 3.5pt);%
+  \end{{tikzpicture}}%
+  \vspace{{2mm}}\par%
+}}
+
+\begin{{document}}
+
+{header_tex}
+
+\vspace{{2mm}}%
+\columnratio{{0.62}}%
+\setlength{{\columnsep}}{{10mm}}%
+
+\begin{{paracol}}{{2}}
+{main_content}
+
+\switchcolumn
+
+{sidebar_content}
+
+\end{{paracol}}
+
+\end{{document}}
+"""
+    return tex
+
