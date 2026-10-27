@@ -3594,16 +3594,23 @@ def _render_nico_krieger(
             role_xp = escape_latex(xp.get("role"))
             org_xp = escape_latex(xp.get("organization"))
             per_xp = escape_latex(xp.get("period"))
-            bullets = [escape_latex(sanitize_experience_description(b, lang=lang)) for b in (xp.get("bullets") or []) if str(b).strip()][:2]
+            raw_bullets = xp.get("bullets") or []
+            if not raw_bullets and xp.get("description"):
+                raw_bullets = [xp["description"]]
+            bullets = [escape_latex(sanitize_experience_description(b, lang=lang)) for b in raw_bullets if str(b).strip()][:2]
             date_tex = rf"{{\footnotesize\color{{graytext}}\faIcon{{calendar-alt}}\ {per_xp}}}" if per_xp else ""
-            xp_lines.append(rf"\textbf{{{role_xp}}} \hfill {date_tex}\\[0.5pt]")
             if org_xp:
-                xp_lines.append(rf"{{\color{{accent}}\textbf{{{org_xp}}}}}\\[1pt]")
+                xp_lines.append(rf"\textbf{{{role_xp}}} \hfill {date_tex}\\[0.5pt]")
+                xp_lines.append(rf"{{\color{{accent}}\textbf{{{org_xp}}}}}")
+            else:
+                xp_lines.append(rf"\textbf{{{role_xp}}} \hfill {date_tex}")
             if bullets:
-                xp_lines.append(r"\begin{itemize}[leftmargin=1.1em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
+                xp_lines.append(r"\begin{itemize}[leftmargin=1.1em,noitemsep,topsep=0pt,partopsep=0pt,parsep=0pt,before=\vspace{-2.5pt}]")
                 for b in bullets:
                     xp_lines.append(rf"    \item {b}")
                 xp_lines.append(r"\end{itemize}")
+            else:
+                xp_lines.append(r"\vspace{1.5pt}")
             xp_lines.append(r"\vspace{2pt}")
         main_sections.append("\n".join(xp_lines))
 

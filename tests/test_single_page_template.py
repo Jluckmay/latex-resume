@@ -383,7 +383,7 @@ def test_nico_krieger_education_in_sidebar_and_tight_spacing():
 
     # 3. Espaçamentos reduzidos e regras com \nopagebreak
     assert r"\rule{\linewidth}{0.8pt}\nopagebreak\\[3pt]" in tex_pt
-    assert r"\begin{itemize}[leftmargin=1.1em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]" in tex_pt
+    assert r"\begin{itemize}[leftmargin=1.1em,noitemsep,topsep=0pt,partopsep=0pt,parsep=0pt,before=\vspace{-2.5pt}]" in tex_pt
     assert r"\vspace{2pt}" in main_pt
 
 
