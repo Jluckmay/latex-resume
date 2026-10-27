@@ -2975,7 +2975,13 @@
 
             try {
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+                const timeoutId = setTimeout(() => {
+                    try {
+                        controller.abort(new DOMException("Backend status check timeout", "AbortError"));
+                    } catch (_) {
+                        controller.abort();
+                    }
+                }, timeoutMs);
                 const res = await fetch(`${base}/api/status`, {
                     signal: controller.signal,
                     headers: {
@@ -3100,7 +3106,13 @@
 
                 try {
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+                    const timeoutId = setTimeout(() => {
+                        try {
+                            controller.abort(new DOMException("Modal backend test timeout", "AbortError"));
+                        } catch (_) {
+                            controller.abort();
+                        }
+                    }, timeoutMs);
                     const res = await fetch(`${targetUrl}/api/status`, {
                         signal: controller.signal,
                         headers: {
@@ -3350,7 +3362,7 @@
                         const genController = new AbortController();
                         const genTimeoutId = setTimeout(() => {
                             try {
-                                genController.abort(new Error((state.uiLang === "en-us") ? "Server request timeout (120s)" : "Tempo limite de requisição ao servidor (120s)"));
+                                genController.abort(new DOMException((state.uiLang === "en-us") ? "Server request timeout (120s)" : "Tempo limite de requisição ao servidor (120s)", "AbortError"));
                             } catch (_) {
                                 genController.abort();
                             }
@@ -3555,16 +3567,18 @@
                     }
                 }
             } catch (err) {
-                let errMsg = err.message || "Erro desconhecido / Unknown error";
+                let errMsg = err?.message || (typeof err === "string" ? err : "Erro desconhecido / Unknown error");
+                const errStr = ((err?.name || "") + " " + errMsg + " " + String(err)).toLowerCase();
                 const isNetErr = (
-                    errMsg.toLowerCase().includes("failed to fetch")
-                    || errMsg.toLowerCase().includes("networkerror")
-                    || errMsg.toLowerCase().includes("load resource")
-                    || errMsg.toLowerCase().includes("abort")
-                    || errMsg.toLowerCase().includes("timeout")
-                    || errMsg.toLowerCase().includes("tempo limite")
-                    || errMsg.toLowerCase().includes("signal")
-                    || err.name === "AbortError"
+                    errStr.includes("failed to fetch")
+                    || errStr.includes("networkerror")
+                    || errStr.includes("load resource")
+                    || errStr.includes("abort")
+                    || errStr.includes("timeout")
+                    || errStr.includes("tempo limite")
+                    || errStr.includes("signal")
+                    || errStr.includes("cold start")
+                    || err?.name === "AbortError"
                 );
                 if (isNetErr) {
                     errMsg = (state.uiLang === "en-us")
