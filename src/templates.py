@@ -1793,39 +1793,39 @@ def _render_tech_sidebar(
     edus = cv.get("education") or []
     if edus:
         edu_lines = [rf"\section*{{{t['sec_education']}}}"]
-        for ed in edus:
+        for ed in edus[:2]:
             deg = escape_latex(ed.get("degree"))
             inst = escape_latex(ed.get("institution"))
             per = escape_latex(ed.get("period"))
             det = escape_latex(ed.get("details"))
-            edu_entry = [rf"\noindent\textbf{{{deg}}}"]
+            edu_entry = [rf"\textbf{{{deg}}}"]
             if inst:
                 edu_entry.append(rf"{{\footnotesize {inst}}}")
             if per:
                 edu_entry.append(rf"{{\scriptsize\color{{sidecolor!70}} {per}}}")
             if det:
                 edu_entry.append(rf"{{\scriptsize {det}}}")
-            edu_lines.append(r"\\".join(edu_entry) + r"\par\vspace{3pt}")
+            edu_lines.append(r"{\raggedright " + r"\\ ".join(edu_entry) + r"\par\vspace{3pt}}")
         sidebar_edu = "\n".join(edu_lines)
 
     # 4. Competências Técnicas na barra lateral
     sidebar_skills = _build_skills_block(cv.get("skills") or [], lang)
 
     # 5. Idiomas na barra lateral
-    clean_langs = [str(x).strip() for x in (cv.get("languages") or []) if str(x).strip()]
+    clean_langs = [str(x).strip() for x in (cv.get("languages") or []) if str(x).strip()][:4]
     sidebar_langs = ""
     if clean_langs:
-        l_items = "\n".join(rf"    \item {{\footnotesize {escape_latex(x)}}}" for x in clean_langs)
+        l_items = "\n".join(rf"    \item {{\footnotesize \raggedright {escape_latex(x)}}}" for x in clean_langs)
         sidebar_langs = (
             rf"\section*{{{t['sec_languages']}}}"
             + f"\n\\begin{{itemize}}[leftmargin=1.1em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]\n{l_items}\n\\end{{itemize}}"
         )
 
     # 6. Prêmios e Certificações na barra lateral
-    clean_awards = sanitize_awards(cv.get("awards") or [], lang=lang)
+    clean_awards = sanitize_awards(cv.get("awards") or [], lang=lang)[:3]
     sidebar_awards = ""
     if clean_awards:
-        a_items = "\n".join(rf"    \item {{\footnotesize {escape_latex(x)}}}" for x in clean_awards)
+        a_items = "\n".join(rf"    \item {{\footnotesize \raggedright {escape_latex(x)}}}" for x in clean_awards)
         sidebar_awards = (
             rf"\section*{{{t['sec_awards']}}}"
             + f"\n\\begin{{itemize}}[leftmargin=1.1em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]\n{a_items}\n\\end{{itemize}}"
@@ -1835,7 +1835,11 @@ def _render_tech_sidebar(
     summary_block = ""
     if cv.get("summary"):
         sec_title = t["sec_summary_acad"] if resume_type == "academico" else t["sec_summary_prof"]
-        summary_block = rf"\section*{{{sec_title}}}" + "\n" + rf"{{\footnotesize {escape_latex(cv['summary'])}}}"
+        raw_sum = cv["summary"].strip()
+        max_sum_chars = 240
+        if len(raw_sum) > max_sum_chars:
+            raw_sum = raw_sum[:max_sum_chars - 3].rstrip() + "..."
+        summary_block = rf"\section*{{{sec_title}}}" + "\n" + rf"{{\raggedright\footnotesize {escape_latex(raw_sum)}\par}}"
 
     sidebar_blocks = [
         rf"\section*{{{t['sec_contact']}}}" + "\n" + sidebar_contacts,
@@ -1859,9 +1863,45 @@ def _render_tech_sidebar(
     projs = cv.get("projects") or []
     has_projs = bool(projs)
 
-    # Experiência com formatação profissional em 2 níveis (preserva histórico completo sem truncamento)
+    # Orçamento adaptativo para garantir rigorosamente página única
+    if resume_type == "academico":
+        if has_pubs and has_projs:
+            max_exp = 3
+            max_proj = 2
+            max_pubs = 4
+        elif has_pubs:
+            max_exp = 4
+            max_proj = 0
+            max_pubs = 6
+        elif has_projs:
+            max_exp = 4
+            max_proj = 3
+            max_pubs = 0
+        else:
+            max_exp = 5
+            max_proj = 0
+            max_pubs = 0
+    else:
+        if has_pubs and has_projs:
+            max_exp = 3
+            max_proj = 3
+            max_pubs = 2
+        elif has_projs:
+            max_exp = 4
+            max_proj = 4
+            max_pubs = 0
+        elif has_pubs:
+            max_exp = 4
+            max_proj = 0
+            max_pubs = 4
+        else:
+            max_exp = 5
+            max_proj = 0
+            max_pubs = 0
+
+    # Experiência com formatação profissional em 2 níveis
     exp_block = ""
-    exps = cv.get("experience") or []
+    exps = (cv.get("experience") or [])[:max_exp]
     if exps:
         exp_lines = [rf"\section*{{{t['sec_exp_acad'] if resume_type == 'academico' else t['sec_exp_prof']}}}"]
         for xp in exps:
@@ -1872,7 +1912,7 @@ def _render_tech_sidebar(
                 escape_latex(sanitize_experience_description(b, lang=lang))
                 for b in (xp.get("bullets") or [])
                 if str(b).strip()
-            ]
+            ][:2]
             head_lines = [rf"\noindent\textbf{{{role}}} \hfill {{\small\textit{{{per}}}}}"]
             if org:
                 head_lines.append(rf"\textit{{{org}}}")
@@ -1886,12 +1926,12 @@ def _render_tech_sidebar(
                 exp_lines.append(r"\par\vspace{3pt}")
         exp_block = "\n".join(exp_lines)
 
-    # Projetos (preserva projetos completos)
+    # Projetos
     proj_block = ""
-    if has_projs:
+    if has_projs and max_proj > 0:
         proj_lines = [rf"\section*{{{t['sec_proj_acad'] if resume_type == 'academico' else t['sec_proj_prof']}}}"]
         proj_lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
-        for pj in projs:
+        for pj in projs[:max_proj]:
             nm = escape_latex(pj.get("name") or "").strip()
             if not nm:
                 continue
@@ -1908,12 +1948,12 @@ def _render_tech_sidebar(
         proj_lines.append(r"\end{itemize}")
         proj_block = "\n".join(proj_lines)
 
-    # Publicações com limpeza de falsos autores (preserva lista completa)
+    # Publicações com limpeza de falsos autores
     pub_block = ""
-    if has_pubs:
+    if has_pubs and max_pubs > 0:
         pub_lines = [rf"\section*{{{t['sec_publications']}}}"]
         pub_lines.append(r"\begin{enumerate}[leftmargin=1.5em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
-        for pb in pubs:
+        for pb in pubs[:max_pubs]:
             title_p = escape_latex(pb.get("title") or "").strip()
             venue = escape_latex(pb.get("venue") or "").strip()
             year = escape_latex(pb.get("year") or "").strip()
@@ -1961,7 +2001,8 @@ def _render_tech_sidebar(
 \usepackage[T1]{{fontenc}}
 \usepackage[{t['babel']}]{{babel}}
 \usepackage{{lmodern}}
-\usepackage[left=1.0cm,right=1.0cm,top=0.85cm,bottom=0.85cm]{{geometry}}
+\usepackage{{microtype}}
+\usepackage[left=1.0cm,right=1.0cm,top=0.8cm,bottom=0.8cm]{{geometry}}
 \usepackage{{xcolor}}
 \usepackage{{graphicx}}
 \usepackage{{enumitem}}
@@ -1982,22 +2023,25 @@ def _render_tech_sidebar(
 \setlength{{\parindent}}{{0pt}}
 
 \titleformat{{name=\section,numberless}}{{\normalsize\bfseries\scshape\color{{accent}}}}{{}}{{0em}}{{}}[\vspace{{1pt}}\titlerule\nopagebreak]
-\titlespacing*{{name=\section,numberless}}{{0pt}}{{5pt}}{{2pt}}
+\titlespacing*{{name=\section,numberless}}{{0pt}}{{4pt}}{{2pt}}
 \titleformat{{\section}}{{\normalsize\bfseries\scshape\color{{accent}}}}{{}}{{0em}}{{}}[\vspace{{1pt}}\titlerule\nopagebreak]
-\titlespacing*{{\section}}{{0pt}}{{5pt}}{{2pt}}
+\titlespacing*{{\section}}{{0pt}}{{4pt}}{{2pt}}
 
-\setcolumnwidth{{58mm, 126mm}}
-\setlength{{\columnsep}}{{6mm}}
+\setcolumnwidth{{60mm, 122mm}}
+\setlength{{\columnsep}}{{8mm}}
 \setlength{{\columnseprule}}{{0.6pt}}
 
 \begin{{document}}
 \begin{{paracol}}{{2}}
+\sloppy
+\raggedright
 {photo_tex}
 {{\Large\bfseries\color{{sidecolor}} {name}}}\\[2pt]
 {{\normalsize\itshape\color{{accent}} {prof_title}}}\\[6pt]
 {sidebar_content}
 
 \switchcolumn
+\sloppy
 
 {main_body}
 

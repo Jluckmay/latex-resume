@@ -227,14 +227,16 @@ def test_tech_sidebar_no_blank_page_and_full_content(tmp_path):
         assert pdf_file.exists()
 
         reader = pypdf.PdfReader(str(pdf_file))
-        assert len(reader.pages) >= 1
+        assert len(reader.pages) == 1, (
+            f"Expected strictly 1 page for tech_sidebar ({resume_type}), got {len(reader.pages)}"
+        )
         page1_text = reader.pages[0].extract_text().strip()
-        assert len(page1_text) > 1000, f"Page 1 is unexpectedly empty or sparse: len={len(page1_text)}"
+        assert len(page1_text) > 800, f"Page 1 is unexpectedly empty or sparse: len={len(page1_text)}"
 
-        full_text = "\n".join(p.extract_text() for p in reader.pages)
-        # Garante que experiências, projetos e publicações completas são preservados
-        assert "Programming Teaching Assistant" in full_text
-        assert "Math-O-Ween" in full_text
+        full_text = reader.pages[0].extract_text()
+        # Garante que experiências, projetos e publicações prioritárias são preservados na página única
+        assert "Student Electoral Board Member" in full_text
+        assert "latex-resume" in full_text
         assert "PDI Interativo" in full_text
 
 
