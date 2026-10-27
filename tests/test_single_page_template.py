@@ -320,6 +320,18 @@ def test_google_standard_strictly_one_page_academic_and_professional(tmp_path):
                 f"Expected strictly 1 page for Google Standard ({resume_type}, {lang}), got {len(reader.pages)}"
             )
 
+            # Garante que o orçamento enriquecido inclui múltiplos itens sem truncar excessivamente
+            if resume_type == "academico":
+                assert "Math-O-Ween" in tex
+                assert "PDI Interativo" in tex
+                assert "Impacto da Solução Inicial" in tex
+                assert "latex-resume" in tex
+                assert "jluckmay.github.io" in tex
+            else:
+                assert "latex-resume" in tex
+                assert "jluckmay.github.io" in tex
+                assert "minecraft-map-convertion" in tex
+
 
 def test_google_standard_gayle_mcdowell_layout_and_accent():
     """Valida se o template Google Standard utiliza cor de destaque Google Blue e formatação Gayle McDowell."""

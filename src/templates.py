@@ -2994,24 +2994,52 @@ def _render_google_standard(
 
     # Single-page budgets
     pubs = cv.get("publications") or []
+    projs = cv.get("projects") or []
     has_pubs = bool(pubs)
+    has_projs = bool(projs)
 
     if resume_type == "academico":
         max_sum_chars = 200
         max_edu = 2
-        max_exp = 2
-        max_proj = 1 if has_pubs else 2
-        max_pubs = 2
         max_skills = 2
         max_awards = 3
+        if has_pubs and has_projs:
+            max_exp = 4
+            max_proj = 2
+            max_pubs = 4
+        elif has_pubs:
+            max_exp = 4
+            max_proj = 0
+            max_pubs = 6
+        elif has_projs:
+            max_exp = 4
+            max_proj = 3
+            max_pubs = 0
+        else:
+            max_exp = 5
+            max_proj = 0
+            max_pubs = 0
     else:
         max_sum_chars = 220
-        max_exp = 3
-        max_proj = 2
         max_edu = 2
         max_skills = 3
-        max_pubs = 1 if has_pubs else 0
         max_awards = 3
+        if has_pubs and has_projs:
+            max_exp = 4
+            max_proj = 3
+            max_pubs = 2
+        elif has_projs:
+            max_exp = 4
+            max_proj = 4
+            max_pubs = 0
+        elif has_pubs:
+            max_exp = 4
+            max_proj = 0
+            max_pubs = 4
+        else:
+            max_exp = 5
+            max_proj = 0
+            max_pubs = 0
 
     # Summary
     sum_block = ""
