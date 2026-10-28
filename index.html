@@ -1749,6 +1749,7 @@
             resumeType: "profissional",
             templateSource: "builtin",
             templateId: "ai_ats_max",
+            resultVersion: 0,
             dataMode: "import",
             photoDataUrl: null
         };
@@ -2506,7 +2507,58 @@
             }
         }
 
+        function clearGeneratedResume() {
+            state.resultVersion = (state.resultVersion || 0) + 1;
+            state.pdfDoc = null;
+            state.pdfPageNum = 1;
+            state.pdfTotalPages = 0;
+            state.pdfScale = 1.0;
+            state.pdfFitWidth = true;
+
+            ["activePdfBlobUrl", "activeTexBlobUrl"].forEach(key => {
+                if (state[key]) {
+                    try { URL.revokeObjectURL(state[key]); } catch (_) {}
+                    state[key] = null;
+                }
+            });
+
+            const resultContent = document.getElementById("result-content");
+            const idleMessage = document.getElementById("result-idle-msg");
+            if (resultContent) resultContent.classList.add("hidden");
+            if (idleMessage) {
+                idleMessage.innerHTML = I18N[state.uiLang]?.idleMsg || "";
+                idleMessage.classList.remove("hidden");
+            }
+
+            const pdfLink = document.getElementById("dl-pdf-link");
+            const texLink = document.getElementById("dl-tex-link");
+            const tabLink = document.getElementById("pdf-tab-link");
+            if (pdfLink) {
+                pdfLink.removeAttribute("href");
+                pdfLink.classList.add("hidden");
+            }
+            if (texLink) texLink.removeAttribute("href");
+            if (tabLink) tabLink.removeAttribute("href");
+
+            const iframe = document.getElementById("pdf-iframe");
+            if (iframe) {
+                iframe.src = "about:blank";
+                iframe.style.display = "";
+            }
+            const toolbar = document.getElementById("pdf-toolbar");
+            const canvasContainer = document.getElementById("pdf-canvas-container");
+            if (toolbar) toolbar.style.display = "";
+            if (canvasContainer) {
+                canvasContainer.style.display = "";
+                canvasContainer.replaceChildren();
+            }
+
+            const latexOutput = document.getElementById("tex-code-output");
+            if (latexOutput) latexOutput.textContent = "";
+        }
+
         function setResumeType(type) {
+            if (state.resumeType !== type) clearGeneratedResume();
             state.resumeType = type;
             document.getElementById("btn-type-prof").classList.toggle("active", type === "profissional");
             document.getElementById("btn-type-acad").classList.toggle("active", type === "academico");
@@ -2537,6 +2589,7 @@
         }
 
         function setTemplateSource(src) {
+            if (state.templateSource !== src) clearGeneratedResume();
             state.templateSource = src;
             document.getElementById("btn-src-builtin").classList.toggle("active", src === "builtin");
             document.getElementById("btn-src-custom").classList.toggle("active", src === "custom");
@@ -2545,6 +2598,7 @@
         }
 
         function selectTemplate(tplId) {
+            if (state.templateId !== tplId) clearGeneratedResume();
             state.templateId = tplId;
             document.querySelectorAll(".tpl-option").forEach(el => {
                 el.classList.toggle("active", el.getAttribute("data-tpl") === tplId);
@@ -3317,6 +3371,8 @@
             if (state.isGenerating) {
                 return;
             }
+            clearGeneratedResume();
+            const generationVersion = state.resultVersion;
             state.isGenerating = true;
             const btn = document.getElementById("btn-generate");
             const btnTxt = document.getElementById("ui-gen-btn-txt");
@@ -3535,6 +3591,9 @@
                     throw new Error(data.error || `HTTP ${resp.status}: Falha ao gerar currículo`);
                 }
 
+                if (generationVersion !== state.resultVersion) {
+                    return;
+                }
                 document.getElementById("result-idle-msg").classList.add("hidden");
                 document.getElementById("result-content").classList.remove("hidden");
 
@@ -3627,6 +3686,7 @@
                             pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
                             const loadingTask = pdfjsLib.getDocument({ data: bytes });
                             loadingTask.promise.then(function(pdfDoc) {
+                                if (generationVersion !== state.resultVersion) return;
                                 state.pdfDoc = pdfDoc;
                                 state.pdfPageNum = 1;
                                 state.pdfTotalPages = pdfDoc.numPages;
@@ -3642,6 +3702,7 @@
 
                                 renderAllPdfPages();
                             }).catch(function(err) {
+                                if (generationVersion !== state.resultVersion) return;
                                 console.warn("PDF.js load error, falling back to iframe:", err);
                                 fallbackToIframe();
                             });
@@ -3656,6 +3717,7 @@
                     }
 
                     function fallbackToIframe() {
+                        if (generationVersion !== state.resultVersion) return;
                         const tb = document.getElementById("pdf-toolbar");
                         const cc = document.getElementById("pdf-canvas-container");
                         if (tb) tb.style.display = "none";

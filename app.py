@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import tempfile
 from pathlib import Path
 
@@ -32,6 +33,23 @@ if not FAVICON_PATH.exists():
     FAVICON_PATH = PROJECT_ROOT / "assets" / "favicon.png"
 if not FAVICON_PATH.exists():
     FAVICON_PATH = PROJECT_ROOT / "favicon.png"
+
+
+def clear_session_result() -> None:
+    """Remove the previous result so another template cannot appear to reuse it."""
+    for key in (
+        "session_has_run",
+        "session_success",
+        "session_latex_code",
+        "session_token_metrics",
+        "session_structured_cv",
+        "session_compiler_message",
+        "session_tex_name",
+        "session_pdf_bytes",
+        "session_pdf_name",
+        "session_result_selection",
+    ):
+        st.session_state.pop(key, None)
 
 st.set_page_config(
     page_title="LaTeX Resume Generator — NVIDIA AI",
@@ -509,6 +527,21 @@ with col_left:
 
     generate_btn = st.button(txt["gen_btn"], type="primary", use_container_width=True)
 
+    selection_signature = (
+        resume_type,
+        resume_lang,
+        template_mode == txt["tpl_mode_builtin"],
+        selected_template_id,
+        hashlib.sha256((custom_latex_str or "").encode("utf-8")).hexdigest(),
+        primary_color,
+        secondary_color,
+    )
+    if (
+        st.session_state.get("session_has_run")
+        and st.session_state.get("session_result_selection") != selection_signature
+    ):
+        clear_session_result()
+
 with col_right:
     # Preview Visual ao Vivo do Modelo LaTeX e das Cores Selecionadas
     st.subheader(txt["preview_card_title"])
@@ -525,6 +558,7 @@ with col_right:
     st.divider()
     st.subheader(txt["res_header"])
     if generate_btn:
+        clear_session_result()
         with st.spinner(txt["spinner_msg"]):
             tmp_build_dir = tempfile.mkdtemp(prefix="st_session_ephemeral_")
             build_path = Path(tmp_build_dir)
@@ -571,6 +605,7 @@ with col_right:
                 st.session_state["session_structured_cv"] = res.structured_cv
                 st.session_state["session_compiler_message"] = res.compiler_message
                 st.session_state["session_tex_name"] = f"resume_{resume_lang}_{resume_type}_{selected_template_id}.tex"
+                st.session_state["session_result_selection"] = selection_signature
 
                 if res.success and res.pdf_path and res.pdf_path.exists():
                     st.session_state["session_pdf_bytes"] = res.pdf_path.read_bytes()
