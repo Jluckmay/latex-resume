@@ -25,7 +25,6 @@ from .extractors import (
 )
 from .llm_client import LLMResumeGenerator
 from .token_plugins import TokenMetrics, diagnose_fallback_reason
-from .templates import SINGLE_PAGE_TEMPLATE_IDS
 from .ui_theme import apply_custom_colors_and_portfolio_to_latex
 
 
@@ -43,8 +42,8 @@ class ResumeGenerationResult:
     compiler_message: str
 
 
-def _is_pdf_blank_or_corrupted(pdf_path: Path | None, require_single_page: bool = False) -> bool:
-    """Detect empty PDFs and enforce one non-empty page for strict single-page templates."""
+def _is_pdf_blank_or_corrupted(pdf_path: Path | None) -> bool:
+    """Verifica se o PDF gerado existe em disco mas está vazio ou contém página em branco (menos de 25 caracteres)."""
     if not pdf_path or not pdf_path.exists():
         return False
     try:
@@ -54,17 +53,14 @@ def _is_pdf_blank_or_corrupted(pdf_path: Path | None, require_single_page: bool 
         reader = PdfReader(str(pdf_path))
         if len(reader.pages) == 0:
             return True
-        if require_single_page and len(reader.pages) != 1:
-            return True
-        page_texts = [(page.extract_text() or "").strip() for page in reader.pages]
-        if require_single_page and any(len(page_text) < 25 for page_text in page_texts):
-            return True
-        total_text = "".join(page_texts)
+        total_text = ""
+        for page in reader.pages:
+            total_text += (page.extract_text() or "").strip()
         if len(total_text) < 25:
             return True
         return False
     except Exception:
-        return require_single_page
+        return False
 
 
 def build_resume_pipeline(
@@ -376,12 +372,7 @@ def build_resume_pipeline(
 
     # 7. Fallback resiliente absoluto contra paginas em branco ou falhas de compilacao:
     # Se a compilacao falhou ou se o PDF gerado e uma pagina em branco (<25 caracteres extraidos), compila o LaTeX deterministico
-    require_single_page = not custom_latex_template and template_id in SINGLE_PAGE_TEMPLATE_IDS
-    is_blank_or_failed = (not ok) or (
-        pdf_path
-        and pdf_path.exists()
-        and _is_pdf_blank_or_corrupted(pdf_path, require_single_page=require_single_page)
-    )
+    is_blank_or_failed = (not ok) or (pdf_path and pdf_path.exists() and _is_pdf_blank_or_corrupted(pdf_path))
     if is_blank_or_failed:
         fallback_base, fb_cv = generate_direct_latex_resume(
             raw_profile_data=raw_profile_data,
@@ -403,23 +394,10 @@ def build_resume_pipeline(
             output_stem=output_stem,
             build_dir=target_dir,
         )
-        fallback_valid = (
-            fb_ok
-            and fb_pdf_path
-            and fb_pdf_path.exists()
-            and not _is_pdf_blank_or_corrupted(fb_pdf_path, require_single_page=require_single_page)
-        )
-        if fallback_valid:
+        if fb_ok and fb_pdf_path and fb_pdf_path.exists() and not _is_pdf_blank_or_corrupted(fb_pdf_path):
             latex_code = safe_fallback_tex
             structured_cv = fb_cv
             ok, pdf_path, tex_path, comp_msg = fb_ok, fb_pdf_path, fb_tex_path, "Compilado com sucesso via fallback deterministico resiliente."
-        else:
-            latex_code = safe_fallback_tex
-            structured_cv = fb_cv
-            ok = False
-            pdf_path = None
-            tex_path = fb_tex_path or tex_path
-            comp_msg = "Fallback determinístico inválido: PDF vazio ou excedeu o limite de uma página."
 
     return ResumeGenerationResult(
         success=ok,

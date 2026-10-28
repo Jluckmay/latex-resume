@@ -3535,12 +3535,7 @@
                     throw new Error(errorMsg);
                 }
 
-                if (!resp.ok || data.error || data.success === false || !data.pdf_base64) {
-                    const resultContent = document.getElementById("result-content");
-                    const idleMessage = document.getElementById("result-idle-msg");
-                    if (resultContent) resultContent.classList.add("hidden");
-                    if (idleMessage) idleMessage.classList.remove("hidden");
-                    data.error = data.error || data.compiler_message || (state.uiLang === "en-us" ? "No valid PDF was generated." : "A geração não produziu um PDF válido.");
+                if (!resp.ok || data.error) {
                     throw new Error(data.error || `HTTP ${resp.status}: Falha ao gerar currículo`);
                 }
 

@@ -22,16 +22,6 @@ from .extractors import (
     sanitize_experience_description,
 )
 
-SINGLE_PAGE_TEMPLATE_IDS = frozenset({
-    "bubble",
-    "minimal_ats",
-    "overleaf_single_page_keywords",
-    "google_standard",
-    "nico_krieger",
-    "tech_sidebar",
-})
-
-
 BUILTIN_TEMPLATES: Dict[str, Dict[str, str]] = {
     "modern_pro": {
         "id": "modern_pro",
@@ -1415,54 +1405,52 @@ def _allocate_single_page_budget(
     header_proj: float = 2.5,
     header_pub: float = 2.5,
 ) -> tuple[int, int, int]:
-    """Allocate estimated page height, reserving experience and finishing the preferred section first.
+    """Distribui dinamicamente a capacidade vertical da página entre experiências, projetos e publicações.
 
-    Professional resumes prefer projects and reserve three experience entries; academic resumes prefer
-    publications and reserve one. The secondary project/publication section is included only after all
-    items in the preferred section fit.
+    Garante utilização ótima do espaço da página única sem ultrapassar o limite de 1 página.
+    Se o usuário não possuir projetos ou publicações, toda a capacidade restante flui automaticamente
+    para experiências; se tiver poucas experiências, a capacidade expande para projetos e publicações.
     """
-    totals = {"exp": max(0, total_exp), "proj": max(0, total_proj), "pub": max(0, total_pubs)}
-    weights = {"exp": weight_exp, "proj": weight_proj, "pub": weight_pub}
-    headers = {"exp": header_exp, "proj": header_proj, "pub": header_pub}
-    counts = {"exp": 0, "proj": 0, "pub": 0}
+    n_exp = 0
+    n_proj = 0
+    n_pub = 0
 
-    def used_budget() -> float:
-        return sum(
-            headers[kind] + counts[kind] * weights[kind]
-            for kind in counts
-            if counts[kind] > 0
-        )
+    def cur_cost(e: int, p: int, u: int) -> float:
+        c = 0.0
+        if e > 0:
+            c += header_exp + e * weight_exp
+        if p > 0:
+            c += header_proj + p * weight_proj
+        if u > 0:
+            c += header_pub + u * weight_pub
+        return c
 
-    def add(kind: str) -> bool:
-        if counts[kind] >= totals[kind]:
-            return False
-        header_cost = headers[kind] if counts[kind] == 0 else 0.0
-        if used_budget() + header_cost + weights[kind] > budget:
-            return False
-        counts[kind] += 1
-        return True
+    # Sequência de prioridade baseada na finalidade:
+    # - Acadêmico prioriza Publicações sobre Projetos (3:1)
+    # - Profissional prioriza Projetos sobre Publicações (3:1)
+    if resume_type == "academico":
+        order = ["exp", "pub", "proj", "pub", "exp", "pub"]
+    else:
+        order = ["exp", "proj", "pub", "proj", "exp", "proj"]
 
-    def fill(kind: str, limit: int | None = None) -> None:
-        target = totals[kind] if limit is None else min(totals[kind], limit)
-        while counts[kind] < target and add(kind):
-            pass
+    changed = True
+    while changed:
+        changed = False
+        for kind in order:
+            if kind == "exp" and n_exp < total_exp:
+                if cur_cost(n_exp + 1, n_proj, n_pub) <= budget:
+                    n_exp += 1
+                    changed = True
+            elif kind == "proj" and n_proj < total_proj:
+                if cur_cost(n_exp, n_proj + 1, n_pub) <= budget:
+                    n_proj += 1
+                    changed = True
+            elif kind == "pub" and n_pub < total_pubs:
+                if cur_cost(n_exp, n_proj, n_pub + 1) <= budget:
+                    n_pub += 1
+                    changed = True
 
-    is_professional = resume_type != "academico"
-    preferred = "proj" if is_professional else "pub"
-    secondary = "pub" if is_professional else "proj"
-
-    # Keep experience visible in both modes; professional mode reserves more entries first.
-    fill("exp", 3 if is_professional else 1)
-    fill(preferred)
-
-    # Never show the secondary section until every available preferred item is included.
-    if counts[preferred] == totals[preferred]:
-        fill(secondary)
-
-    # Use leftover room for more experience after priority sections are complete.
-    fill("exp")
-
-    return counts["exp"], counts["proj"], counts["pub"]
+    return n_exp, n_proj, n_pub
 
 
 def _render_sections_body(
@@ -2812,7 +2800,7 @@ def _render_overleaf_single_page_keywords(
     n_edu = min(2, len(cv.get("education") or []))
     n_aw = min(4, len(clean_awards))
     cost_other_left = (n_edu * 3.2 + (2.0 if n_edu else 0.0)) + (n_aw * 1.4 + (1.8 if n_aw else 0.0))
-    left_budget = 39.0 if resume_type != "academico" else 33.0
+    left_budget = 36.0
     avail_work = max(10.0, left_budget - cost_other_left)
     max_work = min(len(cv.get("experience") or []), max(1, int((avail_work - 2.0) / 3.4)))
 
@@ -2910,7 +2898,7 @@ def _render_overleaf_single_page_keywords(
     sk_sec = (rf"\cvsec{{\faIcon{{list}}}}{{{sk_lbl}}} " + "\n" + "\n".join(sk_rows)) if sk_rows else ""
 
     pub_sec = ""
-    if max_pubs > 0:
+    if pubs:
         pub_lbl = "PUBLICATIONS" if is_en else "PUBLICAÇÕES"
         p_rows: List[str] = []
         for pb in pubs[:max_pubs]:
@@ -3994,14 +3982,9 @@ def _render_bubble(
     """
     t = LATEX_I18N[normalize_lang(lang)]
     is_en = normalize_lang(lang) == "en-us"
-
-    def clip(value: Any, limit: int) -> str:
-        text = str(value or "").strip()
-        return text if len(text) <= limit else text[: limit - 3].rstrip() + "..."
-
-    raw_name = clip(cv.get("name") or t["default_candidate"], 80)
+    raw_name = cv.get("name") or t["default_candidate"]
     default_tl = t["default_researcher"] if resume_type == "academico" else t["default_tech_title"]
-    role = escape_latex(clip(cv.get("title") or default_tl, 72))
+    role = escape_latex(cv.get("title") or default_tl)
 
     # 1. Header (exibe círculo de foto SOMENTE se photo_filename for fornecido)
     if photo_filename:
@@ -4040,54 +4023,41 @@ def _render_bubble(
     projs = cv.get("projects") or []
     pubs = cv.get("publications") or []
     edus = cv.get("education") or []
-    max_edu = min(len(edus), 2 if resume_type == "academico" else 1)
-    education_cost = (2.5 + max_edu * 3.2) if max_edu else 0.0
-    main_budget = max(14.0, 34.0 - education_cost)
 
     n_exp, n_proj, n_pub = _allocate_single_page_budget(
-        len(exps), len(projs), len(pubs), budget=main_budget, weight_exp=4.2, weight_proj=2.8, weight_pub=2.2, resume_type=resume_type
+        len(exps), len(projs), len(pubs), budget=34.0, weight_exp=4.2, weight_proj=2.8, weight_pub=2.2, resume_type=resume_type
     )
-    if exps:
-        n_exp = max(1, n_exp)
 
     exp_sec_items: List[str] = []
-    exp_lbl = "EXPERIENCE" if is_en else "EXPERIÊNCIA PROFISSIONAL"
-    if exps and n_exp > 0:
+    if n_exp > 0:
+        exp_lbl = "EXPERIENCE" if is_en else "EXPERIÊNCIA PROFISSIONAL"
         exp_sec_items.append(rf"\bubblemaintitle{{\faBriefcase}}{{{exp_lbl}}}")
         for exp in exps[:n_exp]:
-            r_txt = escape_latex(clip(exp.get("role") or "", 70))
-            c_txt = escape_latex(clip(exp.get("company") or exp.get("organization") or "", 70))
+            r_txt = escape_latex(exp.get("role") or "")
+            c_txt = escape_latex(exp.get("company") or exp.get("organization") or "")
             start_d, end_d = _parse_bubble_dates(exp.get("period") or "")
             raw_bullets = exp.get("bullets") or []
             if not raw_bullets and exp.get("description"):
                 raw_bullets = [l.strip(" \t•-*") for l in str(exp["description"]).splitlines() if l.strip(" \t•-*")]
-            clean_bullets = []
-            for bullet in raw_bullets:
-                if not str(bullet).strip():
-                    continue
-                clean_bullets.append(escape_latex(clip(sanitize_experience_description(bullet, lang=lang), 118)))
-                if len(clean_bullets) == 2:
-                    break
+            clean_bullets = [
+                escape_latex(sanitize_experience_description(b, lang=lang))
+                for b in raw_bullets
+                if str(b).strip()
+            ][:2]
             if clean_bullets:
                 body = "\\begin{itemize}\n" + "\n".join(rf"  \item {b}" for b in clean_bullets) + "\n\\end{itemize}"
             else:
                 body = ""
             exp_sec_items.append(rf"\bubbleevent{{{escape_latex(start_d)}}}{{{escape_latex(end_d)}}}{{{r_txt}}}{{{c_txt}}}{{{body}}}")
-    else:
-        empty_experience = "No experience provided." if is_en else "Experiência não informada."
-        exp_sec_items.extend((
-            rf"\bubblemaintitle{{\faBriefcase}}{{{exp_lbl}}}",
-            rf"{{\small\itshape\color{{black!70}} {escape_latex(empty_experience)}\par}}",
-        ))
 
     edu_sec_items: List[str] = []
-    if max_edu > 0:
+    if edus:
         edu_lbl = "EDUCATION" if is_en else "FORMAÇÃO ACADÊMICA"
         edu_sec_items.append(rf"\bubblemaintitle{{\faGraduationCap}}{{{edu_lbl}}}")
-        for ed in edus[:max_edu]:
-            deg = escape_latex(clip(ed.get("degree") or "", 75))
-            inst = escape_latex(clip(ed.get("institution") or "", 65))
-            det = escape_latex(clip(ed.get("details") or "", 85))
+        for ed in edus[:2]:
+            deg = escape_latex(ed.get("degree") or "")
+            inst = escape_latex(ed.get("institution") or "")
+            det = escape_latex(ed.get("details") or "")
             start_d, end_d = _parse_bubble_dates(ed.get("period") or "")
             body = rf"\textit{{{det}}}" if det else ""
             edu_sec_items.append(rf"\bubbleevent{{{escape_latex(start_d)}}}{{{escape_latex(end_d)}}}{{{deg}}}{{{inst}}}{{{body}}}")
@@ -4097,7 +4067,7 @@ def _render_bubble(
         proj_lbl = "KEY PROJECTS" if is_en else "PROJETOS RELEVANTES"
         proj_sec_items.append(rf"\bubblemaintitle{{\faRocket}}{{{proj_lbl}}}")
         for p in projs[:n_proj]:
-            p_name = escape_latex(clip(p.get("name") or "", 60))
+            p_name = escape_latex(p.get("name") or "")
             p_url = (p.get("url") or "").strip()
             if p_url and p_url.startswith("http"):
                 p_head = rf"\href{{{escape_url(p_url)}}}{{{p_name}\ \footnotesize\faIcon{{external-link-alt}}}}"
@@ -4108,9 +4078,10 @@ def _render_bubble(
                 tech_str = ", ".join(p_tech)
             else:
                 tech_str = str(p_tech)
-            tech_str = clip(tech_str, 65)
             tech_disp = rf"\textbf{{Stack:}} {escape_latex(tech_str)}" if tech_str else ""
-            p_desc = escape_latex(clip(sanitize_project_description(p.get("description") or "", lang), 110))
+            p_desc = escape_latex(sanitize_project_description(p.get("description") or "", lang))
+            if len(p_desc) > 130:
+                p_desc = p_desc[:127].rstrip() + "..."
             proj_sec_items.append(rf"\bubbleevent{{\faCode}}{{}}{{{p_head}}}{{{tech_disp}}}{{{p_desc}}}")
 
     pub_sec_items: List[str] = []
@@ -4118,11 +4089,11 @@ def _render_bubble(
         pub_lbl = "PUBLICATIONS" if is_en else "PUBLICAÇÕES CIENTÍFICAS"
         pub_sec_items.append(rf"\bubblemaintitle{{\faBook}}{{{pub_lbl}}}")
         for pb in pubs[:n_pub]:
-            raw_t_pub = clip(pb.get("title") or "", 105)
+            raw_t_pub = pb.get("title") or ""
             t_pub = escape_latex(raw_t_pub).strip()
             t_pub = re.sub(r"-(Resumo Estendido|Short Paper|Extended Abstract)\b", r" (\1)", t_pub, flags=re.IGNORECASE)
-            v_pub = escape_latex(clip(clean_publication_venue(pb.get("venue") or "", raw_t_pub), 65)).strip()
-            y_pub = escape_latex(clip(pb.get("year") or "", 12))
+            v_pub = escape_latex(clean_publication_venue(pb.get("venue") or "", raw_t_pub)).strip()
+            y_pub = escape_latex(str(pb.get("year") or ""))
             doi_pub = (pb.get("doi") or "").strip()
             pub_url = (pb.get("url") or "").strip()
             if not pub_url and doi_pub:
@@ -4149,37 +4120,37 @@ def _render_bubble(
     # Contacts
     cnt_lbl = "CONTACT" if is_en else "CONTATO"
     side_items.append(rf"\bubblesidebartitle{{\faAddressCard}}{{{cnt_lbl}}}")
-    contact_items: List[str] = []
     clean_em = (cv.get("email") or links.get("email") or "").strip()
     if clean_em:
-        contact_items.append(rf"\bubblesideitem{{\faEnvelope}}{{\href{{{escape_url('mailto:' + clean_em)}}}{{{escape_latex(clip(clean_em, 48))}}}}}")
+        side_items.append(rf"\bubblesideitem{{\faEnvelope}}{{\href{{{escape_url('mailto:' + clean_em)}}}{{{escape_latex(clean_em)}}}}}")
     if cv.get("phone"):
-        contact_items.append(rf"\bubblesideitem{{\faPhone}}{{{escape_latex(clip(cv['phone'], 32))}}}")
+        side_items.append(rf"\bubblesideitem{{\faPhone}}{{{escape_latex(cv['phone'])}}}")
     if cv.get("location"):
         maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
-        contact_items.append(rf"\bubblesideitem{{\faMapMarker*}}{{\href{{{escape_url(maps_url)}}}{{{escape_latex(clip(cv['location'], 40))}}}}}")
+        side_items.append(rf"\bubblesideitem{{\faMapMarker*}}{{\href{{{escape_url(maps_url)}}}{{{escape_latex(cv['location'])}}}}}")
     if links.get("portfolio"):
-        port_disp = escape_latex(clip(simplify_url_display(links["portfolio"]), 42))
-        contact_items.append(rf"\bubblesideitem{{\faGlobe}}{{\href{{{escape_url(links['portfolio'])}}}{{\textbf{{{port_disp}}}}}}}")
+        port_disp = escape_latex(simplify_url_display(links["portfolio"]))
+        side_items.append(rf"\bubblesideitem{{\faGlobe}}{{\href{{{escape_url(links['portfolio'])}}}{{\textbf{{{port_disp}}}}}}}")
     if links.get("linkedin"):
-        li_disp = escape_latex(clip(_get_platform_display(links, "linkedin", candidate_name=raw_name), 42))
-        contact_items.append(rf"\bubblesideitem{{\faLinkedin}}{{\href{{{escape_url(links['linkedin'])}}}{{\textbf{{{li_disp}}}}}}}")
+        li_disp = escape_latex(_get_platform_display(links, "linkedin", candidate_name=raw_name))
+        side_items.append(rf"\bubblesideitem{{\faLinkedin}}{{\href{{{escape_url(links['linkedin'])}}}{{\textbf{{{li_disp}}}}}}}")
     if links.get("github"):
-        gh_disp = escape_latex(clip(_get_platform_display(links, "github", candidate_name=raw_name), 42))
-        contact_items.append(rf"\bubblesideitem{{\faGithub}}{{\href{{{escape_url(links['github'])}}}{{\textbf{{{gh_disp}}}}}}}")
+        gh_disp = escape_latex(_get_platform_display(links, "github", candidate_name=raw_name))
+        side_items.append(rf"\bubblesideitem{{\faGithub}}{{\href{{{escape_url(links['github'])}}}{{\textbf{{{gh_disp}}}}}}}")
     if links.get("orcid"):
-        orcid_disp = escape_latex(clip(_get_platform_display(links, "orcid", candidate_name=raw_name), 42))
-        contact_items.append(rf"\bubblesideitem{{\faOrcid}}{{\href{{{escape_url(links['orcid'])}}}{{\textbf{{{orcid_disp}}}}}}}")
+        orcid_disp = escape_latex(_get_platform_display(links, "orcid", candidate_name=raw_name))
+        side_items.append(rf"\bubblesideitem{{\faOrcid}}{{\href{{{escape_url(links['orcid'])}}}{{\textbf{{{orcid_disp}}}}}}}")
     if links.get("lattes"):
-        lattes_disp = escape_latex(clip(_get_platform_display(links, "lattes", candidate_name=raw_name), 42))
-        contact_items.append(rf"\bubblesideitem{{\faGraduationCap}}{{\href{{{escape_url(links['lattes'])}}}{{\textbf{{{lattes_disp}}}}}}}")
-    side_items.extend(contact_items[:6])
+        lattes_disp = escape_latex(_get_platform_display(links, "lattes", candidate_name=raw_name))
+        side_items.append(rf"\bubblesideitem{{\faGraduationCap}}{{\href{{{escape_url(links['lattes'])}}}{{\textbf{{{lattes_disp}}}}}}}")
 
     # Summary in Sidebar if present
     summary_raw = cv.get("summary") or ""
     if summary_raw.strip():
         prof_lbl = "PROFILE" if is_en else "PERFIL"
-        sum_disp = escape_latex(clip(summary_raw, 170))
+        sum_disp = escape_latex(summary_raw.strip())
+        if len(sum_disp) > 220:
+            sum_disp = sum_disp[:217].rstrip() + "..."
         side_items.append(rf"\bubblesidebartitle{{\faUser}}{{{prof_lbl}}}")
         side_items.append(rf"\noindent{{\raggedright\small\color{{black!85}} {sum_disp}\par}}\vspace{{2mm}}")
 
@@ -4194,24 +4165,24 @@ def _render_bubble(
                 raw_items = str(sk.get("items") or "")
                 parts = [p.strip() for p in raw_items.split(",") if p.strip()]
                 for idx, p in enumerate(parts):
-                    if count_sk >= 5:
+                    if count_sk >= 6:
                         break
                     frac = 0.95 if idx == 0 else (0.85 if idx < 3 else 0.70)
                     lvl_txt = "Avançado" if frac >= 0.85 else "Intermediário"
                     if is_en:
                         lvl_txt = "Advanced" if frac >= 0.85 else "Intermediate"
-                    side_items.append(rf"\bubbleskill{{{escape_latex(clip(p, 28))}}}{{{lvl_txt}}}{{{frac:.2f}}}")
+                    side_items.append(rf"\bubbleskill{{{escape_latex(p)}}}{{{lvl_txt}}}{{{frac:.2f}}}")
                     count_sk += 1
             elif isinstance(sk, str) and sk.strip():
                 parts = [p.strip() for p in sk.split(",") if p.strip()]
                 for idx, p in enumerate(parts):
-                    if count_sk >= 5:
+                    if count_sk >= 6:
                         break
                     frac = 0.95 if idx == 0 else (0.85 if idx < 3 else 0.70)
                     lvl_txt = "Avançado" if frac >= 0.85 else "Intermediário"
                     if is_en:
                         lvl_txt = "Advanced" if frac >= 0.85 else "Intermediate"
-                    side_items.append(rf"\bubbleskill{{{escape_latex(clip(p, 28))}}}{{{lvl_txt}}}{{{frac:.2f}}}")
+                    side_items.append(rf"\bubbleskill{{{escape_latex(p)}}}{{{lvl_txt}}}{{{frac:.2f}}}")
                     count_sk += 1
 
     # Languages (parsed accurately for level label and progress bar width)
@@ -4219,18 +4190,20 @@ def _render_bubble(
     if langs:
         lang_lbl = "LANGUAGES" if is_en else "IDIOMAS"
         side_items.append(rf"\bubblesidebartitle{{\faLanguage}}{{{lang_lbl}}}")
-        for idx, lg in enumerate(langs[:3]):
+        for idx, lg in enumerate(langs[:4]):
             clean_lname, lvl_label, frac = _parse_bubble_language(lg, idx=idx, is_en=is_en)
             if clean_lname:
-                side_items.append(rf"\bubbleskill{{{escape_latex(clip(clean_lname, 26))}}}{{{escape_latex(lvl_label)}}}{{{frac:.2f}}}")
+                side_items.append(rf"\bubbleskill{{{escape_latex(clean_lname)}}}{{{escape_latex(lvl_label)}}}{{{frac:.2f}}}")
 
     # Awards
     clean_awards = sanitize_awards(cv.get("awards"), lang=lang)
     if clean_awards:
         aw_lbl = "AWARDS" if is_en else "PRÊMIOS"
         side_items.append(rf"\bubblesidebartitle{{\faTrophy}}{{{aw_lbl}}}")
-        for aw in clean_awards[:2]:
-            aw_txt = escape_latex(clip(aw, 82))
+        for aw in clean_awards[:3]:
+            aw_txt = escape_latex(str(aw))
+            if len(aw_txt) > 95:
+                aw_txt = aw_txt[:92].rstrip() + "..."
             side_items.append(rf"\bubblesideitem{{\faAward}}{{{aw_txt}}}")
 
     sidebar_content = "\n\n".join(side_items)
