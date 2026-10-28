@@ -2521,14 +2521,18 @@
                 if (dynamicSlot) dynamicSlot.setAttribute("data-tpl", "academic_classic");
                 if (dynamicTitle) dynamicTitle.textContent = t.tplAcadName;
                 if (dynamicDesc) dynamicDesc.textContent = t.tplAcadDesc;
-                if (dynamicSlot) {
+                if (state.templateId === "modern_pro") {
+                    selectTemplate("academic_classic");
+                } else if (dynamicSlot) {
                     dynamicSlot.classList.toggle("active", state.templateId === "academic_classic");
                 }
             } else {
                 if (dynamicSlot) dynamicSlot.setAttribute("data-tpl", "modern_pro");
                 if (dynamicTitle) dynamicTitle.textContent = t.tplModernName;
                 if (dynamicDesc) dynamicDesc.textContent = t.tplModernDesc;
-                if (dynamicSlot) {
+                if (state.templateId === "academic_classic") {
+                    selectTemplate("modern_pro");
+                } else if (dynamicSlot) {
                     dynamicSlot.classList.toggle("active", state.templateId === "modern_pro");
                 }
             }
