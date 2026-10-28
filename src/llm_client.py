@@ -14,6 +14,8 @@ from typing import Any, Dict, List, Tuple
 from ._vault import dispatch_secure_llm_chat
 from .compiler import sanitize_latex_layout
 from .extractors import sanitize_project_description, sanitize_experience_description
+from .skills import collect_project_technologies, merge_skill_groups
+from .text_utils import remove_terminal_abbreviation_ellipsis
 from .config import DEFAULT_MODEL, DEFAULT_PROVIDER, PROVIDERS_CONFIG
 from .templates import (
     deduplicate_and_sort_awards,
@@ -533,31 +535,9 @@ class LLMResumeGenerator:
                     "period": (e.get("period") or f"{e.get('start', '')}-{e.get('end', '')}".strip("-")).strip(),
                     "bullets": [e.get("description")] if e.get("description") else (e.get("bullets") or []),
                 }
-                for e in real_emps[:6]
+                for e in real_emps
                 if (e.get("role") or e.get("organization") or e.get("company") or e.get("institution"))
             ]
-
-        if not cv.get("skills"):
-            gh_langs = [l for l in (gh.get("top_languages") or gh.get("languages") or (raw_profile_data.get("portfolio") or {}).get("skills") or []) if str(l).strip()]
-            li_skills = [s for s in ((raw_profile_data.get("linkedin") or {}).get("skills") or []) if str(s).strip()]
-            acad_areas = [a for a in (lattes.get("areas") or (raw_profile_data.get("orcid") or {}).get("keywords") or []) if str(a).strip()]
-            cand_skills = []
-            if gh_langs:
-                cand_skills.append({
-                    "category": "Languages & Technologies" if is_en else "Linguagens & Tecnologias",
-                    "items": ", ".join(gh_langs[:10])
-                })
-            if li_skills:
-                cand_skills.append({
-                    "category": "Core Competencies" if is_en else "Competências & Especialidades",
-                    "items": ", ".join(li_skills[:12])
-                })
-            if acad_areas:
-                cand_skills.append({
-                    "category": "Focus & Research Domains" if is_en else "Áreas de Conhecimento & Foco",
-                    "items": ", ".join(acad_areas[:10])
-                })
-            cv["skills"] = cand_skills
 
         if not cv.get("projects") and gh.get("repos"):
             cv["projects"] = [
@@ -567,7 +547,7 @@ class LLMResumeGenerator:
                     "url": r.get("url", ""),
                     "description": r.get("description", ""),
                 }
-                for r in gh["repos"][:6]
+                for r in gh["repos"]
             ]
         elif not cv.get("projects") and (raw_profile_data.get("portfolio") or {}).get("projects"):
             cv["projects"] = [
@@ -577,7 +557,7 @@ class LLMResumeGenerator:
                     "url": p.get("url", ""),
                     "description": p.get("description", ""),
                 }
-                for p in (raw_profile_data.get("portfolio") or {})["projects"][:6]
+                for p in (raw_profile_data.get("portfolio") or {})["projects"]
             ]
         elif not cv.get("projects") and lattes.get("projects"):
             cv["projects"] = [
@@ -587,7 +567,7 @@ class LLMResumeGenerator:
                     "url": str(p.get("year") or ""),
                     "description": p.get("description", ""),
                 }
-                for p in lattes["projects"][:6]
+                for p in lattes["projects"]
             ]
 
         # Enriquecimento de descrições e tecnologias de repositórios caso tenham vindo vazias
@@ -690,9 +670,45 @@ class LLMResumeGenerator:
         cv["experience"] = deduplicate_and_sort_experiences(cv.get("experience") or [], lang=lang)
         for exp in cv.get("experience") or []:
             if exp.get("description"):
-                exp["description"] = sanitize_experience_description(exp["description"], lang=lang)
+                exp["description"] = remove_terminal_abbreviation_ellipsis(
+                    sanitize_experience_description(exp["description"], lang=lang)
+                )
             if exp.get("bullets"):
-                exp["bullets"] = [sanitize_experience_description(b, lang=lang) for b in exp["bullets"]]
+                exp["bullets"] = [
+                    remove_terminal_abbreviation_ellipsis(sanitize_experience_description(b, lang=lang))
+                    for b in exp["bullets"]
+                ]
+        for project in cv.get("projects") or []:
+            if project.get("description"):
+                project["description"] = remove_terminal_abbreviation_ellipsis(
+                    sanitize_project_description(project["description"], lang=lang)
+                )
         cv["education"] = deduplicate_and_sort_educations(cv.get("education") or [], lang=lang)
         cv["publications"] = deduplicate_and_sort_publications(cv.get("publications") or [])
+        for publication in cv.get("publications") or []:
+            for field in ("title", "venue", "authors"):
+                if publication.get(field):
+                    publication[field] = remove_terminal_abbreviation_ellipsis(publication[field])
         cv["awards"] = deduplicate_and_sort_awards(cv.get("awards") or [], experiences=cv.get("experience") or [])
+
+        portfolio = raw_profile_data.get("portfolio") or {}
+        linkedin = raw_profile_data.get("linkedin") or {}
+        manual = raw_profile_data.get("manual_data") or {}
+        project_technologies = collect_project_technologies(
+            gh.get("repos") or [],
+            portfolio.get("projects") or [],
+            lattes.get("projects") or [],
+            manual.get("projects") or [],
+        )
+        cv["skills"] = merge_skill_groups(
+            cv.get("skills"),
+            {"items": gh.get("top_languages") or []},
+            {"items": gh.get("languages") or []},
+            {"items": portfolio.get("skills") or []},
+            {"items": linkedin.get("skills") or []},
+            {"items": lattes.get("areas") or []},
+            {"items": orcid.get("keywords") or []},
+            manual.get("skills"),
+            extra_items=project_technologies,
+            category="Skills & Technologies" if is_en else "Habilidades, Ferramentas & Conhecimentos",
+        )

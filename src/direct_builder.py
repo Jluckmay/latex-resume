@@ -45,6 +45,8 @@ from .extractors import (
     sanitize_project_description,
     sanitize_experience_description,
 )
+from .skills import collect_project_technologies, merge_skill_groups
+from .text_utils import remove_terminal_abbreviation_ellipsis
 
 from .templates import (
 
@@ -1033,53 +1035,6 @@ def build_structured_cv_deterministically(
 
     skills: List[Dict[str, Any]] = []
 
-    # Tecnologias / Linguagens de Programação do GitHub ou Portfólio
-    gh_langs = [l for l in (gh.get("top_languages") or gh.get("languages") or portfolio.get("skills") or []) if str(l).strip()]
-
-    if gh_langs:
-
-        skills.append({
-
-            "category": "Linguagens & Tecnologias" if not is_en else "Languages & Technologies",
-
-            "items": ", ".join(gh_langs[:10]),
-
-        })
-
-
-
-    # Competências do LinkedIn
-
-    li_skills = [s for s in (li.get("skills") or []) if str(s).strip()]
-
-    if li_skills:
-
-        skills.append({
-
-            "category": "Competências & Especialidades" if not is_en else "Core Competencies",
-
-            "items": ", ".join(li_skills[:12]),
-
-        })
-
-
-
-    # Áreas de Atuação do Lattes / Palavras-chave do ORCID
-
-    academic_areas = [a for a in (lattes.get("areas") or orcid.get("keywords") or []) if str(a).strip()]
-
-    if academic_areas:
-
-        skills.append({
-
-            "category": "Áreas de Conhecimento & Foco" if not is_en else "Focus & Research Domains",
-
-            "items": ", ".join(academic_areas[:10]),
-
-        })
-
-
-
     # 10. Idiomas (Languages)
 
     raw_languages = (
@@ -1247,10 +1202,6 @@ def build_structured_cv_deterministically(
 
         publications = list(manual["publications"])
 
-    if manual.get("skills"):
-
-        skills = list(manual["skills"])
-
     if manual.get("languages"):
         man_langs = manual["languages"]
         if isinstance(man_langs, str):
@@ -1272,12 +1223,40 @@ def build_structured_cv_deterministically(
     experience = deduplicate_and_sort_experiences(experience, lang=lang)
     for exp in experience:
         if exp.get("description"):
-            exp["description"] = sanitize_experience_description(exp["description"], lang=lang)
+            exp["description"] = remove_terminal_abbreviation_ellipsis(
+                sanitize_experience_description(exp["description"], lang=lang)
+            )
         if exp.get("bullets"):
-            exp["bullets"] = [sanitize_experience_description(b, lang=lang) for b in exp["bullets"]]
+            exp["bullets"] = [
+                remove_terminal_abbreviation_ellipsis(sanitize_experience_description(b, lang=lang))
+                for b in exp["bullets"]
+            ]
     education = deduplicate_and_sort_educations(education, lang=lang)
     publications = deduplicate_and_sort_publications(publications)
     awards = deduplicate_and_sort_awards(awards, experiences=experience, lang=lang)
+    for project in projects:
+        if project.get("description"):
+            project["description"] = remove_terminal_abbreviation_ellipsis(project["description"])
+    for publication in publications:
+        for field in ("title", "venue", "authors"):
+            if publication.get(field):
+                publication[field] = remove_terminal_abbreviation_ellipsis(publication[field])
+    skills = merge_skill_groups(
+        {"items": gh.get("top_languages") or []},
+        {"items": gh.get("languages") or []},
+        {"items": portfolio.get("skills") or []},
+        {"items": li.get("skills") or []},
+        {"items": lattes.get("areas") or []},
+        {"items": orcid.get("keywords") or []},
+        manual.get("skills"),
+        extra_items=collect_project_technologies(
+            gh.get("repos") or [],
+            portfolio.get("projects") or [],
+            lattes.get("projects") or [],
+            manual.get("projects") or [],
+        ),
+        category="Skills & Technologies" if is_en else "Habilidades, Ferramentas & Conhecimentos",
+    )
 
     # Limitações saudáveis para caber confortavelmente no layout LaTeX
 
@@ -1297,13 +1276,13 @@ def build_structured_cv_deterministically(
 
         "education": education[:6],
 
-        "experience": experience[:6],
+        "experience": experience,
 
-        "projects": projects[:6],
+        "projects": projects,
 
-        "publications": publications[:30] if is_academic else publications[:18],
+        "publications": publications,
 
-        "skills": skills[:5],
+        "skills": skills,
 
         "languages": languages[:8],
 

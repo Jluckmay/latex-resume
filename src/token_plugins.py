@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 from .config import CACHE_DIR
+from .text_utils import truncate_at_clause_boundary
 
 
 def estimate_tokens(text: str) -> int:
@@ -115,6 +116,7 @@ class CavemanPromptPlugin:
         )
         if output_mode == "json":
             return (
+                "DESCRIPTION & CITATION LENGTH: Never append three periods or a Unicode ellipsis to experience/project descriptions or publication citation fields. If shortening is needed, stop before a natural connector; omit excess citation text. "
                 "MODE:CAVEMAN_JSON_ONLY. Zero prose, zero markdown fences, zero explanations. "
                 f"Role: Senior CV synthesizer ({focus}). "
                 f"Write all resume text values in polished, high-impact {target_lang}, concise action verbs, "
@@ -125,6 +127,7 @@ class CavemanPromptPlugin:
                 "EXPERIENCE & PROJECTS: Descriptions in 'xp' and 'pj' MUST start with NOUNS (Participação, Orientação, Desenvolvimento, Ensino, Gerador, Aplicação, Utilitário...), NEVER action verbs (Participou, Orientou, Desenvolveu, Implementou, Criou)."
             )
         return (
+            "NO DESCRIPTION ELLIPSES: Never append three periods or a Unicode ellipsis to experience/project descriptions or publication citation fields. If shortening is needed, stop before a natural connector; omit excess citation text. "
             "MODE:CAVEMAN_LATEX_ONLY. Zero prose, zero markdown fences, zero explanations. "
             f"Role: Expert LaTeX Architect & CV Synthesizer ({focus}). "
             f"Write resume content in {target_lang}. "
@@ -371,7 +374,7 @@ class TOONContextPrunerPlugin:
         if not text:
             return ""
         clean = re.sub(r"\s+", " ", str(text)).strip()
-        return clean if len(clean) <= limit else clean[: limit - 1] + "…"
+        return truncate_at_clause_boundary(clean, limit)
 
     @classmethod
     def _clean_whitespace(cls, text: str, limit: int) -> str:

@@ -13,6 +13,7 @@ import urllib.parse
 from typing import Any, Dict, List, Tuple
 
 from .i18n import LATEX_I18N, normalize_lang
+from .text_utils import truncate_at_clause_boundary
 from .extractors import (
     parse_github_input,
     parse_lattes_input,
@@ -1404,12 +1405,12 @@ def _allocate_single_page_budget(
     header_exp: float = 2.5,
     header_proj: float = 2.5,
     header_pub: float = 2.5,
+    allow_fallback: bool | None = None,
 ) -> tuple[int, int, int]:
     """Distribui dinamicamente a capacidade vertical da página entre experiências, projetos e publicações.
 
-    Garante utilização ótima do espaço da página única sem ultrapassar o limite de 1 página.
-    Se o usuário não possuir projetos ou publicações, toda a capacidade restante flui automaticamente
-    para experiências; se tiver poucas experiências, a capacidade expande para projetos e publicações.
+    Prioriza experiência + projetos em currículos profissionais e experiência + publicações
+    em currículos acadêmicos. A outra seção só entra quando o conteúdo principal não ocupa a página.
     """
     n_exp = 0
     n_proj = 0
@@ -1425,32 +1426,67 @@ def _allocate_single_page_budget(
             c += header_pub + u * weight_pub
         return c
 
-    # Sequência de prioridade baseada na finalidade:
-    # - Acadêmico prioriza Publicações sobre Projetos (3:1)
-    # - Profissional prioriza Projetos sobre Publicações (3:1)
-    if resume_type == "academico":
-        order = ["exp", "pub", "proj", "pub", "exp", "pub"]
+    # Fill the purpose's core sections first and reserve the other section as fallback.
+    is_academic = resume_type in ("academico", "academic")
+    if is_academic:
+        core_cost = (header_exp + total_exp * weight_exp if total_exp else 0.0)
+        core_cost += header_pub + total_pubs * weight_pub if total_pubs else 0.0
+        core_order, fallback_kind = ("exp", "pub"), "proj"
     else:
-        order = ["exp", "proj", "pub", "proj", "exp", "proj"]
+        core_cost = (header_exp + total_exp * weight_exp if total_exp else 0.0)
+        core_cost += header_proj + total_proj * weight_proj if total_proj else 0.0
+        core_order, fallback_kind = ("exp", "proj"), "pub"
+
+    if allow_fallback is None:
+        allow_fallback = core_cost < budget
+
+    def add_item(kind: str) -> bool:
+        nonlocal n_exp, n_proj, n_pub
+        if kind == "exp" and n_exp < total_exp and cur_cost(n_exp + 1, n_proj, n_pub) <= budget:
+            n_exp += 1
+            return True
+        if kind == "proj" and n_proj < total_proj and cur_cost(n_exp, n_proj + 1, n_pub) <= budget:
+            n_proj += 1
+            return True
+        if kind == "pub" and n_pub < total_pubs and cur_cost(n_exp, n_proj, n_pub + 1) <= budget:
+            n_pub += 1
+            return True
+        return False
 
     changed = True
     while changed:
         changed = False
-        for kind in order:
-            if kind == "exp" and n_exp < total_exp:
-                if cur_cost(n_exp + 1, n_proj, n_pub) <= budget:
-                    n_exp += 1
-                    changed = True
-            elif kind == "proj" and n_proj < total_proj:
-                if cur_cost(n_exp, n_proj + 1, n_pub) <= budget:
-                    n_proj += 1
-                    changed = True
-            elif kind == "pub" and n_pub < total_pubs:
-                if cur_cost(n_exp, n_proj, n_pub + 1) <= budget:
-                    n_pub += 1
-                    changed = True
+        for kind in core_order:
+            changed = add_item(kind) or changed
+
+    if allow_fallback:
+        while add_item(fallback_kind):
+            pass
 
     return n_exp, n_proj, n_pub
+
+
+def _single_page_fallback_needed(
+    resume_type: str,
+    total_exp: int,
+    total_proj: int,
+    total_pubs: int,
+    budget: float,
+    weight_exp: float = 4.0,
+    weight_proj: float = 2.8,
+    weight_pub: float = 1.8,
+    header_exp: float = 2.5,
+    header_proj: float = 2.5,
+    header_pub: float = 2.5,
+) -> bool:
+    """Whether the primary sections lack enough estimated content to fill one page."""
+    if resume_type in ("academico", "academic"):
+        cost = (header_exp + total_exp * weight_exp if total_exp else 0.0)
+        cost += header_pub + total_pubs * weight_pub if total_pubs else 0.0
+    else:
+        cost = (header_exp + total_exp * weight_exp if total_exp else 0.0)
+        cost += header_proj + total_proj * weight_proj if total_proj else 0.0
+    return cost < budget
 
 
 def _render_sections_body(
@@ -1501,7 +1537,7 @@ def _render_sections_body(
         sec_title = t["sec_summary_acad"] if resume_type == "academico" else t["sec_summary_prof"]
         raw_sum = cv["summary"]
         if is_single_page and len(raw_sum) > 280:
-            raw_sum = raw_sum[:277].rstrip() + "..."
+            raw_sum = truncate_at_clause_boundary(raw_sum, 280)
         blocks.append(rf"\section*{{{sec_title}}}" + "\n" + escape_latex(raw_sum))
 
     edu_block = _build_education_block(cv.get("education") or [], lang, max_items=max_edu)
@@ -1916,7 +1952,7 @@ def _render_tech_sidebar(
         raw_sum = cv["summary"].strip()
         max_sum_chars = 240
         if len(raw_sum) > max_sum_chars:
-            raw_sum = raw_sum[:max_sum_chars - 3].rstrip() + "..."
+            raw_sum = truncate_at_clause_boundary(raw_sum, max_sum_chars)
         summary_block = rf"\section*{{{sec_title}}}" + "\n" + rf"{{\raggedright\footnotesize {escape_latex(raw_sum)}\par}}"
 
     sidebar_blocks = [
@@ -1966,7 +2002,7 @@ def _render_tech_sidebar(
                 escape_latex(sanitize_experience_description(b, lang=lang))
                 for b in (xp.get("bullets") or [])
                 if str(b).strip()
-            ][:2]
+            ]
             head_lines = [rf"\noindent\textbf{{{role}}} \hfill {{\small\textit{{{per}}}}}"]
             if org:
                 head_lines.append(rf"\textit{{{org}}}")
@@ -2810,6 +2846,20 @@ def _render_overleaf_single_page_keywords(
     skill_cost = (n_sk * 2.2 + 2.0) if n_sk else 0.0
     right_budget = 36.0
     avail_proj_pub = max(10.0, right_budget - lang_cost - skill_cost)
+    available_page_budget = max(
+        0.0,
+        left_budget + right_budget - cost_other_left - lang_cost - skill_cost - (3.5 if cv.get("summary") else 0.0),
+    )
+    allow_fallback = _single_page_fallback_needed(
+        resume_type,
+        len(cv.get("experience") or []),
+        len(projs),
+        len(pubs),
+        available_page_budget,
+        weight_exp=3.4,
+        weight_proj=2.5,
+        weight_pub=1.8,
+    )
     _, max_proj, max_pubs = _allocate_single_page_budget(
         0,
         len(projs),
@@ -2818,6 +2868,7 @@ def _render_overleaf_single_page_keywords(
         weight_proj=2.5,
         weight_pub=1.8,
         resume_type=resume_type,
+        allow_fallback=allow_fallback,
     )
 
     # Coluna 1: WORK + EDUCATION + AWARDS
@@ -2827,10 +2878,8 @@ def _render_overleaf_single_page_keywords(
         r_txt = escape_latex(xp.get("role"))
         p_txt = escape_latex(xp.get("period"))
         o_txt = escape_latex(xp.get("organization"))
-        raw_bullets = [escape_latex(sanitize_experience_description(b, lang=lang)) for b in (xp.get("bullets") or []) if str(b).strip()]
-        desc_txt = raw_bullets[0] if raw_bullets else ""
-        if len(desc_txt) > 160:
-            desc_txt = desc_txt[:157].rstrip() + "..."
+        raw_bullets = [sanitize_experience_description(b, lang=lang) for b in (xp.get("bullets") or []) if str(b).strip()]
+        desc_txt = escape_latex(truncate_at_clause_boundary("; ".join(raw_bullets), 160)) if raw_bullets else ""
         head_rp = f"{r_txt} / {p_txt}" if p_txt else r_txt
         work_items.append(rf"\work{{{head_rp}}}{{{o_txt}}}{{{desc_txt}}}{{{fallback_kw}}}")
     work_sec = (rf"\cvsec{{\faIcon{{pencil-alt}}}}{{{work_lbl}}}" + "\n" + "\n\n".join(work_items)) if work_items else ""
@@ -2865,9 +2914,7 @@ def _render_overleaf_single_page_keywords(
         tech = escape_latex(pj.get("tech"))
         url = (pj.get("url") or "").strip()
         raw_d = sanitize_project_description(pj.get("description"), lang)
-        if len(raw_d) > 130:
-            raw_d = raw_d[:127].rstrip() + "..."
-        desc = escape_latex(raw_d)
+        desc = escape_latex(truncate_at_clause_boundary(raw_d, 130))
         if url and url.startswith("http"):
             nm_head = rf"\href{{{escape_url(url)}}}{{\textbf{{{nm}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
         else:
@@ -2886,7 +2933,7 @@ def _render_overleaf_single_page_keywords(
 
     sk_lbl = "SKILLS" if is_en else "COMPETÊNCIAS"
     sk_rows: List[str] = []
-    for sk in (cv.get("skills") or [])[:2]:
+    for sk in (cv.get("skills") or []):
         if isinstance(sk, dict):
             cat = escape_latex(sk.get("category") or t["default_skill_cat"])
             items = escape_latex(sk.get("items"))
@@ -2902,12 +2949,8 @@ def _render_overleaf_single_page_keywords(
         pub_lbl = "PUBLICATIONS" if is_en else "PUBLICAÇÕES"
         p_rows: List[str] = []
         for pb in pubs[:max_pubs]:
-            pt = escape_latex(pb.get("title"))
-            if len(pt) > 85:
-                pt = pt[:82].rstrip() + "..."
-            pv = escape_latex(pb.get("venue"))
-            if len(pv) > 45:
-                pv = pv[:42].rstrip() + "..."
+            pt = escape_latex(truncate_at_clause_boundary(pb.get("title") or "", 85))
+            pv = escape_latex(truncate_at_clause_boundary(pb.get("venue") or "", 45))
             py = escape_latex(pb.get("year"))
             pub_url = (pb.get("url") or "").strip()
             doi = (pb.get("doi") or "").strip()
@@ -3129,7 +3172,7 @@ def _render_google_standard(
         sec_sum = "SUMMARY" if is_en else "RESUMO PROFISSIONAL"
         raw_sum = cv["summary"]
         if len(raw_sum) > max_sum_chars:
-            raw_sum = raw_sum[:max_sum_chars - 3].rstrip() + "..."
+            raw_sum = truncate_at_clause_boundary(raw_sum, max_sum_chars)
         sum_block = rf"\section*{{{sec_sum}}}" + "\n" + rf"{{\small {escape_latex(raw_sum)}}}"
 
     # Experience
@@ -3142,7 +3185,7 @@ def _render_google_standard(
             role = escape_latex(xp.get("role"))
             org = escape_latex(xp.get("organization"))
             per = escape_latex(xp.get("period"))
-            bullets = [escape_latex(sanitize_experience_description(b, lang=lang)) for b in (xp.get("bullets") or []) if str(b).strip()][:2]
+            bullets = [escape_latex(sanitize_experience_description(b, lang=lang)) for b in (xp.get("bullets") or []) if str(b).strip()]
             head_l = f"\\textbf{{{org}}}" if org else f"\\textbf{{{role}}}"
             sub_l = f"\\textit{{{role}}}" if org else ""
             item_lines = [rf"\noindent{head_l} \hfill \textbf{{{per}}}"]
@@ -3526,7 +3569,7 @@ def _render_nico_krieger(
 
     # 1. Header (Name, Title, Tagline, optional Photo)
     tagline_raw = cv.get("summary") or ""
-    tagline_short = escape_latex(tagline_raw[:180] + ("..." if len(tagline_raw) > 180 else "")) if tagline_raw else ""
+    tagline_short = escape_latex(truncate_at_clause_boundary(tagline_raw, 180)) if tagline_raw else ""
 
     if photo_filename:
         header_tex = rf"""\begin{{tcolorbox}}[
@@ -3645,21 +3688,17 @@ def _render_nico_krieger(
                 parts = [p.strip() for p in raw_items.split(",") if p.strip()]
                 if parts:
                     skill_lines.append(rf"{{\small\bfseries\color{{darktext}} {cat}}}\\[1.5pt]")
-                    for idx, p in enumerate(parts[:5]):
-                        rating = 5 if idx == 0 else (4 if idx < 3 else 3)
-                        skill_lines.append(rf"{{\small {escape_latex(p)}}} \hfill \skilldots{{{rating}}}\\[2.5pt]")
+                    skill_lines.append(rf"{{\small {', '.join(escape_latex(p) for p in parts)}}}\par\vspace{{2pt}}")
                     skill_lines.append(r"\vspace{2pt}")
             elif isinstance(sk, str) and sk.strip():
                 parts = [p.strip() for p in sk.split(",") if p.strip()]
-                for idx, p in enumerate(parts[:6]):
-                    rating = 5 if idx == 0 else (4 if idx < 3 else 3)
-                    skill_lines.append(rf"{{\small\textbf{{{escape_latex(p)}}}}} \hfill \skilldots{{{rating}}}\\[2.5pt]")
+                skill_lines.append(rf"{{\small {', '.join(escape_latex(p) for p in parts)}}}\par\vspace{{2pt}}")
         skill_block = "\n".join(skill_lines)
     elif cv.get("summary"):
         sum_lbl = "ABOUT ME" if is_en else "SOBRE MIM"
         sum_raw = escape_latex(cv["summary"].strip())
         if len(sum_raw) > 320:
-            sum_raw = sum_raw[:317].rstrip() + "..."
+            sum_raw = escape_latex(truncate_at_clause_boundary(cv["summary"].strip(), 320))
         skill_block = rf"""{{\large\bfseries\color{{accent}} {sum_lbl}}}\\[-3pt]
 \rule{{\linewidth}}{{0.8pt}}\nopagebreak\\[3pt]
 {{\small {sum_raw}}}"""
@@ -3705,7 +3744,7 @@ def _render_nico_krieger(
         len(cv.get("experience") or []),
         len(projs_all),
         len(pubs_all),
-        budget=44.0,
+        budget=58.0,
         weight_exp=4.0,
         weight_proj=2.8,
         weight_pub=2.2,
@@ -3732,7 +3771,7 @@ def _render_nico_krieger(
             raw_bullets = xp.get("bullets") or []
             if not raw_bullets and xp.get("description"):
                 raw_bullets = [xp["description"]]
-            bullets = [escape_latex(sanitize_experience_description(b, lang=lang)) for b in raw_bullets if str(b).strip()][:2]
+            bullets = [escape_latex(sanitize_experience_description(b, lang=lang)) for b in raw_bullets if str(b).strip()]
             date_tex = rf"{{\footnotesize\color{{graytext}}\faIcon{{calendar-alt}}\ {per_xp}}}" if per_xp else ""
             if org_xp:
                 xp_lines.append(rf"\textbf{{{role_xp}}} \hfill {date_tex}\\[0.5pt]")
@@ -3762,7 +3801,7 @@ def _render_nico_krieger(
             url = (pj.get("url") or "").strip()
             desc = escape_latex(sanitize_project_description(pj.get("description"), lang))
             if len(desc) > 130:
-                desc = desc[:127].rstrip() + "..."
+                desc = escape_latex(truncate_at_clause_boundary(sanitize_project_description(pj.get("description"), lang), 130))
             if url and url.startswith("http"):
                 nm_head = rf"\textbf{{\href{{{escape_url(url)}}}{{{nm}\ \footnotesize\faIcon{{external-link-alt}}}}}}"
             else:
@@ -4043,7 +4082,7 @@ def _render_bubble(
                 escape_latex(sanitize_experience_description(b, lang=lang))
                 for b in raw_bullets
                 if str(b).strip()
-            ][:2]
+            ]
             if clean_bullets:
                 body = "\\begin{itemize}\n" + "\n".join(rf"  \item {b}" for b in clean_bullets) + "\n\\end{itemize}"
             else:
@@ -4081,7 +4120,7 @@ def _render_bubble(
             tech_disp = rf"\textbf{{Stack:}} {escape_latex(tech_str)}" if tech_str else ""
             p_desc = escape_latex(sanitize_project_description(p.get("description") or "", lang))
             if len(p_desc) > 130:
-                p_desc = p_desc[:127].rstrip() + "..."
+                p_desc = escape_latex(truncate_at_clause_boundary(sanitize_project_description(p.get("description") or "", lang), 130))
             proj_sec_items.append(rf"\bubbleevent{{\faCode}}{{}}{{{p_head}}}{{{tech_disp}}}{{{p_desc}}}")
 
     pub_sec_items: List[str] = []
@@ -4150,7 +4189,7 @@ def _render_bubble(
         prof_lbl = "PROFILE" if is_en else "PERFIL"
         sum_disp = escape_latex(summary_raw.strip())
         if len(sum_disp) > 220:
-            sum_disp = sum_disp[:217].rstrip() + "..."
+            sum_disp = escape_latex(truncate_at_clause_boundary(summary_raw.strip(), 220))
         side_items.append(rf"\bubblesidebartitle{{\faUser}}{{{prof_lbl}}}")
         side_items.append(rf"\noindent{{\raggedright\small\color{{black!85}} {sum_disp}\par}}\vspace{{2mm}}")
 
@@ -4203,7 +4242,7 @@ def _render_bubble(
         for aw in clean_awards[:3]:
             aw_txt = escape_latex(str(aw))
             if len(aw_txt) > 95:
-                aw_txt = aw_txt[:92].rstrip() + "..."
+                aw_txt = escape_latex(truncate_at_clause_boundary(str(aw), 95))
             side_items.append(rf"\bubblesideitem{{\faAward}}{{{aw_txt}}}")
 
     sidebar_content = "\n\n".join(side_items)

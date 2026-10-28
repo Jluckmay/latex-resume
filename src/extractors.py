@@ -16,6 +16,7 @@ from typing import Any, Dict, List, Tuple
 import requests
 from bs4 import BeautifulSoup
 from .i18n import translate_experience_bullet_to_en
+from .text_utils import remove_terminal_abbreviation_ellipsis, truncate_at_clause_boundary
 
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -312,7 +313,7 @@ def sanitize_project_description(desc: str, lang: str = "pt-br") -> str:
     """
     if not desc or not desc.strip():
         return ""
-    text = desc.strip()
+    text = remove_terminal_abbreviation_ellipsis(desc.strip())
     is_en = str(lang).lower().startswith("en")
 
     # Detecta se a frase está em inglês mesmo se lang não foi especificado
@@ -373,7 +374,7 @@ def sanitize_experience_description(desc: str, lang: str = "pt-br") -> str:
     """
     if not desc or not desc.strip():
         return ""
-    text = desc.strip()
+    text = remove_terminal_abbreviation_ellipsis(desc.strip())
     is_en = str(lang).lower().startswith("en")
 
     # Detecta se a frase está em inglês mesmo se lang não foi especificado
@@ -601,7 +602,7 @@ def extract_project_info_from_readme(
                 else:
                     break
             if len(accum) > 210:
-                accum = accum[:205].rsplit(" ", 1)[0] + "..."
+                accum = truncate_at_clause_boundary(accum, 205)
             best_summary = accum
 
     # 3. Detecta ferramentas e linguagens (Tech Stack completa)
@@ -1338,6 +1339,57 @@ def _parse_lattes_xml(xml_bytes: bytes, out: Dict[str, Any]) -> None:
                 )
 
 
+def extract_linkedin_skills(raw_text: str) -> List[str]:
+    """Extract a LinkedIn Skills section from an exported profile or pasted text."""
+    if not raw_text:
+        return []
+
+    heading = re.compile(r"^(?:top\s+skills|skills|compet[eê]ncias|habilidades|principais\s+compet[eê]ncias)\s*:?\s*(.*)$", re.I)
+    stop_heading = re.compile(
+        r"^(?:about|summary|experience|work experience|education|languages?|licenses?(?:\s+(?:and|&)\s+certifications?)?|certifications?|"
+        r"publications?|projects?|volunteering|honors?(?:\s+and\s+awards?)?|recommendations?|references?|interests?|courses?|organizations?|activity|contact|contato|sobre|resumo|"
+        r"experi[eê]ncia(?:\s+profissional)?|forma[cç][aã]o(?:\s+acad[eê]mica)?|idiomas|certifica[cç][oõ]es?|"
+        r"publica[cç][oõ]es|projetos|voluntariado|pr[eê]mios|recomenda[cç][oõ]es|refer[eê]ncias|interesses|cursos|organiza[cç][oõ]es|atividade|contato)\s*:?[\s]*$",
+        re.I,
+    )
+    found: List[str] = []
+    seen: set[str] = set()
+    in_skills = False
+
+    def add_line(value: str) -> None:
+        for item in re.split(r"\s*(?:[,;|•·]|\s{2,})\s*", value):
+            clean = re.sub(r"\s+", " ", item).strip(" \t•·-–")
+            clean = re.sub(r"\s*\(?\d+\s+endorsements?\)?$", "", clean, flags=re.I).strip()
+            if clean and len(clean) <= 100 and not clean.endswith(":"):
+                key = clean.casefold()
+                if key not in seen:
+                    seen.add(key)
+                    found.append(clean)
+
+    for raw_line in raw_text.splitlines():
+        line = re.sub(r"\s+", " ", raw_line).strip(" \t•·-–")
+        if not line:
+            continue
+        match = heading.match(line)
+        if match:
+            in_skills = True
+            add_line(match.group(1))
+            continue
+        if in_skills and stop_heading.match(line):
+            break
+        if in_skills:
+            add_line(line)
+
+    if not found:
+        for match in re.finditer(
+            r"(?im)\b(?:top\s+skills|skills|compet[eê]ncias|habilidades|principais\s+compet[eê]ncias)\s*[:\-]\s*([^\r\n]+)",
+            raw_text,
+        ):
+            add_line(match.group(1))
+
+    return found
+
+
 def extract_linkedin(
     linkedin_url: str = "",
     file_bytes: bytes | None = None,
@@ -1345,7 +1397,7 @@ def extract_linkedin(
 ) -> Dict[str, Any]:
     """Extrai dados do LinkedIn a partir de URL, PDF exportado ('Salvar como PDF') ou texto."""
     norm_url, li_nick = parse_linkedin_input(linkedin_url)
-    result: Dict[str, Any] = {"url": norm_url, "linkedin_nick": li_nick, "languages": []}
+    result: Dict[str, Any] = {"url": norm_url, "linkedin_nick": li_nick, "languages": [], "skills": []}
 
     if file_bytes:
         if len(file_bytes) > _MAX_UPLOAD_FILE_BYTES:
@@ -1371,6 +1423,10 @@ def extract_linkedin(
                 result["headline"] = title_meta["content"]
             if desc_meta and desc_meta.get("content"):
                 result["summary"] = desc_meta["content"]
+            result["skills"] = extract_linkedin_skills(soup.get_text("\n", strip=True))
+
+    if result.get("raw_text"):
+        result["skills"] = extract_linkedin_skills(result["raw_text"])
 
     if not result.get("languages") and result.get("raw_text"):
         result["languages"] = extract_languages_from_text(result["raw_text"])
@@ -1563,7 +1619,7 @@ def extract_portfolio(portfolio_url: str = "") -> Dict[str, Any]:
                 projects.append({
                     "name": p_name,
                     "description": sanitize_project_description(p_desc),
-                    "tech": ", ".join(p_techs[:6]),
+                    "tech": ", ".join(p_techs),
                     "url": p_url,
                 })
 
