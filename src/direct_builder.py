@@ -1255,7 +1255,7 @@ def build_structured_cv_deterministically(
             lattes.get("projects") or [],
             manual.get("projects") or [],
         ),
-        category="Skills & Technologies" if is_en else "Habilidades, Ferramentas & Conhecimentos",
+        category="",
     )
 
     # Limitações saudáveis para caber confortavelmente no layout LaTeX

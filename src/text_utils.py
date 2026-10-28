@@ -8,6 +8,7 @@ import re
 _CLAUSE_BOUNDARY = re.compile(r",|;|:|\s+(?:e|and|para|for|to)\s+", re.IGNORECASE)
 _TRAILING_CONNECTOR = re.compile(r"\s+(?:e|and|para|for|to)$", re.IGNORECASE)
 _TERMINAL_ELLIPSIS = re.compile(r"(?:\.{3,}|\u2026+)\s*$")
+_INNERMOST_PARENS = re.compile(r"\([^()]*\)")
 
 
 def truncate_at_clause_boundary(text: object, max_chars: int) -> str:
@@ -40,3 +41,16 @@ def remove_terminal_abbreviation_ellipsis(text: object) -> str:
         return clean
     without_ellipsis = without_ellipsis.rstrip(" ,;:-")
     return _TRAILING_CONNECTOR.sub("", without_ellipsis).rstrip(" ,;:-")
+
+
+def finalize_project_description(text: object) -> str:
+    """Remove parenthetical asides and end a project description with one period."""
+    clean = str(text or "")
+    previous = None
+    while clean != previous:
+        previous = clean
+        clean = _INNERMOST_PARENS.sub(" ", clean)
+    clean = re.sub(r"\s+([,.;:!?])", r"\1", clean)
+    clean = re.sub(r"\s+", " ", clean).strip(" \t\r\n ,;:")
+    clean = clean.rstrip(".!? ")
+    return f"{clean}." if clean else ""

@@ -56,7 +56,7 @@ def collect_project_technologies(*project_sources: Any) -> list[str]:
 def merge_skill_groups(
     *skill_sources: Any,
     extra_items: Any = None,
-    category: str = "Skills & Technologies",
+    category: str = "",
 ) -> list[dict[str, str]]:
     """Merge skill groups into one readable list, deduplicated without case sensitivity."""
     values: list[str] = []

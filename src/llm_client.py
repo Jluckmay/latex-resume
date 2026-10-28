@@ -710,5 +710,5 @@ class LLMResumeGenerator:
             {"items": orcid.get("keywords") or []},
             manual.get("skills"),
             extra_items=project_technologies,
-            category="Skills & Technologies" if is_en else "Habilidades, Ferramentas & Conhecimentos",
+            category="",
         )

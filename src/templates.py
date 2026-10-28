@@ -13,7 +13,7 @@ import urllib.parse
 from typing import Any, Dict, List, Tuple
 
 from .i18n import LATEX_I18N, normalize_lang
-from .text_utils import truncate_at_clause_boundary
+from .text_utils import finalize_project_description, truncate_at_clause_boundary
 from .extractors import (
     parse_github_input,
     parse_lattes_input,
@@ -2309,14 +2309,15 @@ def _build_acv_sections(
     sk_lines: List[str] = []
     for sk in (cv.get("skills") or []):
         if isinstance(sk, dict):
-            cat = escape_latex(sk.get("category") or t["default_skill_cat"])
+            cat = escape_latex(sk.get("category"))
             items = escape_latex(sk.get("items"))
         else:
             s = str(sk).strip()
-            cat = escape_latex(t["default_skill_cat"])
+            cat = ""
             items = escape_latex(s)
         if items:
-            sk_lines.append(rf"    \textbf{{\color{{sidecolor}} {cat}}} & {{\small {items}}} \\")
+            label = rf"\textbf{{\color{{sidecolor}} {cat}}}" if cat else ""
+            sk_lines.append(rf"    {label} & {{\small {items}}} \\")
     skill_block = ""
     if sk_lines:
         skill_body = (
@@ -2914,7 +2915,7 @@ def _render_overleaf_single_page_keywords(
         tech = escape_latex(pj.get("tech"))
         url = (pj.get("url") or "").strip()
         raw_d = sanitize_project_description(pj.get("description"), lang)
-        desc = escape_latex(truncate_at_clause_boundary(raw_d, 130))
+        desc = escape_latex(finalize_project_description(truncate_at_clause_boundary(raw_d, 130)))
         if url and url.startswith("http"):
             nm_head = rf"\href{{{escape_url(url)}}}{{\textbf{{{nm}}}\ \footnotesize\faIcon{{external-link-alt}}}}"
         else:
@@ -2935,13 +2936,14 @@ def _render_overleaf_single_page_keywords(
     sk_rows: List[str] = []
     for sk in (cv.get("skills") or []):
         if isinstance(sk, dict):
-            cat = escape_latex(sk.get("category") or t["default_skill_cat"])
+            cat = escape_latex(sk.get("category"))
             items = escape_latex(sk.get("items"))
         else:
-            cat = escape_latex(t["default_skill_cat"])
+            cat = ""
             items = escape_latex(str(sk).strip())
         if items:
-            sk_rows.append(rf"\noindent\textbf{{{cat}:}} {{\small {items}}}\par\vspace{{1pt}}")
+            row = rf"\noindent\textbf{{{cat}:}} {{\small {items}}}" if cat else rf"\noindent{{\small {items}}}"
+            sk_rows.append(row + r"\par\vspace{1pt}")
     sk_sec = (rf"\cvsec{{\faIcon{{list}}}}{{{sk_lbl}}} " + "\n" + "\n".join(sk_rows)) if sk_rows else ""
 
     pub_sec = ""
@@ -3261,7 +3263,7 @@ def _render_google_standard(
         sk_lines = [rf"\section*{{{sec_sk}}}", r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]"]
         for sk in sk_list:
             if isinstance(sk, dict):
-                cat = escape_latex(sk.get("category") or t["default_skill_cat"])
+                cat = escape_latex(sk.get("category"))
                 items = escape_latex(sk.get("items"))
             else:
                 s = str(sk).strip()
@@ -3269,9 +3271,9 @@ def _render_google_standard(
                     p = s.split(":", 1)
                     cat, items = escape_latex(p[0].strip()), escape_latex(p[1].strip())
                 else:
-                    cat, items = escape_latex(t["default_skill_cat"]), escape_latex(s)
+                    cat, items = "", escape_latex(s)
             if items:
-                sk_lines.append(rf"    \item \textbf{{{cat}:}} {items}")
+                sk_lines.append(rf"    \item \textbf{{{cat}:}} {items}" if cat else rf"    \item {items}")
         sk_lines.append(r"\end{itemize}")
         sk_block = "\n".join(sk_lines)
 
@@ -3407,13 +3409,13 @@ def _render_ai_ats_max(
         kw_lines = [rf"\section*{{{kw_title}}}", r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]"]
         for sk in skills:
             if isinstance(sk, dict):
-                cat = escape_latex(sk.get("category") or t["default_skill_cat"])
+                cat = escape_latex(sk.get("category"))
                 items = escape_latex(sk.get("items"))
             else:
-                cat = escape_latex(t["default_skill_cat"])
+                cat = ""
                 items = escape_latex(str(sk).strip())
             if items:
-                kw_lines.append(rf"    \item \textbf{{{cat}:}} {items}")
+                kw_lines.append(rf"    \item \textbf{{{cat}:}} {items}" if cat else rf"    \item {items}")
         kw_lines.append(r"\end{itemize}")
         blocks.append("\n".join(kw_lines))
 
@@ -3683,11 +3685,12 @@ def _render_nico_krieger(
     if skills:
         for sk in skills:
             if isinstance(sk, dict):
-                cat = escape_latex(sk.get("category") or t["default_skill_cat"])
+                cat = escape_latex(sk.get("category"))
                 raw_items = str(sk.get("items") or "")
                 parts = [p.strip() for p in raw_items.split(",") if p.strip()]
                 if parts:
-                    skill_lines.append(rf"{{\small\bfseries\color{{darktext}} {cat}}}\\[1.5pt]")
+                    if cat:
+                        skill_lines.append(rf"{{\small\bfseries\color{{darktext}} {cat}}}\\[1.5pt]")
                     skill_lines.append(rf"{{\small {', '.join(escape_latex(p) for p in parts)}}}\par\vspace{{2pt}}")
                     skill_lines.append(r"\vspace{2pt}")
             elif isinstance(sk, str) and sk.strip():
@@ -3801,7 +3804,7 @@ def _render_nico_krieger(
             url = (pj.get("url") or "").strip()
             desc = escape_latex(sanitize_project_description(pj.get("description"), lang))
             if len(desc) > 130:
-                desc = escape_latex(truncate_at_clause_boundary(sanitize_project_description(pj.get("description"), lang), 130))
+                desc = escape_latex(finalize_project_description(truncate_at_clause_boundary(sanitize_project_description(pj.get("description"), lang), 130)))
             if url and url.startswith("http"):
                 nm_head = rf"\textbf{{\href{{{escape_url(url)}}}{{{nm}\ \footnotesize\faIcon{{external-link-alt}}}}}}"
             else:
@@ -4064,7 +4067,7 @@ def _render_bubble(
     edus = cv.get("education") or []
 
     n_exp, n_proj, n_pub = _allocate_single_page_budget(
-        len(exps), len(projs), len(pubs), budget=34.0, weight_exp=4.2, weight_proj=2.8, weight_pub=2.2, resume_type=resume_type
+        len(exps), len(projs), len(pubs), budget=58.0, weight_exp=4.2, weight_proj=2.8, weight_pub=2.2, resume_type=resume_type
     )
 
     exp_sec_items: List[str] = []
@@ -4120,7 +4123,7 @@ def _render_bubble(
             tech_disp = rf"\textbf{{Stack:}} {escape_latex(tech_str)}" if tech_str else ""
             p_desc = escape_latex(sanitize_project_description(p.get("description") or "", lang))
             if len(p_desc) > 130:
-                p_desc = escape_latex(truncate_at_clause_boundary(sanitize_project_description(p.get("description") or "", lang), 130))
+                p_desc = escape_latex(finalize_project_description(truncate_at_clause_boundary(sanitize_project_description(p.get("description") or "", lang), 130)))
             proj_sec_items.append(rf"\bubbleevent{{\faCode}}{{}}{{{p_head}}}{{{tech_disp}}}{{{p_desc}}}")
 
     pub_sec_items: List[str] = []

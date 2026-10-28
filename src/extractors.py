@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Tuple
 import requests
 from bs4 import BeautifulSoup
 from .i18n import translate_experience_bullet_to_en
-from .text_utils import remove_terminal_abbreviation_ellipsis, truncate_at_clause_boundary
+from .text_utils import finalize_project_description, remove_terminal_abbreviation_ellipsis, truncate_at_clause_boundary
 
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -314,6 +314,7 @@ def sanitize_project_description(desc: str, lang: str = "pt-br") -> str:
     if not desc or not desc.strip():
         return ""
     text = remove_terminal_abbreviation_ellipsis(desc.strip())
+    text = finalize_project_description(text)
     is_en = str(lang).lower().startswith("en")
 
     # Detecta se a frase está em inglês mesmo se lang não foi especificado
@@ -326,19 +327,19 @@ def sanitize_project_description(desc: str, lang: str = "pt-br") -> str:
         if m_dev_em:
             tech_part, rest = m_dev_em.group(1), m_dev_em.group(2)
             clean_rest = rest.rstrip(".")
-            return f"Ferramenta para {clean_rest} desenvolvida em {tech_part}."
+            return finalize_project_description(f"Ferramenta para {clean_rest} desenvolvida em {tech_part}.")
 
         # Padrão: 'Desenvolvido para automação...' -> 'Ferramenta para automação...'
         m_dev_para = re.match(r"^(?:Desenvolvido|Criado|Constru[ií]do)\s+para\s+(.*)$", text, re.IGNORECASE)
         if m_dev_para:
-            return f"Ferramenta para {m_dev_para.group(1)}"
+            return finalize_project_description(f"Ferramenta para {m_dev_para.group(1)}")
 
         # Padrão: 'Desenvolveu gerador...', 'Criou portfólio...', 'Implementou utilitário...', 'Reuniu implementações...'
         pt_verbs = r"(?:Desenvolveu|Criou|Implementou|Reuniu|Construiu|Elaborou|Projetou|Estruturou|Idealizou|Programou|Confeccionou|Organizou)"
         m_verb = re.match(rf"^{pt_verbs}\s+(?:(?:um|uma|o|a|os|as)\s+)?([A-Za-zÀ-ÖØ-öø-ÿ].*)$", text, re.IGNORECASE)
         if m_verb:
             noun_rest = m_verb.group(1).strip()
-            return noun_rest[0].upper() + noun_rest[1:]
+            return finalize_project_description(noun_rest[0].upper() + noun_rest[1:])
 
     else:
         # Padrões em inglês
@@ -346,19 +347,19 @@ def sanitize_project_description(desc: str, lang: str = "pt-br") -> str:
         if m_dev_in:
             tech_part, rest = m_dev_in.group(1), m_dev_in.group(2)
             clean_rest = rest.rstrip(".")
-            return f"Tool for {clean_rest} developed in {tech_part}."
+            return finalize_project_description(f"Tool for {clean_rest} developed in {tech_part}.")
 
         m_dev_for = re.match(r"^(?:Developed|Created|Built)\s+for\s+(.*)$", text, re.IGNORECASE)
         if m_dev_for:
-            return f"Tool for {m_dev_for.group(1)}"
+            return finalize_project_description(f"Tool for {m_dev_for.group(1)}")
 
         en_verbs = r"(?:Developed|Created|Implemented|Built|Designed|Engineered|Crafted|Constructed|Programmed|Gathered|Assembled|Authored)"
         m_verb_en = re.match(rf"^{en_verbs}\s+(?:(?:a|an|the)\s+)?([A-Za-z].*)$", text, re.IGNORECASE)
         if m_verb_en:
             noun_rest = m_verb_en.group(1).strip()
-            return noun_rest[0].upper() + noun_rest[1:]
+            return finalize_project_description(noun_rest[0].upper() + noun_rest[1:])
 
-    return text
+    return finalize_project_description(text)
 
 
 def sanitize_experience_description(desc: str, lang: str = "pt-br") -> str:
@@ -634,7 +635,7 @@ def extract_project_info_from_readme(
             detected_tech.append(name)
             seen.add(name.lower())
 
-    return sanitize_project_description(best_summary, target_lang), ", ".join(detected_tech[:6])
+    return sanitize_project_description(best_summary, target_lang), ", ".join(detected_tech)
 
 
 def extract_github(github_input: str, target_lang: str = "pt-br") -> Dict[str, Any]:
