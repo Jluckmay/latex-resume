@@ -6,7 +6,8 @@ from pathlib import Path
 import pypdf
 import pytest
 
-from src.templates import render_builtin_template
+from src.pipeline import build_resume_pipeline
+from src.templates import _allocate_single_page_budget, render_builtin_template
 
 SAMPLE_MASSIVE_PROFILE = {
     "name": "João Lucas Mayrinck",
@@ -82,6 +83,45 @@ def test_single_page_keywords_header_2_columns_layout():
     assert "Belo Horizonte, MG" in tex
     assert "0009-0001-0178-4877" in tex
     assert "7395864900833083" in tex
+
+
+def test_single_page_budget_enforces_purpose_priorities_and_experience_emphasis():
+    prof = _allocate_single_page_budget(6, 6, 9, budget=29.8, resume_type="profissional")
+    acad = _allocate_single_page_budget(6, 6, 9, budget=29.8, resume_type="academico")
+
+    assert prof[0] > acad[0]
+    assert prof[1] < 6
+    assert prof[2] == 0
+    assert acad[2] < 9
+    assert acad[1] == 0
+
+    prof_with_room = _allocate_single_page_budget(2, 2, 2, budget=50, resume_type="profissional")
+    acad_with_room = _allocate_single_page_budget(2, 2, 2, budget=50, resume_type="academico")
+    assert prof_with_room == (2, 2, 2)
+    assert acad_with_room == (1, 2, 2)
+
+
+def test_bubble_cv_offline_pipeline_generates_visible_pdf(tmp_path):
+    result = build_resume_pipeline(
+        resume_type="profissional",
+        template_id="bubble",
+        provider="none",
+        use_ai=False,
+        user_name="Teste Offline",
+        user_role="Engenheira de Software",
+        user_email="teste@example.com",
+        build_dir=tmp_path,
+        lang="pt-br",
+    )
+
+    assert result.success is True
+    assert result.token_metrics["model_used"] == "direct_extractor_engine"
+    assert result.pdf_path is not None and result.pdf_path.exists()
+    reader = pypdf.PdfReader(str(result.pdf_path))
+    assert len(reader.pages) == 1
+    text = reader.pages[0].extract_text() or ""
+    assert "Teste Offline" in text
+    assert "teste@example.com" in text
 
 
 def test_single_page_keywords_strictly_one_page_compilation(tmp_path):
@@ -234,10 +274,13 @@ def test_tech_sidebar_no_blank_page_and_full_content(tmp_path):
         assert len(page1_text) > 800, f"Page 1 is unexpectedly empty or sparse: len={len(page1_text)}"
 
         full_text = reader.pages[0].extract_text()
-        # Garante que experiências, projetos e publicações prioritárias são preservados na página única
+        # Cada finalidade mantém sua seção prioritária antes de incluir a seção secundária.
         assert "Student Electoral Board Member" in full_text
-        assert "latex-resume" in full_text
-        assert "PDI Interativo" in full_text
+        if resume_type == "profissional":
+            assert "latex-resume" in full_text
+            assert "PDI Interativo" not in full_text
+        else:
+            assert "PDI Interativo" in full_text
 
 
 def test_tech_sidebar_balanced_columns_layout():
@@ -327,7 +370,7 @@ def test_google_standard_strictly_one_page_academic_and_professional(tmp_path):
                 assert "Math-O-Ween" in tex
                 assert "PDI Interativo" in tex
                 assert "Impacto da Solução Inicial" in tex
-                assert "latex-resume" in tex
+                assert "latex-resume" not in tex
                 assert "jluckmay.github.io" in tex
             else:
                 assert "latex-resume" in tex
@@ -430,7 +473,8 @@ def test_nico_krieger_single_page_layout(tmp_path):
     assert "IDIOMAS" in text
     assert "PRÊMIOS & DESTAQUES" in text
     assert "EXPERIÊNCIA PROFISSIONAL" in text
-    assert "PUBLICA" in text
+    assert "latex-resume" in text
+    assert "PUBLICA" not in text
 
 
 def test_nico_krieger_previews_have_education_in_sidebar():
@@ -563,15 +607,16 @@ def test_bubble_cv_template_compiles_single_page(tmp_path):
     assert r"\bubbleskill{English}{Intermediário}{0.50}" in tex_prof_colored
     assert r"\bubbleskill{Spanish}{Iniciante}{0.18}" in tex_prof_colored
 
-    # 4. Finalidade Profissional deve priorizar Projetos sobre Publicações (ordem e quantidade)
-    assert tex_prof_colored.index("PROJETOS RELEVANTES") < tex_prof_colored.index("PUBLICAÇÕES CIENTÍFICAS")
+    # 4. Sem espaço para todos os projetos, publicações não entram no modo profissional.
+    assert "PROJETOS RELEVANTES" in tex_prof_colored
+    assert "PUBLICAÇÕES CIENTÍFICAS" not in tex_prof_colored
     assert "latex-resume" in tex_prof_colored
     assert "jluckmay.github.io" in tex_prof_colored
-    assert "minecraft-map-convertion" in tex_prof_colored
 
-    # 5. Finalidade Acadêmica deve priorizar Publicações sobre Projetos
+    # 5. Sem espaço para todas as publicações, projetos não entram no modo acadêmico.
     tex_acad = render_builtin_template("bubble", SAMPLE_MASSIVE_PROFILE, links, resume_type="academico", photo_filename=None, lang="pt-br")
-    assert tex_acad.index("PUBLICAÇÕES CIENTÍFICAS") < tex_acad.index("PROJETOS RELEVANTES")
+    assert "PUBLICAÇÕES CIENTÍFICAS" in tex_acad
+    assert "PROJETOS RELEVANTES" not in tex_acad
     # Venues de publicações não devem conter sufixos repetidos do título
     assert "Operações Matemáticas de Forma Divertida e Assustadora Revista" not in tex_acad
     assert "Revista Brasileira de Informática na Educação" in tex_acad

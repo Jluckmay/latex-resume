@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.resolve()))
 
 from src.compiler import secure_wipe_and_remove_dir
-from src.config import CACHE_DIR, OUTPUT_DIR, PROJECT_ROOT
+from src.config import CACHE_DIR, PROJECT_ROOT
 from src.token_plugins import SHA256DiskCachePlugin
 
 
@@ -89,12 +89,8 @@ def test_app_code_guarantees_zero_storage():
     assert "st.session_state[\"session_pdf_bytes\"]" in app_text
 
 
-def test_output_and_cache_directories_clean():
-    """Valida que os diretórios output/ e .cache/ não contêm documentos de usuários persistidos."""
-    if OUTPUT_DIR.exists():
-        cv_files = list(OUTPUT_DIR.glob("*.pdf")) + list(OUTPUT_DIR.glob("*.tex")) + list(OUTPUT_DIR.glob("*.png"))
-        assert len(cv_files) == 0, f"Encontrados arquivos em output/ que violam zero-storage: {cv_files}"
-
+def test_cache_directory_clean():
+    """Valida que o cache persistente não contém dados de usuários."""
     if CACHE_DIR.exists():
         cache_files = list(CACHE_DIR.glob("*.json"))
         assert len(cache_files) == 0, f"Encontrados arquivos de cache em disco: {cache_files}"

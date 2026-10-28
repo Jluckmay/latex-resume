@@ -1407,14 +1407,14 @@ def _allocate_single_page_budget(
 ) -> tuple[int, int, int]:
     """Distribui dinamicamente a capacidade vertical da página entre experiências, projetos e publicações.
 
-    Garante utilização ótima do espaço da página única sem ultrapassar o limite de 1 página.
-    Se o usuário não possuir projetos ou publicações, toda a capacidade restante flui automaticamente
-    para experiências; se tiver poucas experiências, a capacidade expande para projetos e publicações.
+    Regras de prioridade para templates de página única:
+    1. Em ambos os casos (profissional e acadêmico), exibe a seção de experiências quando disponível,
+       dando maior ênfase a experiências na finalidade profissional (exibindo mais itens quando disponíveis).
+    2. Finalidade profissional prioriza Projetos sobre Publicações: Publicações só são exibidas se houver
+       espaço restante após exibir TODOS os itens de Projetos.
+    3. Finalidade acadêmica prioriza Publicações sobre Projetos: Projetos só são exibidos se houver
+       espaço restante após exibir TODOS os itens de Publicações.
     """
-    n_exp = 0
-    n_proj = 0
-    n_pub = 0
-
     def cur_cost(e: int, p: int, u: int) -> float:
         c = 0.0
         if e > 0:
@@ -1425,30 +1425,69 @@ def _allocate_single_page_budget(
             c += header_pub + u * weight_pub
         return c
 
-    # Sequência de prioridade baseada na finalidade:
-    # - Acadêmico prioriza Publicações sobre Projetos (3:1)
-    # - Profissional prioriza Projetos sobre Publicações (3:1)
-    if resume_type == "academico":
-        order = ["exp", "pub", "proj", "pub", "exp", "pub"]
-    else:
-        order = ["exp", "proj", "pub", "proj", "exp", "proj"]
+    def _run_prof_allocation() -> tuple[int, int, int]:
+        e_cnt, p_cnt, u_cnt = 0, 0, 0
+        # Fase 1 (Profissional): Experiências (maior ênfase 2:1) + Projetos (prioridade estrita sobre Publicações)
+        order_p1 = ["exp", "exp", "proj"]
+        changed = True
+        while changed:
+            changed = False
+            for kind in order_p1:
+                if kind == "exp" and e_cnt < total_exp:
+                    if cur_cost(e_cnt + 1, p_cnt, u_cnt) <= budget:
+                        e_cnt += 1
+                        changed = True
+                elif kind == "proj" and p_cnt < total_proj:
+                    if cur_cost(e_cnt, p_cnt + 1, u_cnt) <= budget:
+                        p_cnt += 1
+                        changed = True
 
+        # Fase 2 (Profissional): Publicações APENAS se todos os Projetos disponíveis já tiverem sido exibidos
+        if p_cnt == total_proj:
+            while u_cnt < total_pubs and cur_cost(e_cnt, p_cnt, u_cnt + 1) <= budget:
+                u_cnt += 1
+
+        return e_cnt, p_cnt, u_cnt
+
+    prof_e, prof_p, prof_u = _run_prof_allocation()
+    if resume_type != "academico":
+        return prof_e, prof_p, prof_u
+
+    # Modo Acadêmico:
+    # - Exibe experiências, porém com menor quantidade de itens que o modo profissional quando houver competição de espaço
+    # - Prioriza exibir todas as Publicações possíveis antes de incluir qualquer Projeto
+    if total_exp <= 1 or (total_pubs == 0 and total_proj == 0):
+        acad_exp_cap = total_exp
+    else:
+        base_cap = 1 if total_exp == 2 else (2 if total_exp <= 5 else 3)
+        if prof_e >= 2:
+            acad_exp_cap = max(1, min(base_cap, prof_e - 1))
+        else:
+            acad_exp_cap = min(base_cap, total_exp)
+
+    n_exp = 0
+    n_proj = 0
+    n_pub = 0
+
+    # Fase 1 (Acadêmico): Experiências (até acad_exp_cap) + Publicações (prioridade estrita sobre Projetos)
+    order_acad_p1 = ["exp", "pub", "pub", "pub"]
     changed = True
     while changed:
         changed = False
-        for kind in order:
-            if kind == "exp" and n_exp < total_exp:
+        for kind in order_acad_p1:
+            if kind == "exp" and n_exp < acad_exp_cap:
                 if cur_cost(n_exp + 1, n_proj, n_pub) <= budget:
                     n_exp += 1
-                    changed = True
-            elif kind == "proj" and n_proj < total_proj:
-                if cur_cost(n_exp, n_proj + 1, n_pub) <= budget:
-                    n_proj += 1
                     changed = True
             elif kind == "pub" and n_pub < total_pubs:
                 if cur_cost(n_exp, n_proj, n_pub + 1) <= budget:
                     n_pub += 1
                     changed = True
+
+    # Fase 2 (Acadêmico): Projetos APENAS se todas as Publicações disponíveis já tiverem sido exibidas
+    if n_pub == total_pubs:
+        while n_proj < total_proj and cur_cost(n_exp, n_proj + 1, n_pub) <= budget:
+            n_proj += 1
 
     return n_exp, n_proj, n_pub
 
@@ -1530,11 +1569,11 @@ def _build_education_block(
     lang: str = "pt-br",
     max_items: Optional[int] = None,
 ) -> str:
-    if not educations:
+    if not educations or (max_items is not None and max_items <= 0):
         return ""
     t = LATEX_I18N[normalize_lang(lang)]
     entries: List[str] = []
-    edus = educations[:max_items] if max_items else educations
+    edus = educations[:max_items] if max_items is not None else educations
     for ed in edus:
         deg = escape_latex(ed.get("degree"))
         inst = escape_latex(ed.get("institution"))
@@ -1557,12 +1596,12 @@ def _build_experience_block(
     lang: str = "pt-br",
     max_items: Optional[int] = None,
 ) -> str:
-    if not experiences:
+    if not experiences or (max_items is not None and max_items <= 0):
         return ""
     t = LATEX_I18N[normalize_lang(lang)]
     title = t["sec_exp_acad"] if resume_type == "academico" else t["sec_exp_prof"]
     lines = [rf"\section*{{{title}}}"]
-    exps = experiences[:max_items] if max_items else experiences
+    exps = experiences[:max_items] if max_items is not None else experiences
     for xp in exps:
         role = escape_latex(xp.get("role"))
         org = escape_latex(xp.get("organization"))
@@ -1590,14 +1629,14 @@ def _build_projects_block(
     lang: str = "pt-br",
     max_items: Optional[int] = None,
 ) -> str:
-    if not projects:
+    if not projects or (max_items is not None and max_items <= 0):
         return ""
     is_en = normalize_lang(lang).startswith("en")
     t = LATEX_I18N[normalize_lang(lang)]
     title = t["sec_proj_acad"] if resume_type == "academico" else t["sec_proj_prof"]
     lines = [rf"\section*{{{title}}}"]
     lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
-    projs = projects[:max_items] if max_items else projects
+    projs = projects[:max_items] if max_items is not None else projects
     for pj in projs:
         nm = escape_latex(pj.get("name") or "").strip()
         if not nm:
@@ -1629,12 +1668,12 @@ def _build_publications_block(
     lang: str = "pt-br",
     max_items: Optional[int] = None,
 ) -> str:
-    if not publications:
+    if not publications or (max_items is not None and max_items <= 0):
         return ""
     t = LATEX_I18N[normalize_lang(lang)]
     lines = [rf"\section*{{{t['sec_publications']}}}"]
     lines.append(r"\begin{enumerate}[label=\arabic*.,leftmargin=1.5em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
-    pubs = publications[:max_items] if max_items else publications
+    pubs = publications[:max_items] if max_items is not None else publications
     for pb in pubs:
         raw_t = pb.get("title") or ""
         title = escape_latex(raw_t).strip()
@@ -1679,12 +1718,12 @@ def _build_skills_block(
     lang: str = "pt-br",
     max_items: Optional[int] = None,
 ) -> str:
-    if not skills:
+    if not skills or (max_items is not None and max_items <= 0):
         return ""
     t = LATEX_I18N[normalize_lang(lang)]
     lines = [rf"\section*{{{t['sec_skills']}}}"]
     lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
-    sks = skills[:max_items] if max_items else skills
+    sks = skills[:max_items] if max_items is not None else skills
     for sk in sks:
         if isinstance(sk, dict):
             cat = escape_latex(sk.get("category"))
@@ -1720,10 +1759,10 @@ def _build_languages_and_awards_block(
         if langs_esc:
             parts.append(rf"\section*{{{t['sec_languages']}}}" + "\n" + langs_esc)
     clean_awards = sanitize_awards(awards, lang=lang)
-    if clean_awards:
+    aws = clean_awards[:max_awards] if max_awards is not None else clean_awards
+    if aws:
         lines = [rf"\section*{{{t['sec_awards']}}}"]
         lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
-        aws = clean_awards[:max_awards] if max_awards else clean_awards
         for aw in aws:
             lines.append(rf"    \item {escape_latex(aw)}")
         lines.append(r"\end{itemize}")
@@ -2797,12 +2836,18 @@ def _render_overleaf_single_page_keywords(
     langs = [str(x).strip() for x in (cv.get("languages") or []) if str(x).strip()]
 
     # Alocação dinâmica para Coluna 1 (Work + Education + Awards)
+    exps_all_kw = cv.get("experience") or []
     n_edu = min(2, len(cv.get("education") or []))
-    n_aw = min(4, len(clean_awards))
+    n_aw = min(3 if resume_type == "academico" else 2, len(clean_awards))
     cost_other_left = (n_edu * 3.2 + (2.0 if n_edu else 0.0)) + (n_aw * 1.4 + (1.8 if n_aw else 0.0))
     left_budget = 36.0
     avail_work = max(10.0, left_budget - cost_other_left)
-    max_work = min(len(cv.get("experience") or []), max(1, int((avail_work - 2.0) / 3.4)))
+    prof_max_work = min(len(exps_all_kw), max(1, int((avail_work - 2.0) / 3.2)))
+    if resume_type == "academico" and len(exps_all_kw) >= 2 and (projs or pubs):
+        acad_cap_kw = 1 if len(exps_all_kw) == 2 else (2 if len(exps_all_kw) <= 5 else 3)
+        max_work = max(1, min(acad_cap_kw, prof_max_work - 1 if prof_max_work >= 2 else 1))
+    else:
+        max_work = prof_max_work
 
     # Alocação dinâmica para Coluna 2 (Projects + Publications + Skills + Languages)
     lang_cost = 2.0 if langs else 0.0
@@ -2898,7 +2943,7 @@ def _render_overleaf_single_page_keywords(
     sk_sec = (rf"\cvsec{{\faIcon{{list}}}}{{{sk_lbl}}} " + "\n" + "\n".join(sk_rows)) if sk_rows else ""
 
     pub_sec = ""
-    if pubs:
+    if pubs and max_pubs > 0:
         pub_lbl = "PUBLICATIONS" if is_en else "PUBLICAÇÕES"
         p_rows: List[str] = []
         for pb in pubs[:max_pubs]:
@@ -4024,8 +4069,9 @@ def _render_bubble(
     pubs = cv.get("publications") or []
     edus = cv.get("education") or []
 
+    main_budget = 25.5 if photo_filename else 29.8
     n_exp, n_proj, n_pub = _allocate_single_page_budget(
-        len(exps), len(projs), len(pubs), budget=34.0, weight_exp=4.2, weight_proj=2.8, weight_pub=2.2, resume_type=resume_type
+        len(exps), len(projs), len(pubs), budget=main_budget, weight_exp=4.2, weight_proj=2.8, weight_pub=2.2, resume_type=resume_type
     )
 
     exp_sec_items: List[str] = []
@@ -4125,12 +4171,15 @@ def _render_bubble(
         side_items.append(rf"\bubblesideitem{{\faEnvelope}}{{\href{{{escape_url('mailto:' + clean_em)}}}{{{escape_latex(clean_em)}}}}}")
     if cv.get("phone"):
         side_items.append(rf"\bubblesideitem{{\faPhone}}{{{escape_latex(cv['phone'])}}}")
-    if cv.get("location"):
-        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
-        side_items.append(rf"\bubblesideitem{{\faMapMarker*}}{{\href{{{escape_url(maps_url)}}}{{{escape_latex(cv['location'])}}}}}")
     if links.get("portfolio"):
         port_disp = escape_latex(simplify_url_display(links["portfolio"]))
         side_items.append(rf"\bubblesideitem{{\faGlobe}}{{\href{{{escape_url(links['portfolio'])}}}{{\textbf{{{port_disp}}}}}}}")
+    if links.get("scholar"):
+        scholar_disp = escape_latex(_get_platform_display(links, "scholar", candidate_name=raw_name))
+        side_items.append(rf"\bubblesideitem{{\faIcon{{google}}}}{{\href{{{escape_url(links['scholar'])}}}{{\textbf{{{scholar_disp}}}}}}}")
+    if cv.get("location"):
+        maps_url = "https://www.google.com/maps/search/?api=1&query=" + urllib.parse.quote_plus(cv["location"].strip())
+        side_items.append(rf"\bubblesideitem{{\faMapMarker*}}{{\href{{{escape_url(maps_url)}}}{{{escape_latex(cv['location'])}}}}}")
     if links.get("linkedin"):
         li_disp = escape_latex(_get_platform_display(links, "linkedin", candidate_name=raw_name))
         side_items.append(rf"\bubblesideitem{{\faLinkedin}}{{\href{{{escape_url(links['linkedin'])}}}{{\textbf{{{li_disp}}}}}}}")
@@ -4146,16 +4195,21 @@ def _render_bubble(
 
     # Summary in Sidebar if present
     summary_raw = cv.get("summary") or ""
+    clean_awards = sanitize_awards(cv.get("awards"), lang=lang)
+    langs = cv.get("languages") or []
+    contact_count = len(side_items) - 1
+
     if summary_raw.strip():
         prof_lbl = "PROFILE" if is_en else "PERFIL"
         sum_disp = escape_latex(summary_raw.strip())
-        if len(sum_disp) > 220:
-            sum_disp = sum_disp[:217].rstrip() + "..."
+        if len(sum_disp) > 200:
+            sum_disp = sum_disp[:197].rstrip() + "..."
         side_items.append(rf"\bubblesidebartitle{{\faUser}}{{{prof_lbl}}}")
-        side_items.append(rf"\noindent{{\raggedright\small\color{{black!85}} {sum_disp}\par}}\vspace{{2mm}}")
+        side_items.append(rf"\noindent{{\raggedright\small\color{{black!85}} {sum_disp}\par}}\vspace{{1.5mm}}")
 
     # Skills with progress bars
     skills = cv.get("skills") or []
+    max_bubble_sk = 3 if photo_filename else (4 if (summary_raw.strip() and clean_awards and contact_count >= 6) else 5)
     if skills:
         sk_lbl = "SKILLS" if is_en else "COMPETÊNCIAS"
         side_items.append(rf"\bubblesidebartitle{{\faCogs}}{{{sk_lbl}}}")
@@ -4165,7 +4219,7 @@ def _render_bubble(
                 raw_items = str(sk.get("items") or "")
                 parts = [p.strip() for p in raw_items.split(",") if p.strip()]
                 for idx, p in enumerate(parts):
-                    if count_sk >= 6:
+                    if count_sk >= max_bubble_sk:
                         break
                     frac = 0.95 if idx == 0 else (0.85 if idx < 3 else 0.70)
                     lvl_txt = "Avançado" if frac >= 0.85 else "Intermediário"
@@ -4176,7 +4230,7 @@ def _render_bubble(
             elif isinstance(sk, str) and sk.strip():
                 parts = [p.strip() for p in sk.split(",") if p.strip()]
                 for idx, p in enumerate(parts):
-                    if count_sk >= 6:
+                    if count_sk >= max_bubble_sk:
                         break
                     frac = 0.95 if idx == 0 else (0.85 if idx < 3 else 0.70)
                     lvl_txt = "Avançado" if frac >= 0.85 else "Intermediário"
@@ -4186,7 +4240,6 @@ def _render_bubble(
                     count_sk += 1
 
     # Languages (parsed accurately for level label and progress bar width)
-    langs = cv.get("languages") or []
     if langs:
         lang_lbl = "LANGUAGES" if is_en else "IDIOMAS"
         side_items.append(rf"\bubblesidebartitle{{\faLanguage}}{{{lang_lbl}}}")
@@ -4196,11 +4249,11 @@ def _render_bubble(
                 side_items.append(rf"\bubbleskill{{{escape_latex(clean_lname)}}}{{{escape_latex(lvl_label)}}}{{{frac:.2f}}}")
 
     # Awards
-    clean_awards = sanitize_awards(cv.get("awards"), lang=lang)
+    max_bubble_aw = 2 if (photo_filename or (contact_count >= 7 and summary_raw.strip() and len(langs) >= 3)) else 3
     if clean_awards:
         aw_lbl = "AWARDS" if is_en else "PRÊMIOS"
         side_items.append(rf"\bubblesidebartitle{{\faTrophy}}{{{aw_lbl}}}")
-        for aw in clean_awards[:3]:
+        for aw in clean_awards[:max_bubble_aw]:
             aw_txt = escape_latex(str(aw))
             if len(aw_txt) > 95:
                 aw_txt = aw_txt[:92].rstrip() + "..."
@@ -4258,7 +4311,7 @@ def _render_bubble(
 }}
 
 \newcommand{{\bubblemaintitle}}[2]{{%
-  \vspace{{2.5mm}}%
+  \vspace{{2.0mm}}%
   \noindent\leavevmode%
   \hspace{{-\timelinespace mm}}%
   \hspace{{-\cvmainbubbleradius mm}}%
@@ -4267,18 +4320,18 @@ def _render_bubble(
   }}%
   \hspace{{\dimexpr\timelinespace mm - \cvmainbubbleradius mm\relax}}%
   \parbox[c]{{\linewidth}}{{\raggedright\fontsize{{11.5pt}}{{13.5pt}}\bfseries\textcolor{{accent}}{{#2}}}}%
-  \vspace{{1.8mm}}\par%
+  \vspace{{1.5mm}}\par%
 }}
 
 \newcommand{{\bubblesidebartitle}}[2]{{%
-  \vspace{{2.5mm}}%
+  \vspace{{2.0mm}}%
   \noindent\leavevmode%
   \makebox[\dimexpr\cvsidebarbubbleradius mm * 2\relax][c]{{%
     \drawbubble{{\cvsidebarbubbleradius}}{{\cvsidebarbubbleborderwidth}}{{accent}}{{cvbordercolor}}{{\color{{white}}\fontsize{{8pt}}{{8pt}}\selectfont #1}}%
   }}%
   \hspace{{\cvsidebaroffset mm}}%
   \parbox[c]{{\dimexpr\linewidth - \cvsidebarbubbleradius mm * 2 - \cvsidebaroffset mm\relax}}{{\raggedright\fontsize{{11pt}}{{13pt}}\bfseries\textcolor{{accent}}{{#2}}}}%
-  \vspace{{1.8mm}}\par%
+  \vspace{{1.4mm}}\par%
 }}
 
 \newcommand{{\bubbleevent}}[5]{{%
@@ -4299,9 +4352,9 @@ def _render_bubble(
     \raggedright\leavevmode%
     {{\bfseries\fontsize{{9.8pt}}{{11.8pt}}\selectfont\textcolor{{accent!90!black}}{{#3}}}}%
     \ifstrempty{{#4}}{{}}{{\par\vspace{{1pt}}{{\small\itshape\textcolor{{black!75}}{{#4}}}}}}%
-    \ifstrempty{{#5}}{{}}{{\par\vspace{{1.5pt}}{{\small #5}}}}%
+    \ifstrempty{{#5}}{{}}{{\par\vspace{{1pt}}{{\small #5}}}}%
   }}%
-  \vspace{{2.2mm}}\par%
+  \vspace{{1.8mm}}\par%
 }}
 
 \newcommand{{\bubblesideitem}}[2]{{%
@@ -4309,7 +4362,7 @@ def _render_bubble(
   \makebox[5mm][c]{{\textcolor{{subaccent}}{{\small #1}}}}%
   \hspace{{1.5mm}}%
   \parbox[t]{{\dimexpr\linewidth - 6.5mm\relax}}{{\raggedright\leavevmode\small\strut #2\strut}}%
-  \vspace{{1.6mm}}\par%
+  \vspace{{1.3mm}}\par%
 }}
 
 \newcommand{{\bubbleskill}}[3]{{%
@@ -4321,7 +4374,7 @@ def _render_bubble(
     \fill [accent!12] (0,0) rectangle (\linewidth, 3.5pt);%
     \fill [subaccent] (0,0) rectangle (#3\linewidth, 3.5pt);%
   \end{{tikzpicture}}%
-  \vspace{{1.8mm}}\par%
+  \vspace{{1.4mm}}\par%
 }}
 
 \begin{{document}}

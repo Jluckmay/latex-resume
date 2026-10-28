@@ -343,25 +343,24 @@ def build_structured_cv_deterministically(
 
 
     # 1. Nome Completo
+    def _is_abbreviated_name(n: str | None) -> bool:
+        if not n:
+            return True
+        s = n.strip()
+        return "," in s or bool(re.search(r"\b[A-Z]\.", s))
 
+    scholar_nm = (scholar.get("name") or "").strip()
     name = (
-
         user_meta.get("name")
-
         or lattes.get("name")
-
-        or scholar.get("name")
-
+        or (scholar_nm if not _is_abbreviated_name(scholar_nm) else "")
         or li.get("name")
-
         or orcid.get("name")
-
         or gh.get("name")
-
+        or portfolio.get("name")
+        or scholar_nm
         or gh.get("username")
-
         or ("Candidate Name" if is_en else "Nome do Candidato")
-
     ).strip()
 
 
@@ -476,7 +475,7 @@ def build_structured_cv_deterministically(
         if low_desc.startswith("portfólio") or low_desc.startswith("portfolio"):
             cleaned_snippet = re.sub(r"(?i)^portf[óo]lio\s+(?:profissional\s+)?de\s+[^,]+,\s*", "", port_desc).strip()
             if cleaned_snippet:
-                cap_snippet = cleaned_snippet[0].upper() + cleaned_snippet[1:]
+                cap_snippet = (cleaned_snippet[0].upper() + cleaned_snippet[1:]).rstrip(". ")
                 summary = (
                     f"Computer Science and Technology Specialist. {cap_snippet}. Strong background in software architecture, distributed systems, and modern development."
                     if is_en
