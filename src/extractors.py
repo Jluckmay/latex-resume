@@ -672,6 +672,64 @@ def extract_github(github_input: str, target_lang: str = "pt-br") -> Dict[str, A
                     bio_el = soup_gh.find(class_=re.compile(r"user-profile-bio|p-note"))
                     if bio_el and bio_el.get_text(strip=True):
                         result["bio"] = bio_el.get_text(strip=True)
+
+                r_repos_html = requests.get(
+                    f"https://github.com/{username}?tab=repositories",
+                    headers={"User-Agent": USER_AGENT},
+                    timeout=10,
+                )
+                if r_repos_html.status_code == 200:
+                    soup_repos = BeautifulSoup(r_repos_html.text, "html.parser")
+                    fb_repos: List[Dict[str, Any]] = []
+                    fb_langs: Counter[str] = Counter()
+                    for li in soup_repos.select("#user-repositories-list li, li.source"):
+                        a_name = li.find("a", itemprop=re.compile(r"codeRepository"))
+                        if not a_name:
+                            continue
+                        r_name = a_name.get_text(strip=True)
+                        if not r_name:
+                            continue
+                        p_desc = li.find("p", itemprop="description")
+                        r_desc = p_desc.get_text(" ", strip=True) if p_desc else ""
+                        sp_lang = li.find("span", itemprop="programmingLanguage")
+                        r_lang = sp_lang.get_text(strip=True) if sp_lang else ""
+                        if r_lang:
+                            fb_langs[r_lang] += 1
+                        r_tech = r_lang
+                        if len(fb_repos) < 6:
+                            try:
+                                readme_url = f"https://raw.githubusercontent.com/{username}/{r_name}/HEAD/README.md"
+                                r_rm = requests.get(readme_url, headers={"User-Agent": USER_AGENT}, timeout=3)
+                                if r_rm.status_code == 200 and r_rm.text:
+                                    ext_desc, ext_tech = extract_project_info_from_readme(
+                                        r_rm.text,
+                                        repo_lang=r_lang,
+                                        topics=[],
+                                        target_lang=target_lang,
+                                        fallback_desc=r_desc,
+                                    )
+                                    if ext_desc:
+                                        r_desc = ext_desc
+                                    if ext_tech:
+                                        r_tech = ext_tech
+                            except Exception:
+                                pass
+                        fb_repos.append({
+                            "name": r_name,
+                            "description": sanitize_project_description(r_desc, target_lang),
+                            "language": r_lang,
+                            "tech": r_tech,
+                            "stars": 0,
+                            "url": f"https://github.com/{username}/{r_name}",
+                            "topics": [],
+                        })
+                        if len(fb_repos) >= 10:
+                            break
+                    if fb_repos:
+                        result["repos"] = fb_repos
+                    top_l = [lg for lg, _ in fb_langs.most_common(8)]
+                    result["top_languages"] = top_l
+                    result["languages"] = top_l
             except Exception:
                 pass
             return result
@@ -752,7 +810,9 @@ def extract_github(github_input: str, target_lang: str = "pt-br") -> Dict[str, A
                 }
             )
 
-        result["top_languages"] = [lang for lang, _ in lang_counter.most_common(8)]
+        top_langs = [lang for lang, _ in lang_counter.most_common(8)]
+        result["top_languages"] = top_langs
+        result["languages"] = top_langs
         result["repos"] = repos_summary
     except Exception as exc:
         result["error"] = f"Falha ao consultar GitHub ({type(exc).__name__})"
@@ -1389,11 +1449,11 @@ def extract_portfolio(portfolio_url: str = "") -> Dict[str, Any]:
         soup = BeautifulSoup(html_text, "html.parser")
 
         title = (soup.title.string or "").strip() if soup.title else ""
-        desc = ""
+        meta_desc = ""
         for meta_attr in ({"name": "description"}, {"property": "og:description"}):
             m = soup.find("meta", attrs=meta_attr)
             if m and m.get("content"):
-                desc = m["content"].strip()
+                meta_desc = m["content"].strip()
                 break
 
         # 0. Extração de Email
@@ -1443,23 +1503,25 @@ def extract_portfolio(portfolio_url: str = "") -> Dict[str, Any]:
                         if len(line) > 15 and "doi" not in line.lower() and "ver publicação" not in line.lower():
                             pub_title = line
                             break
-                doi = doi_a["href"].split("doi.org/")[-1].strip() if "doi.org/" in doi_a["href"] else doi_a["href"]
+                doi = doi_a["href"].split("doi.org/")[-1].strip() if "doi.org/" in doi_a["href"] else ""
                 yr_m = re.search(r"\b(20\d\d|19\d\d)\b", art.get_text(" "))
                 year = yr_m.group(1) if yr_m else ""
+                clean_pub_title = re.sub(r"\s+", " ", pub_title).strip()
                 venue = ""
-                full_txt = art.get_text(" ", strip=True)
-                for part in re.split(r"·|\n| - ", full_txt):
+                full_txt_lines = art.get_text("\n", strip=True)
+                for part in re.split(r"·|\n| - ", full_txt_lines):
                     p = part.strip()
+                    if clean_pub_title and (p.lower() in clean_pub_title.lower() or clean_pub_title.lower() in p.lower()):
+                        continue
                     if any(k in p.lower() for k in ("revista", "workshop", "simpósio", "simposio", "journal", "proceedings", "conference", "anais")):
                         venue = p
                         break
                 authors = ""
-                for part in re.split(r"[·\n]", full_txt):
+                for part in re.split(r"[·\n]", full_txt_lines):
                     p_pt = part.strip()
                     if p_pt.lower().startswith("com ") or p_pt.lower().startswith("with "):
                         authors = re.sub(r"(?i)^(?:com|with)\s+", "", p_pt).strip()
                         break
-                clean_pub_title = re.sub(r"\s+", " ", pub_title).strip()
                 if clean_pub_title and not any(p["title"].lower() == clean_pub_title.lower() or (doi and p.get("doi") == doi) for p in publications):
                     publications.append({
                         "title": clean_pub_title,
@@ -1469,6 +1531,41 @@ def extract_portfolio(portfolio_url: str = "") -> Dict[str, Any]:
                         "doi": doi,
                         "url": doi_a["href"],
                     })
+
+        # 2b. Extração estruturada de Projetos (cards de projeto ou links para repositórios GitHub)
+        projects: List[Dict[str, Any]] = []
+        for art in soup.find_all(["article", "div", "li"], class_=re.compile(r"\bproject\b|\bprojeto\b|\brepo\b|\bportfolio-item\b", re.I)):
+            h_el = art.find(["h3", "h4", "h5", "strong"])
+            if not h_el:
+                continue
+            p_name = h_el.get_text(" ", strip=True)
+            if not p_name or len(p_name) > 80 or any(k in p_name.lower() for k in ("projetos", "projects", "publicações", "formação", "experiência")):
+                continue
+            p_desc = ""
+            for p_tag in art.find_all("p"):
+                t = p_tag.get_text(" ", strip=True)
+                if t and len(t) > 15 and t != p_name:
+                    p_desc = t
+                    break
+            p_url = ""
+            for a_tag in art.find_all("a", href=True):
+                hr = a_tag["href"].strip()
+                if hr.startswith("http") and "doi.org" not in hr.lower():
+                    p_url = hr
+                    if "github.com/" in hr.lower():
+                        break
+            art_txt = art.get_text(" ", strip=True)
+            p_techs: List[str] = []
+            for pat, tname in TECH_PATTERNS:
+                if re.search(pat, art_txt, re.I) and tname not in p_techs:
+                    p_techs.append(tname)
+            if not any(x["name"].lower() == p_name.lower() for x in projects):
+                projects.append({
+                    "name": p_name,
+                    "description": sanitize_project_description(p_desc),
+                    "tech": ", ".join(p_techs[:6]),
+                    "url": p_url,
+                })
 
         # 3. Extração estruturada de Premiações / Honrarias (Menção Honrosa, Prêmios, Títulos)
         awards: List[str] = []
@@ -1526,11 +1623,11 @@ def extract_portfolio(portfolio_url: str = "") -> Dict[str, Any]:
             inst = re.sub(r"\s*[–—·]\s*", " - ", inst).strip()
 
             p_desc = art.find_all("p")
-            desc = ""
+            edu_desc = ""
             for p in p_desc:
                 t = p.get_text(" ", strip=True)
                 if t and t != inst:
-                    desc = t
+                    edu_desc = t
                     break
 
             if not any(e["degree"].lower() == deg_title.lower() for e in educations):
@@ -1538,7 +1635,7 @@ def extract_portfolio(portfolio_url: str = "") -> Dict[str, Any]:
                     "degree": deg_title,
                     "institution": inst,
                     "period": clean_period,
-                    "details": desc,
+                    "details": edu_desc,
                 })
 
         # 5. Extração estruturada de Experiências Profissionais e Acadêmicas com Períodos
@@ -1565,7 +1662,7 @@ def extract_portfolio(portfolio_url: str = "") -> Dict[str, Any]:
                 clean_period = re.sub(r"(?i)atual", "Atual", clean_period)
 
             p_tag = art.find("p")
-            desc = p_tag.get_text(" ", strip=True) if p_tag else ""
+            emp_desc = p_tag.get_text(" ", strip=True) if p_tag else ""
 
             if not org and any(k in role.lower() for k in ("monitor", "tutor", "bolsista", "extensão", "extensao")):
                 org = "Universidade Federal de Viçosa"
@@ -1575,7 +1672,7 @@ def extract_portfolio(portfolio_url: str = "") -> Dict[str, Any]:
                     "role": role,
                     "organization": org,
                     "period": clean_period,
-                    "description": sanitize_experience_description(desc),
+                    "description": sanitize_experience_description(emp_desc),
                 })
 
         for tag in soup(["script", "style", "svg", "noscript", "iframe"]):
@@ -1589,6 +1686,11 @@ def extract_portfolio(portfolio_url: str = "") -> Dict[str, Any]:
 
         body_text = soup.get_text(" ", strip=True)
         body_text = re.sub(r"\s+", " ", body_text).strip()[:3500]
+
+        portfolio_skills: List[str] = []
+        for pat, tname in TECH_PATTERNS:
+            if re.search(pat, body_text, re.I) and tname not in portfolio_skills:
+                portfolio_skills.append(tname)
 
         if not languages:
             languages = extract_languages_from_text(body_text)
@@ -1610,13 +1712,15 @@ def extract_portfolio(portfolio_url: str = "") -> Dict[str, Any]:
         result.update(
             {
                 "title": title,
-                "description": desc,
+                "description": meta_desc,
                 "location": portfolio_loc,
                 "headings": headings,
                 "raw_text": body_text,
                 "languages": languages,
                 "awards": awards,
                 "publications": publications,
+                "projects": projects,
+                "skills": portfolio_skills,
                 "educations": educations,
                 "employments": employments,
             }

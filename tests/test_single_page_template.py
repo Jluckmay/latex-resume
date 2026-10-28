@@ -539,15 +539,45 @@ def test_single_page_keywords_and_minimal_ats_fill_page_richly(tmp_path):
 
 
 def test_bubble_cv_template_compiles_single_page(tmp_path):
-    """Verifica compilação e restrição estrita a 1 página do template BubbleCV."""
+    """Verifica compilação, cores customizadas, ausência de ícone de foto sem foto, barras de idioma e priorização no BubbleCV."""
+    from src.ui_theme import apply_custom_colors_and_portfolio_to_latex
+
     links = {
         "portfolio": "https://jluckmay.github.io",
         "github": "https://github.com/jluckmay",
         "linkedin": "https://linkedin.com/in/jluckmay",
     }
-    tex_bubble = render_builtin_template("bubble", SAMPLE_MASSIVE_PROFILE, links, resume_type="profissional", lang="pt-br")
+    tex_prof = render_builtin_template("bubble", SAMPLE_MASSIVE_PROFILE, links, resume_type="profissional", photo_filename=None, lang="pt-br")
+    tex_prof_colored = apply_custom_colors_and_portfolio_to_latex(tex_prof, primary_color="#7C2D12", secondary_color="#EA580C")
+
+    # 1. Paleta de cores selecionada deve ser aplicada ao LaTeX do BubbleCV
+    assert r"\definecolor{accent}{HTML}{7C2D12}" in tex_prof_colored
+    assert r"\definecolor{subaccent}{HTML}{EA580C}" in tex_prof_colored
+
+    # 2. Sem foto de perfil enviada, não deve exibir círculo de avatar ou iniciais no cabeçalho
+    assert r"\cvavatarradius mm - \cvavatarborderwidth mm" not in tex_prof_colored
+    assert r"\includegraphics" not in tex_prof_colored
+
+    # 3. Barras de proficiência de idiomas devem refletir fielmente o nível de cada idioma
+    assert r"\bubbleskill{Portuguese}{Fluente}{1.00}" in tex_prof_colored
+    assert r"\bubbleskill{English}{Intermediário}{0.50}" in tex_prof_colored
+    assert r"\bubbleskill{Spanish}{Iniciante}{0.18}" in tex_prof_colored
+
+    # 4. Finalidade Profissional deve priorizar Projetos sobre Publicações (ordem e quantidade)
+    assert tex_prof_colored.index("PROJETOS RELEVANTES") < tex_prof_colored.index("PUBLICAÇÕES CIENTÍFICAS")
+    assert "latex-resume" in tex_prof_colored
+    assert "jluckmay.github.io" in tex_prof_colored
+    assert "minecraft-map-convertion" in tex_prof_colored
+
+    # 5. Finalidade Acadêmica deve priorizar Publicações sobre Projetos
+    tex_acad = render_builtin_template("bubble", SAMPLE_MASSIVE_PROFILE, links, resume_type="academico", photo_filename=None, lang="pt-br")
+    assert tex_acad.index("PUBLICAÇÕES CIENTÍFICAS") < tex_acad.index("PROJETOS RELEVANTES")
+    # Venues de publicações não devem conter sufixos repetidos do título
+    assert "Operações Matemáticas de Forma Divertida e Assustadora Revista" not in tex_acad
+    assert "Revista Brasileira de Informática na Educação" in tex_acad
+
     f_bubble = tmp_path / "bubble_cv.tex"
-    f_bubble.write_text(tex_bubble, encoding="utf-8")
+    f_bubble.write_text(tex_prof_colored, encoding="utf-8")
     subprocess.run(["pdflatex", "-interaction=nonstopmode", str(f_bubble)], cwd=str(tmp_path), capture_output=True)
     pdf_bubble = tmp_path / "bubble_cv.pdf"
     assert pdf_bubble.exists()
@@ -555,6 +585,7 @@ def test_bubble_cv_template_compiles_single_page(tmp_path):
     assert len(reader.pages) == 1
     text = reader.pages[0].extract_text()
     assert "João Lucas Mayrinck" in text
+    assert "Participação no processo de eleição" in text
 
 
 

@@ -131,8 +131,8 @@ def apply_custom_colors_and_portfolio_to_latex(
 
     out = latex_code
     # Substitui definições de cores primárias e secundárias nos modelos integrados
-    out = re.sub(r"\\definecolor\{(accent|acadnavy|primary)\}\{(?:HTML|RGB|rgb)\}\{[^}]+\}", rf"\\definecolor{{\1}}{{HTML}}{{{p_hex}}}", out)
-    out = re.sub(r"\\definecolor\{(sidecolor|secondary|subaccent)\}\{(?:HTML|RGB|rgb)\}\{[^}]+\}", rf"\\definecolor{{\1}}{{HTML}}{{{s_hex}}}", out)
+    out = re.sub(r"\\definecolor\{(accent|acadnavy|primary|cvcolor)\}\{(?:HTML|RGB|rgb)\}\{[^}]+\}", rf"\\definecolor{{\1}}{{HTML}}{{{p_hex}}}", out)
+    out = re.sub(r"\\definecolor\{(sidecolor|secondary|subaccent|cvaccent)\}\{(?:HTML|RGB|rgb)\}\{[^}]+\}", rf"\\definecolor{{\1}}{{HTML}}{{{s_hex}}}", out)
 
     # Garante que acadnavy e subaccent/sidecolor estejam definidos e sincronizados
     if "\\definecolor{acadnavy}" in out and "\\definecolor{subaccent}" not in out:
@@ -292,15 +292,11 @@ def render_template_preview_html(
                     box-shadow:0 6px 18px rgba(15,23,42,0.08);padding:14px;font-family:'Segoe UI',system-ui,sans-serif;
                     font-size:10.5px;line-height:1.3;min-height:255px;position:relative;overflow:hidden;">
             <!-- Timeline vertical line -->
-            <div style="position:absolute;left:24px;top:0;bottom:0;width:2px;background:#cbd5e0;z-index:1;"></div>
+            <div style="position:absolute;left:24px;top:48px;bottom:10px;width:2px;background:#cbd5e0;z-index:1;"></div>
 
             <!-- Header -->
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;position:relative;z-index:2;">
-                <div style="width:36px;height:36px;border-radius:50%;background:{p_col};color:#fff;border:2px solid #fff;
-                            box-shadow:0 0 0 1px {p_col};display:flex;align-items:center;justify-content:center;
-                            font-weight:900;font-size:13px;flex-shrink:0;">
-                    LS
-                </div>
+                {photo_circle}
                 <div>
                     <div style="font-size:15px;font-weight:900;color:{p_col};letter-spacing:-0.2px;">Lucas Silva</div>
                     <div style="font-size:9.5px;color:{s_col};font-style:italic;">{role_txt}</div>
@@ -351,14 +347,14 @@ def render_template_preview_html(
                         <div style="display:flex;justify-content:space-between;margin-bottom:1px;"><span>Python & AI</span><span style="color:#64748b;">95%</span></div>
                         <div style="background:#edf2f7;height:4px;border-radius:2px;overflow:hidden;"><div style="width:95%;height:100%;background:{s_col};"></div></div>
                     </div>
-                    <div style="margin-bottom:6px;">
-                        <div style="display:flex;justify-content:space-between;margin-bottom:1px;"><span>Docker & Cloud</span><span style="color:#64748b;">85%</span></div>
-                        <div style="background:#edf2f7;height:4px;border-radius:2px;overflow:hidden;"><div style="width:85%;height:100%;background:{s_col};"></div></div>
-                    </div>
                     <div style="font-weight:800;font-size:9.5px;color:{p_col};margin-bottom:4px;">IDIOMAS</div>
+                    <div style="margin-bottom:4px;">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:1px;"><span>Português</span><span style="color:#64748b;">Fluente</span></div>
+                        <div style="background:#edf2f7;height:4px;border-radius:2px;overflow:hidden;"><div style="width:100%;height:100%;background:{s_col};"></div></div>
+                    </div>
                     <div>
-                        <div style="display:flex;justify-content:space-between;margin-bottom:1px;"><span>English</span><span style="color:#64748b;">Fluent</span></div>
-                        <div style="background:#edf2f7;height:4px;border-radius:2px;overflow:hidden;"><div style="width:90%;height:100%;background:{s_col};"></div></div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:1px;"><span>Inglês</span><span style="color:#64748b;">Intermediário</span></div>
+                        <div style="background:#edf2f7;height:4px;border-radius:2px;overflow:hidden;"><div style="width:50%;height:100%;background:{s_col};"></div></div>
                     </div>
                 </div>
             </div>

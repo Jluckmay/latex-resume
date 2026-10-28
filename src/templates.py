@@ -903,6 +903,19 @@ def clean_publication_venue(venue: str, title: str) -> str:
             if idx != -1:
                 v = v[idx + len(last_word):].strip()
                 v = re.sub(r"^[\s\.,:;\-·/–—]+", "", v).strip()
+
+    # Remove sufixo do título que tenha vazado para o início do venue (ex: 'Operações Matemáticas... Revista Brasileira...')
+    if t_norm and v:
+        words_v = v.split()
+        for k in range(min(len(words_v) - 1, 15), 1, -1):
+            prefix_v = " ".join(words_v[:k])
+            pref_norm = normalize_text_for_cmp(prefix_v)
+            if len(pref_norm) >= 12 and pref_norm in t_norm:
+                rem = " ".join(words_v[k:]).strip()
+                rem = re.sub(r"^[\s\.,:;\-·/–—]+", "", rem).strip()
+                if rem:
+                    v = rem
+                break
     return v
 
 
@@ -1412,11 +1425,13 @@ def _allocate_single_page_budget(
             c += header_pub + u * weight_pub
         return c
 
-    # Sequência de rodízio equilibrada baseada no tipo de currículo
+    # Sequência de prioridade baseada na finalidade:
+    # - Acadêmico prioriza Publicações sobre Projetos (3:1)
+    # - Profissional prioriza Projetos sobre Publicações (3:1)
     if resume_type == "academico":
         order = ["exp", "pub", "proj", "pub", "exp", "pub"]
     else:
-        order = ["exp", "proj", "pub", "exp", "proj", "pub"]
+        order = ["exp", "proj", "pub", "proj", "exp", "proj"]
 
     changed = True
     while changed:
@@ -1621,9 +1636,10 @@ def _build_publications_block(
     lines.append(r"\begin{enumerate}[label=\arabic*.,leftmargin=1.5em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
     pubs = publications[:max_items] if max_items else publications
     for pb in pubs:
-        title = escape_latex(pb.get("title") or "").strip()
+        raw_t = pb.get("title") or ""
+        title = escape_latex(raw_t).strip()
         title = re.sub(r"-(Resumo Estendido|Short Paper|Extended Abstract)\b", r" (\1)", title, flags=re.IGNORECASE)
-        venue = escape_latex(pb.get("venue") or "").strip()
+        venue = escape_latex(clean_publication_venue(pb.get("venue") or "", raw_t)).strip()
         year = escape_latex(pb.get("year") or "").strip()
         authors = escape_latex(pb.get("authors") or "").strip()
         if authors:
@@ -1992,8 +2008,9 @@ def _render_tech_sidebar(
         pub_lines = [rf"\section*{{{t['sec_publications']}}}"]
         pub_lines.append(r"\begin{enumerate}[label=\arabic*.,leftmargin=1.5em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
         for pb in pubs[:max_pubs]:
-            title_p = escape_latex(pb.get("title") or "").strip()
-            venue = escape_latex(pb.get("venue") or "").strip()
+            raw_t_p = pb.get("title") or ""
+            title_p = escape_latex(raw_t_p).strip()
+            venue = escape_latex(clean_publication_venue(pb.get("venue") or "", raw_t_p)).strip()
             year = escape_latex(pb.get("year") or "").strip()
             authors = escape_latex(pb.get("authors") or "").strip()
             if authors:
@@ -2351,9 +2368,10 @@ def _build_acv_sections(
     if pubs:
         pb_lines = [r"\begin{enumerate}[label=\arabic*.,leftmargin=1.5em,itemsep=2pt,topsep=2pt]"]
         for pb in pubs:
-            title = escape_latex(pb.get("title") or "").strip()
+            raw_t_acv = pb.get("title") or ""
+            title = escape_latex(raw_t_acv).strip()
             title = re.sub(r"-(Resumo Estendido|Short Paper|Extended Abstract)\b", r" (\1)", title, flags=re.IGNORECASE)
-            venue = escape_latex(pb.get("venue") or "").strip()
+            venue = escape_latex(clean_publication_venue(pb.get("venue") or "", raw_t_acv)).strip()
             year = escape_latex(pb.get("year") or "").strip()
             authors = escape_latex(pb.get("authors") or "").strip()
             if authors and (authors.lower() in title.lower() or title.lower() in authors.lower()):
@@ -2913,8 +2931,12 @@ def _render_overleaf_single_page_keywords(
         lg_lbl = "LANGUAGES / INTERESTS" if is_en else "IDIOMAS"
         lg_sec = rf"\cvsec{{\faIcon{{globe}}}}{{{lg_lbl}}}" + "\n{\\small " + " $\\cdot$ ".join(escape_latex(x) for x in langs) + "}"
 
-    col1_body = "\n\n".join(x for x in (work_sec, edu_sec, aw_sec) if x)
-    col2_body = "\n\n".join(x for x in (proj_sec, sk_sec, pub_sec, lg_sec) if x)
+    if resume_type == "academico":
+        col1_body = "\n\n".join(x for x in (edu_sec, work_sec, aw_sec) if x)
+        col2_body = "\n\n".join(x for x in (pub_sec, proj_sec, sk_sec, lg_sec) if x)
+    else:
+        col1_body = "\n\n".join(x for x in (work_sec, edu_sec, aw_sec) if x)
+        col2_body = "\n\n".join(x for x in (proj_sec, sk_sec, pub_sec, lg_sec) if x)
 
     return rf"""% Template Overleaf: Sample single page resume with keywords — https://www.overleaf.com/latex/templates/sample-single-page-resume-with-keywords/wmcxcgmtkxzk
 \documentclass[10pt,a4paper]{{article}}
@@ -3392,7 +3414,8 @@ def _render_ai_ats_max(
                 ed_lines.append(r"\par\vspace{4pt}")
         blocks.append("\n\n".join(ed_lines))
 
-    # 5. Projects
+    # 5. Projects & 6. Publications (priorizados conforme finalidade)
+    proj_block_ai = ""
     projs = cv.get("projects") or []
     if projs:
         proj_title = "TECHNICAL PROJECTS" if is_en else "PROJETOS TÉCNICOS"
@@ -3415,13 +3438,22 @@ def _render_ai_ats_max(
                 pj_lines.append(r"\vspace{2pt}")
             else:
                 pj_lines.append(r"\par\vspace{2pt}")
-        blocks.append("\n".join(pj_lines))
+        proj_block_ai = "\n".join(pj_lines)
 
-    # 6. Publications
+    pub_block_ai = ""
     pubs = cv.get("publications") or []
     if pubs:
         pub_title = "PUBLICATIONS" if is_en else "PUBLICAÇÕES"
-        blocks.append(rf"\section*{{{pub_title}}}" + "\n" + _build_publications_block(pubs, lang).replace(rf"\section*{{{t['sec_publications']}}}", "").strip())
+        pub_block_ai = rf"\section*{{{pub_title}}}" + "\n" + _build_publications_block(pubs, lang).replace(rf"\section*{{{t['sec_publications']}}}", "").strip()
+
+    if resume_type == "academico":
+        for b in (pub_block_ai, proj_block_ai):
+            if b:
+                blocks.append(b)
+    else:
+        for b in (proj_block_ai, pub_block_ai):
+            if b:
+                blocks.append(b)
 
     # 7. Certifications & Awards
     clean_awards = sanitize_awards(cv.get("awards"), lang=lang)
@@ -3719,6 +3751,7 @@ def _render_nico_krieger(
         main_sections.append("\n".join(xp_lines))
 
     # Projects
+    proj_sec_nico = ""
     projs = projs_all[:max_proj]
     if projs:
         proj_title = "TECHNICAL PROJECTS" if is_en else "PROJETOS TÉCNICOS"
@@ -3743,17 +3776,19 @@ def _render_nico_krieger(
                 pj_lines.append(r"\vspace{1.5pt}")
             if pj != projs[-1]:
                 pj_lines.append(r"\vspace{1.5pt}")
-        main_sections.append("\n".join(pj_lines))
+        proj_sec_nico = "\n".join(pj_lines)
 
     # Publications
+    pub_sec_nico = ""
     pubs = pubs_all[:max_pubs]
     if pubs:
         pub_title = "PUBLICATIONS" if is_en else "PUBLICAÇÕES"
         pb_lines = [rf"{{\large\bfseries\color{{accent}} {pub_title}}}\\[-3pt]", r"\rule{\linewidth}{0.8pt}\nopagebreak\\[3pt]"]
         for idx, pb in enumerate(pubs):
-            title_pb = escape_latex(pb.get("title"))
+            raw_t_pb = pb.get("title") or ""
+            title_pb = escape_latex(raw_t_pb)
             auth_pb = escape_latex(pb.get("authors"))
-            venue_pb = escape_latex(pb.get("venue"))
+            venue_pb = escape_latex(clean_publication_venue(pb.get("venue") or "", raw_t_pb))
             yr_pb = escape_latex(pb.get("year"))
             doi_pb = (pb.get("doi") or "").strip()
 
@@ -3772,7 +3807,16 @@ def _render_nico_krieger(
             is_last = (idx == len(pubs) - 1)
             trail = "" if is_last else pub_gap
             pb_lines.append(rf"\textbf{{{title_pb}}}\\[0.5pt]" + (rf"{{\small {meta_str}}}{trail}" if meta_str else trail))
-        main_sections.append("\n".join(pb_lines))
+        pub_sec_nico = "\n".join(pb_lines)
+
+    if resume_type == "academico":
+        for sec_s in (pub_sec_nico, proj_sec_nico):
+            if sec_s:
+                main_sections.append(sec_s)
+    else:
+        for sec_s in (proj_sec_nico, pub_sec_nico):
+            if sec_s:
+                main_sections.append(sec_s)
 
     main_content = f"\n\n{sec_gap}\n\n".join(main_sections)
 
@@ -3879,18 +3923,48 @@ def _parse_bubble_dates(period_str: str) -> tuple[str, str]:
     return parts[0].strip(), ""
 
 
-def _bubble_skill_fraction(level_str: str) -> float:
-    """Converte nível textual em percentual float [0.0, 1.0] para a barra de progresso."""
-    s = str(level_str).lower()
-    if any(k in s for k in ("nativo", "native", "c2", "master", "expert")):
-        return 1.0
-    if any(k in s for k in ("fluente", "fluent", "avancado", "avançado", "advanced", "c1")):
-        return 0.88
-    if any(k in s for k in ("intermediario", "intermediário", "intermediate", "b2", "b1", "medio", "médio")):
-        return 0.65
-    if any(k in s for k in ("basico", "básico", "basic", "a2", "a1", "iniciante", "beginner")):
-        return 0.40
-    return 0.80
+def _parse_bubble_language(lg: Any, idx: int = 0, is_en: bool = False) -> tuple[str, str, float]:
+    """Extrai (nome_limpo, nivel_formatado, fracao_barra) para idiomas no BubbleCV."""
+    if isinstance(lg, dict):
+        raw_name = str(lg.get("language") or lg.get("name") or "").strip()
+        raw_lvl = str(lg.get("level") or "").strip()
+        combined = f"{raw_name} ({raw_lvl})" if raw_lvl else raw_name
+    else:
+        combined = str(lg or "").strip()
+    if not combined:
+        return ("", "", 0.50)
+
+    clean_name, score_6 = get_language_proficiency_score_6(combined, default_first=(idx == 0))
+    low = combined.lower()
+    is_native = any(k in low for k in ("nativo", "native", "materno", "mother tongue"))
+
+    level_map_pt = {
+        6: "Nativo" if is_native else "Fluente",
+        5: "Avançado",
+        4: "Intermediário Sup.",
+        3: "Intermediário",
+        2: "Básico",
+        1: "Iniciante",
+    }
+    level_map_en = {
+        6: "Native" if is_native else "Fluent",
+        5: "Advanced",
+        4: "Upper Interm.",
+        3: "Intermediate",
+        2: "Basic",
+        1: "Beginner",
+    }
+    frac_map = {
+        6: 1.00,
+        5: 0.83,
+        4: 0.67,
+        3: 0.50,
+        2: 0.33,
+        1: 0.18,
+    }
+    lvl_label = (level_map_en if is_en else level_map_pt).get(score_6, "Intermediário" if not is_en else "Intermediate")
+    frac = frac_map.get(score_6, 0.50)
+    return (clean_name, lvl_label, frac)
 
 
 def _render_bubble(
@@ -3911,36 +3985,40 @@ def _render_bubble(
     raw_name = cv.get("name") or t["default_candidate"]
     default_tl = t["default_researcher"] if resume_type == "academico" else t["default_tech_title"]
     role = escape_latex(cv.get("title") or default_tl)
-    initials = _extract_bubble_initials(raw_name)
 
-    # 1. Header (Avatar Bubble + Name & Role)
+    # 1. Header (exibe círculo de foto SOMENTE se photo_filename for fornecido)
     if photo_filename:
         avatar_tikz = rf"""\begin{{tikzpicture}}[baseline=-0.5ex]%
-    \draw[draw=cvbordercolor, fill=cvcolor, line width=\cvavatarborderwidth mm] (0,0) circle (\dimexpr\cvavatarradius mm - \cvavatarborderwidth mm / 2\relax);%
+    \draw[draw=cvbordercolor, fill=accent, line width=\cvavatarborderwidth mm] (0,0) circle (\dimexpr\cvavatarradius mm - \cvavatarborderwidth mm / 2\relax);%
     \clip (0,0) circle (\dimexpr\cvavatarradius mm - \cvavatarborderwidth mm\relax);%
     \node at (0,0) {{\includegraphics[width=\dimexpr\cvavatarradius mm * 2\relax,height=\dimexpr\cvavatarradius mm * 2\relax,keepaspectratio]{{{photo_filename}}}}};%
   \end{{tikzpicture}}%"""
-    else:
-        avatar_tikz = rf"""\begin{{tikzpicture}}[baseline=-0.5ex]%
-    \draw[draw=cvbordercolor, fill=cvcolor, line width=\cvavatarborderwidth mm] (0,0) circle (\dimexpr\cvavatarradius mm - \cvavatarborderwidth mm / 2\relax);%
-    \node at (0,0) {{\color{{white}}\fontsize{{18pt}}{{18pt}}\selectfont\textbf{{{initials}}}}};%
-  \end{{tikzpicture}}%"""
-
-    header_tex = rf"""\vspace*{{-5mm}}%
+        header_tex = rf"""\vspace*{{-4mm}}%
 \noindent%
 \hspace{{-\timelinespace mm}}%
 \hspace{{-\cvavatarradius mm}}%
-\begin{{minipage}}{{\dimexpr(\cvavatarradius mm * 2)}}%
+\begin{{minipage}}[c]{{\dimexpr(\cvavatarradius mm * 2)}}%
   {avatar_tikz}
 \end{{minipage}}%
 \hspace{{5mm}}%
-\begin{{minipage}}{{\dimexpr(\linewidth + \timelinespace mm - \cvavatarradius mm - 5mm)}}%
-  {{\fontsize{{20pt}}{{23pt}}\bfseries\color{{cvcolor}} {escape_latex(raw_name)}}}\\[3pt]%
-  {{\fontsize{{11pt}}{{13pt}}\itshape\color{{black!75}} {role}}}%
+\begin{{minipage}}[c]{{\dimexpr(\linewidth + \timelinespace mm - \cvavatarradius mm - 5mm)}}%
+  {{\fontsize{{20pt}}{{23pt}}\bfseries\color{{accent}} {escape_latex(raw_name)}}}\\[3pt]%
+  {{\fontsize{{11pt}}{{13pt}}\itshape\color{{subaccent}} {role}}}%
 \end{{minipage}}%"""
+        timeline_height_mm = 258
+    else:
+        header_tex = rf"""\vspace*{{-2mm}}%
+\noindent%
+\hspace{{-\timelinespace mm}}%
+\hspace{{-\cvmainbubbleradius mm}}%
+\begin{{minipage}}[c]{{\dimexpr(\linewidth + \timelinespace mm + \cvmainbubbleradius mm)}}%
+  {{\fontsize{{22pt}}{{25pt}}\bfseries\color{{accent}} {escape_latex(raw_name)}}}\\[3pt]%
+  {{\fontsize{{11pt}}{{13pt}}\itshape\color{{subaccent}} {role}}}%
+\end{{minipage}}%
+\vspace{{2mm}}%"""
+        timeline_height_mm = 251
 
     # 2. Main Column: Experience, Education, Projects/Publications
-    main_items: List[str] = []
     exps = cv.get("experience") or []
     projs = cv.get("projects") or []
     pubs = cv.get("publications") or []
@@ -3950,63 +4028,89 @@ def _render_bubble(
         len(exps), len(projs), len(pubs), budget=34.0, weight_exp=4.2, weight_proj=2.8, weight_pub=2.2, resume_type=resume_type
     )
 
-    # Experience section
+    exp_sec_items: List[str] = []
     if n_exp > 0:
         exp_lbl = "EXPERIENCE" if is_en else "EXPERIÊNCIA PROFISSIONAL"
-        main_items.append(rf"\bubblemaintitle{{\faBriefcase}}{{{exp_lbl}}}")
+        exp_sec_items.append(rf"\bubblemaintitle{{\faBriefcase}}{{{exp_lbl}}}")
         for exp in exps[:n_exp]:
             r_txt = escape_latex(exp.get("role") or "")
             c_txt = escape_latex(exp.get("company") or exp.get("organization") or "")
             start_d, end_d = _parse_bubble_dates(exp.get("period") or "")
-            desc_raw = str(exp.get("description") or "")
-            desc_lines = [l.strip(" \t•-*") for l in desc_raw.splitlines() if l.strip(" \t•-*")]
-            if desc_lines:
-                bullets = desc_lines[:2]
-                body = "\\begin{itemize}\n" + "\n".join(rf"  \item {escape_latex(b)}" for b in bullets) + "\n\\end{itemize}"
+            raw_bullets = exp.get("bullets") or []
+            if not raw_bullets and exp.get("description"):
+                raw_bullets = [l.strip(" \t•-*") for l in str(exp["description"]).splitlines() if l.strip(" \t•-*")]
+            clean_bullets = [
+                escape_latex(sanitize_experience_description(b, lang=lang))
+                for b in raw_bullets
+                if str(b).strip()
+            ][:2]
+            if clean_bullets:
+                body = "\\begin{itemize}\n" + "\n".join(rf"  \item {b}" for b in clean_bullets) + "\n\\end{itemize}"
             else:
                 body = ""
-            main_items.append(rf"\bubbleevent{{{escape_latex(start_d)}}}{{{escape_latex(end_d)}}}{{{r_txt}}}{{{c_txt}}}{{{body}}}")
+            exp_sec_items.append(rf"\bubbleevent{{{escape_latex(start_d)}}}{{{escape_latex(end_d)}}}{{{r_txt}}}{{{c_txt}}}{{{body}}}")
 
-    # Education section
+    edu_sec_items: List[str] = []
     if edus:
         edu_lbl = "EDUCATION" if is_en else "FORMAÇÃO ACADÊMICA"
-        main_items.append(rf"\bubblemaintitle{{\faGraduationCap}}{{{edu_lbl}}}")
+        edu_sec_items.append(rf"\bubblemaintitle{{\faGraduationCap}}{{{edu_lbl}}}")
         for ed in edus[:2]:
             deg = escape_latex(ed.get("degree") or "")
             inst = escape_latex(ed.get("institution") or "")
             det = escape_latex(ed.get("details") or "")
             start_d, end_d = _parse_bubble_dates(ed.get("period") or "")
             body = rf"\textit{{{det}}}" if det else ""
-            main_items.append(rf"\bubbleevent{{{escape_latex(start_d)}}}{{{escape_latex(end_d)}}}{{{deg}}}{{{inst}}}{{{body}}}")
+            edu_sec_items.append(rf"\bubbleevent{{{escape_latex(start_d)}}}{{{escape_latex(end_d)}}}{{{deg}}}{{{inst}}}{{{body}}}")
 
-    # Projects section
+    proj_sec_items: List[str] = []
     if n_proj > 0:
         proj_lbl = "KEY PROJECTS" if is_en else "PROJETOS RELEVANTES"
-        main_items.append(rf"\bubblemaintitle{{\faRocket}}{{{proj_lbl}}}")
+        proj_sec_items.append(rf"\bubblemaintitle{{\faRocket}}{{{proj_lbl}}}")
         for p in projs[:n_proj]:
             p_name = escape_latex(p.get("name") or "")
+            p_url = (p.get("url") or "").strip()
+            if p_url and p_url.startswith("http"):
+                p_head = rf"\href{{{escape_url(p_url)}}}{{{p_name}\ \footnotesize\faIcon{{external-link-alt}}}}"
+            else:
+                p_head = p_name
             p_tech = p.get("technologies") or p.get("tech") or ""
             if isinstance(p_tech, list):
                 tech_str = ", ".join(p_tech)
             else:
                 tech_str = str(p_tech)
             tech_disp = rf"\textbf{{Stack:}} {escape_latex(tech_str)}" if tech_str else ""
-            p_desc = escape_latex(p.get("description") or "")
+            p_desc = escape_latex(sanitize_project_description(p.get("description") or "", lang))
             if len(p_desc) > 130:
                 p_desc = p_desc[:127].rstrip() + "..."
-            main_items.append(rf"\bubbleevent{{\faCode}}{{}}{{{p_name}}}{{{tech_disp}}}{{{p_desc}}}")
+            proj_sec_items.append(rf"\bubbleevent{{\faCode}}{{}}{{{p_head}}}{{{tech_disp}}}{{{p_desc}}}")
 
-    # Publications section (if any budget or academic)
+    pub_sec_items: List[str] = []
     if n_pub > 0:
         pub_lbl = "PUBLICATIONS" if is_en else "PUBLICAÇÕES CIENTÍFICAS"
-        main_items.append(rf"\bubblemaintitle{{\faBook}}{{{pub_lbl}}}")
+        pub_sec_items.append(rf"\bubblemaintitle{{\faBook}}{{{pub_lbl}}}")
         for pb in pubs[:n_pub]:
-            t_pub = escape_latex(pb.get("title") or "")
-            v_pub = escape_latex(pb.get("venue") or "")
+            raw_t_pub = pb.get("title") or ""
+            t_pub = escape_latex(raw_t_pub).strip()
+            t_pub = re.sub(r"-(Resumo Estendido|Short Paper|Extended Abstract)\b", r" (\1)", t_pub, flags=re.IGNORECASE)
+            v_pub = escape_latex(clean_publication_venue(pb.get("venue") or "", raw_t_pub)).strip()
             y_pub = escape_latex(str(pb.get("year") or ""))
-            doi_pub = pb.get("doi") or ""
-            doi_tex = rf" \href{{{escape_url('https://doi.org/' + doi_pub)}}}{{[\textbf{{DOI}}]}}" if doi_pub else ""
-            main_items.append(rf"\bubbleevent{{{y_pub}}}{{}}{{{t_pub}}}{{{v_pub}{doi_tex}}}{{}}")
+            doi_pub = (pb.get("doi") or "").strip()
+            pub_url = (pb.get("url") or "").strip()
+            if not pub_url and doi_pub:
+                pub_url = doi_pub if doi_pub.startswith("http") else f"https://doi.org/{doi_pub}"
+            if pub_url and pub_url.startswith("http"):
+                t_head = rf"\href{{{escape_url(pub_url)}}}{{{t_pub}\ \footnotesize\faIcon{{external-link-alt}}}}"
+            else:
+                t_head = t_pub
+            pub_sec_items.append(rf"\bubbleevent{{{y_pub}}}{{}}{{{t_head}}}{{{v_pub}}}{{}}")
+
+    main_items: List[str] = []
+    if resume_type == "academico":
+        for sec_group in (edu_sec_items, exp_sec_items, pub_sec_items, proj_sec_items):
+            main_items.extend(sec_group)
+    else:
+        for sec_group in (exp_sec_items, edu_sec_items, proj_sec_items, pub_sec_items):
+            main_items.extend(sec_group)
 
     main_content = "\n\n".join(main_items)
 
@@ -4048,7 +4152,7 @@ def _render_bubble(
         if len(sum_disp) > 220:
             sum_disp = sum_disp[:217].rstrip() + "..."
         side_items.append(rf"\bubblesidebartitle{{\faUser}}{{{prof_lbl}}}")
-        side_items.append(rf"\noindent{{\small\color{{black!85}} {sum_disp}}}\vspace{{2mm}}\par")
+        side_items.append(rf"\noindent{{\raggedright\small\color{{black!85}} {sum_disp}\par}}\vspace{{2mm}}")
 
     # Skills with progress bars
     skills = cv.get("skills") or []
@@ -4081,33 +4185,25 @@ def _render_bubble(
                     side_items.append(rf"\bubbleskill{{{escape_latex(p)}}}{{{lvl_txt}}}{{{frac:.2f}}}")
                     count_sk += 1
 
-    # Languages
+    # Languages (parsed accurately for level label and progress bar width)
     langs = cv.get("languages") or []
     if langs:
         lang_lbl = "LANGUAGES" if is_en else "IDIOMAS"
         side_items.append(rf"\bubblesidebartitle{{\faLanguage}}{{{lang_lbl}}}")
-        for lg in langs[:3]:
-            if isinstance(lg, dict):
-                lname = escape_latex(lg.get("language") or lg.get("name") or "")
-                lvl = escape_latex(lg.get("level") or "Fluente")
-                frac = _bubble_skill_fraction(lvl)
-                side_items.append(rf"\bubbleskill{{{lname}}}{{{lvl}}}{{{frac:.2f}}}")
-            elif isinstance(lg, str) and lg.strip():
-                lname = escape_latex(lg.strip())
-                side_items.append(rf"\bubbleskill{{{lname}}}{{Fluente}}{{0.85}}")
+        for idx, lg in enumerate(langs[:4]):
+            clean_lname, lvl_label, frac = _parse_bubble_language(lg, idx=idx, is_en=is_en)
+            if clean_lname:
+                side_items.append(rf"\bubbleskill{{{escape_latex(clean_lname)}}}{{{escape_latex(lvl_label)}}}{{{frac:.2f}}}")
 
     # Awards
-    awards = cv.get("awards") or []
-    if awards:
+    clean_awards = sanitize_awards(cv.get("awards"), lang=lang)
+    if clean_awards:
         aw_lbl = "AWARDS" if is_en else "PRÊMIOS"
         side_items.append(rf"\bubblesidebartitle{{\faTrophy}}{{{aw_lbl}}}")
-        for aw in awards[:2]:
-            if isinstance(aw, dict):
-                aw_txt = escape_latex(aw.get("title") or "")
-            else:
-                aw_txt = escape_latex(str(aw))
-            if len(aw_txt) > 80:
-                aw_txt = aw_txt[:77].rstrip() + "..."
+        for aw in clean_awards[:3]:
+            aw_txt = escape_latex(str(aw))
+            if len(aw_txt) > 95:
+                aw_txt = aw_txt[:92].rstrip() + "..."
             side_items.append(rf"\bubblesideitem{{\faAward}}{{{aw_txt}}}")
 
     sidebar_content = "\n\n".join(side_items)
@@ -4127,38 +4223,32 @@ def _render_bubble(
 \usepackage{{etoolbox}}
 \usepackage{{fontawesome5}}
 \usepackage[hidelinks]{{hyperref}}
-\usepackage{{background}}
 
 \input{{glyphtounicode}}
 \pdfgentounicode=1
 
-\setlist[itemize]{{noitemsep, nolistsep, leftmargin=*, topsep=1pt, parsep=0pt, partopsep=0pt}}
+\setlist[itemize]{{noitemsep, nolistsep, leftmargin=1.1em, topsep=1pt, parsep=0pt, partopsep=0pt}}
 
-\definecolor{{cvcolor}}{{HTML}}{{1A365D}}
-\definecolor{{cvaccent}}{{HTML}}{{2B6CB0}}
-\definecolor{{cvtimelinecolor}}{{HTML}}{{CBD5E0}}
+\definecolor{{accent}}{{HTML}}{{1A365D}}
+\definecolor{{subaccent}}{{HTML}}{{2B6CB0}}
 \definecolor{{cvbordercolor}}{{HTML}}{{FFFFFF}}
 \definecolor{{cvlightcolor}}{{HTML}}{{EDF2F7}}
 
-\newcommand\cvavatarradius{{18}}
+\newcommand\cvavatarradius{{16}}
 \newcommand\cvavatarborderwidth{{0.8}}
-\newcommand\cvtimelineoffset{{25}}
-\newcommand\cvtimelinewidth{{0.6}}
 \newcommand\cvmainbubbleradius{{5}}
 \newcommand\cvmainbubbleborderwidth{{0.8}}
 \newcommand\cveventdatewidth{{16}}
-\newcommand\cveventbubbleradius{{2.6}}
-\newcommand\cveventbubbleborderwidth{{0.8}}
+\newcommand\cveventbubbleradius{{2.5}}
+\newcommand\cveventbubbleborderwidth{{0.7}}
 \newcommand\cvsidebarbubbleradius{{5}}
 \newcommand\cvsidebarbubbleborderwidth{{0.8}}
 \newcommand\cvsidebaroffset{{2}}
 \newcommand\timelinespace{{10}}
 
-\SetBgScale{{1}}
-\SetBgAngle{{0}}
-\SetBgColor{{cvtimelinecolor}}
-\SetBgContents{{\rule{{\cvtimelinewidth mm}}{{\textheight}}}}
-\SetBgHshift{{\dimexpr(\cvtimelineoffset mm - 105 mm)}}
+\AddToHook{{shipout/background}}{{%
+  \put(24.7mm,-285mm){{\color{{accent!25}}\rule{{0.6mm}}{{{timeline_height_mm}mm}}}}%
+}}
 
 \newcommand{{\drawbubble}}[5]{{%
   \begin{{tikzpicture}}[baseline=-0.5ex]%
@@ -4168,82 +4258,70 @@ def _render_bubble(
 }}
 
 \newcommand{{\bubblemaintitle}}[2]{{%
-  \vspace{{3mm}}%
-  \noindent%
+  \vspace{{2.5mm}}%
+  \noindent\leavevmode%
   \hspace{{-\timelinespace mm}}%
   \hspace{{-\cvmainbubbleradius mm}}%
-  \begin{{minipage}}{{\dimexpr(\cvmainbubbleradius mm * 2)}}%
-    \drawbubble{{\cvmainbubbleradius}}{{\cvmainbubbleborderwidth}}{{cvcolor}}{{cvbordercolor}}{{\color{{white}}\fontsize{{8pt}}{{8pt}}\selectfont #1}}%
-  \end{{minipage}}%
-  \hspace{{\dimexpr(\timelinespace mm - \cvmainbubbleradius mm)}}%
-  \begin{{minipage}}{{\linewidth}}%
-    {{\fontsize{{12pt}}{{14pt}}\bfseries\color{{cvcolor}} #2}}%
-  \end{{minipage}}%
-  \vspace{{2mm}}\par%
+  \makebox[\dimexpr\cvmainbubbleradius mm * 2\relax][c]{{%
+    \drawbubble{{\cvmainbubbleradius}}{{\cvmainbubbleborderwidth}}{{accent}}{{cvbordercolor}}{{\color{{white}}\fontsize{{8pt}}{{8pt}}\selectfont #1}}%
+  }}%
+  \hspace{{\dimexpr\timelinespace mm - \cvmainbubbleradius mm\relax}}%
+  \parbox[c]{{\linewidth}}{{\raggedright\fontsize{{11.5pt}}{{13.5pt}}\bfseries\textcolor{{accent}}{{#2}}}}%
+  \vspace{{1.8mm}}\par%
 }}
 
 \newcommand{{\bubblesidebartitle}}[2]{{%
-  \vspace{{3mm}}%
-  \noindent%
-  \begin{{minipage}}{{\dimexpr(\cvsidebarbubbleradius mm * 2)}}%
-    \drawbubble{{\cvsidebarbubbleradius}}{{\cvsidebarbubbleborderwidth}}{{cvcolor}}{{cvbordercolor}}{{\color{{white}}\fontsize{{8pt}}{{8pt}}\selectfont #1}}%
-  \end{{minipage}}%
+  \vspace{{2.5mm}}%
+  \noindent\leavevmode%
+  \makebox[\dimexpr\cvsidebarbubbleradius mm * 2\relax][c]{{%
+    \drawbubble{{\cvsidebarbubbleradius}}{{\cvsidebarbubbleborderwidth}}{{accent}}{{cvbordercolor}}{{\color{{white}}\fontsize{{8pt}}{{8pt}}\selectfont #1}}%
+  }}%
   \hspace{{\cvsidebaroffset mm}}%
-  \begin{{minipage}}{{\dimexpr(\linewidth - \cvsidebarbubbleradius mm * 2 - \cvsidebaroffset mm)}}%
-    {{\fontsize{{11pt}}{{13pt}}\bfseries\color{{cvcolor}} #2}}%
-  \end{{minipage}}%
-  \vspace{{2mm}}\par%
+  \parbox[c]{{\dimexpr\linewidth - \cvsidebarbubbleradius mm * 2 - \cvsidebaroffset mm\relax}}{{\raggedright\fontsize{{11pt}}{{13pt}}\bfseries\textcolor{{accent}}{{#2}}}}%
+  \vspace{{1.8mm}}\par%
 }}
 
 \newcommand{{\bubbleevent}}[5]{{%
-  \noindent%
+  \noindent\leavevmode%
   \hspace{{-\cveventbubbleradius mm}}%
   \hspace{{-\timelinespace mm}}%
   \hspace{{-\cveventdatewidth mm}}%
-  \begin{{minipage}}[t]{{\cveventdatewidth mm}}%
-    \centering\footnotesize\bfseries\color{{gray!80!black}}%
-    \ifstrempty{{#2}}{{%
-      #1%
-    }}{{%
-      #2\\[-1pt]$\uparrow$\\[-1pt]#1%
+  \parbox[t]{{\cveventdatewidth mm}}{{%
+    \centering\leavevmode\footnotesize\bfseries\textcolor{{gray!80!black}}{{%
+      \ifstrempty{{#2}}{{#1}}{{#2\\[-1pt]$\uparrow$\\[-1pt]#1}}%
     }}%
-  \end{{minipage}}%
-  \begin{{minipage}}[t]{{\dimexpr(\cveventbubbleradius mm * 2)}}%
-    \vspace{{0pt}}%
-    \drawbubble{{\cveventbubbleradius}}{{\cveventbubbleborderwidth}}{{cvaccent}}{{cvbordercolor}}{{}}%
-  \end{{minipage}}%
-  \hspace{{\dimexpr(\timelinespace mm - \cveventbubbleradius mm)}}%
-  \begin{{minipage}}[t]{{\linewidth}}%
-    \vspace{{0pt}}%
-    {{\bfseries\fontsize{{10pt}}{{12pt}}\selectfont #3}}%
-    \ifstrempty{{#4}}{{}}{{\\[1pt]{{\small\itshape\color{{black!75}} #4}}}}%
-    \ifstrempty{{#5}}{{}}{{\\[2pt]{{\small #5}}}}%
-  \end{{minipage}}%
-  \vspace{{2.5mm}}\par%
+  }}%
+  \makebox[\dimexpr\cveventbubbleradius mm * 2\relax][c]{{%
+    \drawbubble{{\cveventbubbleradius}}{{\cveventbubbleborderwidth}}{{subaccent}}{{cvbordercolor}}{{}}%
+  }}%
+  \hspace{{\dimexpr\timelinespace mm - \cveventbubbleradius mm\relax}}%
+  \parbox[t]{{\linewidth}}{{%
+    \raggedright\leavevmode%
+    {{\bfseries\fontsize{{9.8pt}}{{11.8pt}}\selectfont\textcolor{{accent!90!black}}{{#3}}}}%
+    \ifstrempty{{#4}}{{}}{{\par\vspace{{1pt}}{{\small\itshape\textcolor{{black!75}}{{#4}}}}}}%
+    \ifstrempty{{#5}}{{}}{{\par\vspace{{1.5pt}}{{\small #5}}}}%
+  }}%
+  \vspace{{2.2mm}}\par%
 }}
 
 \newcommand{{\bubblesideitem}}[2]{{%
-  \noindent%
-  \begin{{minipage}}[t]{{4mm}}%
-    \raggedright\color{{cvaccent}}\fontsize{{9pt}}{{9pt}}\selectfont #1%
-  \end{{minipage}}%
+  \noindent\leavevmode%
+  \makebox[5mm][c]{{\textcolor{{subaccent}}{{\small #1}}}}%
   \hspace{{1.5mm}}%
-  \begin{{minipage}}[t]{{\dimexpr(\linewidth - 5.5mm)}}%
-    \raggedright\small #2%
-  \end{{minipage}}%
-  \vspace{{2mm}}\par%
+  \parbox[t]{{\dimexpr\linewidth - 6.5mm\relax}}{{\raggedright\leavevmode\small\strut #2\strut}}%
+  \vspace{{1.6mm}}\par%
 }}
 
 \newcommand{{\bubbleskill}}[3]{{%
-  \noindent%
+  \noindent\leavevmode%
   \begin{{tabularx}}{{\linewidth}}{{@{{}}X>{{\raggedleft\arraybackslash}}r@{{}}}}%
-    \textbf{{\small #1}} & {{\footnotesize\color{{gray!70!black}} #2}}%
+    \textbf{{\small #1}} & {{\footnotesize\textcolor{{gray!75!black}}{{#2}}}}%
   \end{{tabularx}}\\[-3pt]%
   \begin{{tikzpicture}}[scale=1,rounded corners=0.8mm]%
-    \fill [cvlightcolor] (0,0) rectangle (\linewidth, 3.5pt);%
-    \fill [cvaccent] (0,0) rectangle (#3\linewidth, 3.5pt);%
+    \fill [accent!12] (0,0) rectangle (\linewidth, 3.5pt);%
+    \fill [subaccent] (0,0) rectangle (#3\linewidth, 3.5pt);%
   \end{{tikzpicture}}%
-  \vspace{{2mm}}\par%
+  \vspace{{1.8mm}}\par%
 }}
 
 \begin{{document}}
@@ -4252,12 +4330,14 @@ def _render_bubble(
 
 \vspace{{2mm}}%
 \columnratio{{0.62}}%
-\setlength{{\columnsep}}{{10mm}}%
+\setlength{{\columnsep}}{{9mm}}%
 
 \begin{{paracol}}{{2}}
+\sloppy
 {main_content}
 
 \switchcolumn
+\sloppy
 
 {sidebar_content}
 

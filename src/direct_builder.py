@@ -939,7 +939,22 @@ def build_structured_cv_deterministically(
                 "description": clean_rdesc,
             })
 
-    # Prioridade B: Lattes Projetos de Pesquisa
+    # Prioridade B: Portfólio Projetos
+    for p_proj in portfolio.get("projects") or []:
+        p_name = (p_proj.get("name") or "").strip()
+        p_tech = (p_proj.get("tech") or "").strip()
+        p_desc = (p_proj.get("description") or "").strip()
+        p_url = (p_proj.get("url") or "").strip()
+        if p_name and not any(x["name"].lower() == p_name.lower() for x in projects):
+            clean_pdesc = sanitize_project_description(p_desc, lang).strip()
+            projects.append({
+                "name": p_name,
+                "tech": p_tech,
+                "url": p_url,
+                "description": clean_pdesc,
+            })
+
+    # Prioridade C: Lattes Projetos de Pesquisa
     for proj in lattes.get("projects") or []:
         p_name = proj.get("title", "").strip()
         p_year = str(proj.get("year") or "").strip()
@@ -1018,9 +1033,8 @@ def build_structured_cv_deterministically(
 
     skills: List[Dict[str, Any]] = []
 
-    # Tecnologias / Linguagens de Programação do GitHub
-
-    gh_langs = [l for l in (gh.get("languages") or []) if str(l).strip()]
+    # Tecnologias / Linguagens de Programação do GitHub ou Portfólio
+    gh_langs = [l for l in (gh.get("top_languages") or gh.get("languages") or portfolio.get("skills") or []) if str(l).strip()]
 
     if gh_langs:
 

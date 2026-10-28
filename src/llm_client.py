@@ -538,7 +538,7 @@ class LLMResumeGenerator:
             ]
 
         if not cv.get("skills"):
-            gh_langs = [l for l in (gh.get("languages") or []) if str(l).strip()]
+            gh_langs = [l for l in (gh.get("top_languages") or gh.get("languages") or (raw_profile_data.get("portfolio") or {}).get("skills") or []) if str(l).strip()]
             li_skills = [s for s in ((raw_profile_data.get("linkedin") or {}).get("skills") or []) if str(s).strip()]
             acad_areas = [a for a in (lattes.get("areas") or (raw_profile_data.get("orcid") or {}).get("keywords") or []) if str(a).strip()]
             cand_skills = []
@@ -568,6 +568,16 @@ class LLMResumeGenerator:
                     "description": r.get("description", ""),
                 }
                 for r in gh["repos"][:6]
+            ]
+        elif not cv.get("projects") and (raw_profile_data.get("portfolio") or {}).get("projects"):
+            cv["projects"] = [
+                {
+                    "name": p.get("name", ""),
+                    "tech": p.get("tech", ""),
+                    "url": p.get("url", ""),
+                    "description": p.get("description", ""),
+                }
+                for p in (raw_profile_data.get("portfolio") or {})["projects"][:6]
             ]
         elif not cv.get("projects") and lattes.get("projects"):
             cv["projects"] = [

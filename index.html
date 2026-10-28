@@ -2704,16 +2704,14 @@
                 html = `
                 <div style="background:#fff;color:#1e293b;border-radius:10px;border:1px solid #cbd5e1;padding:14px;font-family:'Segoe UI',sans-serif;font-size:10.5px;min-height:240px;position:relative;overflow:hidden;">
                     <!-- Timeline vertical line -->
-                    <div style="position:absolute;left:24px;top:0;bottom:0;width:2px;background:#cbd5e0;z-index:1;"></div>
+                    <div style="position:absolute;left:24px;top:48px;bottom:10px;width:2px;background:#cbd5e0;z-index:1;"></div>
 
                     <!-- Header -->
                     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;position:relative;z-index:2;">
-                        <div style="width:36px;height:36px;border-radius:50%;background:${pCol};color:#fff;border:2px solid #fff;box-shadow:0 0 0 1px ${pCol};display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;flex-shrink:0;">
-                            ${nameVal.split(' ').map(p => p[0]).filter(Boolean).slice(0,2).join('').toUpperCase() || 'CV'}
-                        </div>
+                        ${avatarHtml}
                         <div>
                             <div style="font-size:15px;font-weight:900;color:${pCol};letter-spacing:-0.2px;">${nameVal}</div>
-                            <div style="font-size:9.5px;color:#64748b;font-style:italic;">${roleVal}</div>
+                            <div style="font-size:9.5px;color:${sCol};font-style:italic;">${roleVal}</div>
                         </div>
                     </div>
 
@@ -2766,9 +2764,13 @@
                                 <div style="background:#edf2f7;height:4px;border-radius:2px;overflow:hidden;"><div style="width:85%;height:100%;background:${sCol};"></div></div>
                             </div>
                             <div style="font-weight:800;font-size:9.5px;color:${pCol};margin-bottom:4px;">IDIOMAS</div>
-                            <div>
-                                <div style="display:flex;justify-content:space-between;margin-bottom:1px;"><span>Português</span><span style="color:#64748b;">Nativo</span></div>
+                            <div style="margin-bottom:4px;">
+                                <div style="display:flex;justify-content:space-between;margin-bottom:1px;"><span>Português</span><span style="color:#64748b;">Fluente</span></div>
                                 <div style="background:#edf2f7;height:4px;border-radius:2px;overflow:hidden;"><div style="width:100%;height:100%;background:${sCol};"></div></div>
+                            </div>
+                            <div>
+                                <div style="display:flex;justify-content:space-between;margin-bottom:1px;"><span>Inglês</span><span style="color:#64748b;">Intermediário</span></div>
+                                <div style="background:#edf2f7;height:4px;border-radius:2px;overflow:hidden;"><div style="width:50%;height:100%;background:${sCol};"></div></div>
                             </div>
                         </div>
                     </div>
