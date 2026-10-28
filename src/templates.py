@@ -43,7 +43,7 @@ BUILTIN_TEMPLATES: Dict[str, Dict[str, str]] = {
     },
     "bubble": {
         "id": "bubble",
-        "name": "BubbleCV",
+        "name": "Bubble CV",
         "recommended_for": "profissional",
         "url": "https://www.overleaf.com/latex/templates/bubblecv/bcynnjktwqsx",
         "description": (
@@ -71,7 +71,7 @@ BUILTIN_TEMPLATES: Dict[str, Dict[str, str]] = {
     },
     "overleaf_russell_ti": {
         "id": "overleaf_russell_ti",
-        "name": "Modelo Russell (Currículo T.I.) / Russell Model",
+        "name": "Russel CV",
         "recommended_for": "profissional",
         "url": "https://www.overleaf.com/read/rgfqqnnynrmv#d5b171",
         "description": (
@@ -101,7 +101,7 @@ BUILTIN_TEMPLATES: Dict[str, Dict[str, str]] = {
     },
     "nico_krieger": {
         "id": "nico_krieger",
-        "name": "Modelo Nico Krieger (Duas Colunas & Header Escuro) / Nico Krieger",
+        "name": "Krieger CV",
         "recommended_for": "profissional",
         "url": "https://www.overleaf.com/latex/templates/my-resume/rqzfybxqvpny",
         "description": (

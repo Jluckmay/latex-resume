@@ -95,7 +95,7 @@ TEMPLATES_I18N: Dict[str, Dict[str, Dict[str, str]]] = {
             ),
         },
         "bubble": {
-            "name": "BubbleCV",
+            "name": "Bubble CV",
             "description": (
                 "Modelo Overleaf BubbleCV (https://www.overleaf.com/latex/templates/bubblecv/bcynnjktwqsx) com linha do tempo vertical contínua, "
                 "bolhas TikZ para datas e cabeçalho, barras de progresso para competências/idiomas e design de alto impacto visual."
@@ -116,7 +116,7 @@ TEMPLATES_I18N: Dict[str, Dict[str, Dict[str, str]]] = {
             ),
         },
         "overleaf_russell_ti": {
-            "name": "Modelo Russell",
+            "name": "Russel CV",
             "description": (
                 "Modelo Overleaf Russell CV (https://www.overleaf.com/read/rgfqqnnynrmv#d5b171) com foto lateral "
                 "no cabeçalho, ícones FontAwesome 5, títulos com destaque nas 3 primeiras letras e níveis de idiomas em círculos."
@@ -137,7 +137,7 @@ TEMPLATES_I18N: Dict[str, Dict[str, Dict[str, str]]] = {
             ),
         },
         "nico_krieger": {
-            "name": "Modelo Nico Krieger",
+            "name": "Krieger CV",
             "description": (
                 "Modelo de página única com cabeçalho escuro de largura total, "
                 "barra lateral destacada para contatos, habilidades avaliadas em 5 pontos e idiomas, e coluna principal clara."
@@ -174,7 +174,7 @@ TEMPLATES_I18N: Dict[str, Dict[str, Dict[str, str]]] = {
             ),
         },
         "bubble": {
-            "name": "BubbleCV",
+            "name": "Bubble CV",
             "description": (
                 "Overleaf BubbleCV template (https://www.overleaf.com/latex/templates/bubblecv/bcynnjktwqsx) featuring continuous vertical timeline, "
                 "TikZ circular nodes for dates and sections, progress bars for skills/languages, and striking high-density single-page layout."
@@ -195,7 +195,7 @@ TEMPLATES_I18N: Dict[str, Dict[str, Dict[str, str]]] = {
             ),
         },
         "overleaf_russell_ti": {
-            "name": "Modelo Russell",
+            "name": "Russel CV",
             "description": (
                 "Overleaf Russell CV template (https://www.overleaf.com/read/rgfqqnnynrmv#d5b171) featuring left header photo, "
                 "FontAwesome 5 icons, 3-letter colored section titles, skill tables, and 6-dot language proficiency bars."
@@ -216,7 +216,7 @@ TEMPLATES_I18N: Dict[str, Dict[str, Dict[str, str]]] = {
             ),
         },
         "nico_krieger": {
-            "name": "Modelo Nico Krieger",
+            "name": "Krieger CV",
             "description": (
                 "Nico Krieger resume template featuring a full-width dark top header, "
                 "highlight sidebar with 5-dot skill ratings and 6-dot languages, and clean main column."
