@@ -1341,6 +1341,7 @@
                         <span id="m-model-status" style="font-size:0.75rem;"></span>
                     </div>
 
+                    <div id="compile-status" class="hidden" role="status" aria-live="polite" style="white-space:pre-line;color:#b91c1c;background:rgba(185,28,28,0.08);border:1px solid rgba(185,28,28,0.25);border-radius:6px;padding:0.65rem 0.75rem;margin-bottom:0.75rem;font-size:0.84rem;"></div>
                     <div class="metrics-grid">
                         <div class="metric-box">
                             <div class="metric-label" id="m-lbl-total">Tokens API</div>
@@ -3539,6 +3540,8 @@
                     throw new Error(data.error || `HTTP ${resp.status}: Falha ao gerar currículo`);
                 }
 
+                const hasPdf = data.success !== false && Boolean(data.pdf_base64);
+
                 document.getElementById("result-idle-msg").classList.add("hidden");
                 document.getElementById("result-content").classList.remove("hidden");
 
@@ -3593,6 +3596,53 @@
                     }
                 }
 
+                const compileStatus = document.getElementById("compile-status");
+                const pdfViewer = document.getElementById("pdf-viewer-wrap");
+                const pdfDownload = document.getElementById("dl-pdf-link");
+                if (pdfViewer) pdfViewer.classList.toggle("hidden", !hasPdf);
+                if (pdfDownload) pdfDownload.classList.toggle("hidden", !hasPdf);
+                if (compileStatus) {
+                    if (hasPdf) {
+                        compileStatus.classList.add("hidden");
+                        compileStatus.textContent = "";
+                    } else {
+                        const rawCompilerMessage = String(data.compiler_message || "");
+                        const safeDiagnostic = rawCompilerMessage
+                            .split(/\r?\n/)
+                            .map(line => line.trim())
+                            .find(line => line.startsWith("!"))
+                            || (/^Requisito ausente: compilador `pdflatex`/i.test(rawCompilerMessage)
+                                ? rawCompilerMessage.split(/\r?\n/, 1)[0]
+                                : "");
+                        const failureMessage = state.uiLang === "en-us"
+                            ? "PDF compilation failed. The generated LaTeX source is available below."
+                            : "A compilação do PDF falhou. O código LaTeX gerado está disponível abaixo.";
+                        compileStatus.textContent = safeDiagnostic
+                            ? `${failureMessage}\n${safeDiagnostic}`
+                            : failureMessage;
+                        compileStatus.classList.remove("hidden");
+                        const modelStatus = document.getElementById("m-model-status");
+                        if (modelStatus) {
+                            modelStatus.textContent = state.uiLang === "en-us" ? "PDF compilation failed" : "Falha na compilação do PDF";
+                        }
+                        const modelBadge = document.getElementById("m-model-badge");
+                        if (modelBadge) {
+                            modelBadge.style.borderColor = "#dc2626";
+                            modelBadge.style.color = "#b91c1c";
+                        }
+                        if (state.activePdfBlobUrl) {
+                            try { URL.revokeObjectURL(state.activePdfBlobUrl); } catch (_) {}
+                            state.activePdfBlobUrl = null;
+                        }
+                        if (state.pdfDoc && typeof state.pdfDoc.destroy === "function") {
+                            try { state.pdfDoc.destroy().catch(() => {}); } catch (_) {}
+                        }
+                        state.pdfDoc = null;
+                        const oldIframe = document.getElementById("pdf-iframe");
+                        if (oldIframe) oldIframe.src = "about:blank";
+                    }
+                }
+
                 document.getElementById("tex-code-output").textContent = data.latex_code || "";
 
                 if (state.activeTexBlobUrl) {
@@ -3602,7 +3652,7 @@
                 state.activeTexBlobUrl = URL.createObjectURL(texBlob);
                 document.getElementById("dl-tex-link").href = state.activeTexBlobUrl;
 
-                if (data.pdf_base64) {
+                if (hasPdf) {
                     const binaryStr = window.atob(data.pdf_base64);
                     const bytes = new Uint8Array(binaryStr.length);
                     for (let i = 0; i < binaryStr.length; i++) {

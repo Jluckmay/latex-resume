@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import subprocess
+import unicodedata
 from pathlib import Path
 from typing import List, Tuple
 
@@ -19,8 +20,8 @@ Image.MAX_IMAGE_PIXELS = 25_000_000
 
 # Primitivas LaTeX perigosas bloqueadas em templates customizados (prevenção de RCE e leitura de arquivos)
 _FORBIDDEN_LATEX_PATTERNS = (
-    r"\\write18\b",
-    r"\\immediate\s*\\write18\b",
+    r"\\write\s*18\b",
+    r"\\immediate\s*\\write\s*18\b",
     r"\\openin\b",
     r"\\openout\b",
     r"\\read\b",
@@ -35,6 +36,19 @@ _FORBIDDEN_LATEX_PATTERNS = (
     r"\\pdfprimitive\b",
     r"\\directlua\b",
 )
+
+_PDFLATEX_UNSUPPORTED_UNICODE = re.compile(
+    r"[\U00010000-\U0010FFFF\u200B-\u200F\u202A-\u202E\u2060-\u206F"
+    r"\uFE0E\uFE0F\uFEFF\u20E3\u2600-\u27BF\u2B00-\u2BFF]"
+)
+
+
+def sanitize_latex_for_pdflatex(latex_code: str) -> str:
+    """Remove emoji and invisible format characters unsupported by pdfLaTeX."""
+    if not latex_code:
+        return ""
+    normalized = unicodedata.normalize("NFC", latex_code)
+    return _PDFLATEX_UNSUPPORTED_UNICODE.sub(" ", normalized)
 
 
 def sanitize_custom_latex(latex_code: str) -> str:
@@ -495,6 +509,7 @@ def compile_latex_to_pdf(
 
     Retorna: (sucesso, caminho_pdf, caminho_tex, log_resumido)
     """
+    latex_code = sanitize_latex_for_pdflatex(latex_code)
     sanitize_custom_latex(latex_code)
     latex_code = sanitize_latex_layout(latex_code)
 

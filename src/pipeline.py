@@ -7,7 +7,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict
 
-from .compiler import compile_latex_to_pdf, prepare_photo_for_latex, sanitize_custom_latex
+from .compiler import (
+    compile_latex_to_pdf,
+    prepare_photo_for_latex,
+    sanitize_custom_latex,
+    sanitize_latex_for_pdflatex,
+)
 from .config import DEFAULT_MODEL, DEFAULT_PROVIDER, OUTPUT_DIR
 from .direct_builder import generate_direct_latex_resume
 from .extractors import (
@@ -340,6 +345,7 @@ def build_resume_pipeline(
         portfolio_url=links.get("portfolio", ""),
         lang=lang,
     )
+    latex_code = sanitize_latex_for_pdflatex(latex_code)
 
     # 5. Compilação em PDF via pdflatex
     ok, pdf_path, tex_path, comp_msg = compile_latex_to_pdf(
@@ -359,6 +365,7 @@ def build_resume_pipeline(
                 portfolio_url=links.get("portfolio", ""),
                 lang=lang,
             )
+            repaired_latex = sanitize_latex_for_pdflatex(repaired_latex)
             ok2, pdf_path2, tex_path2, comp_msg2 = compile_latex_to_pdf(
                 latex_code=repaired_latex,
                 output_stem=output_stem,
@@ -389,6 +396,7 @@ def build_resume_pipeline(
             portfolio_url=links.get("portfolio", ""),
             lang=lang,
         )
+        safe_fallback_tex = sanitize_latex_for_pdflatex(safe_fallback_tex)
         fb_ok, fb_pdf_path, fb_tex_path, fb_comp_msg = compile_latex_to_pdf(
             latex_code=safe_fallback_tex,
             output_stem=output_stem,
