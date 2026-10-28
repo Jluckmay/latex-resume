@@ -3747,7 +3747,7 @@ def _render_nico_krieger(
         len(cv.get("experience") or []),
         len(projs_all),
         len(pubs_all),
-        budget=58.0,
+        budget=55.0,
         weight_exp=4.0,
         weight_proj=2.8,
         weight_pub=2.2,
@@ -4067,7 +4067,7 @@ def _render_bubble(
     edus = cv.get("education") or []
 
     n_exp, n_proj, n_pub = _allocate_single_page_budget(
-        len(exps), len(projs), len(pubs), budget=58.0, weight_exp=4.2, weight_proj=2.8, weight_pub=2.2, resume_type=resume_type
+        len(exps), len(projs), len(pubs), budget=44.0, weight_exp=5.0, weight_proj=4.5, weight_pub=2.2, resume_type=resume_type
     )
 
     exp_sec_items: List[str] = []

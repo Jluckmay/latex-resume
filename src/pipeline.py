@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict
@@ -28,6 +29,60 @@ from .extractors import (
     parse_orcid_input,
     parse_scholar_input,
 )
+
+
+_SINGLE_PAGE_TEMPLATE_ALIASES = {
+    "bubble": "bubble",
+    "bubble_cv": "bubble",
+    "bubblecv": "bubble",
+    "overleaf_bubble": "bubble",
+    "modelo_bubble": "bubble",
+    "minimal_ats": "minimal_ats",
+    "overleaf_single_page_keywords": "overleaf_single_page_keywords",
+    "single_page_keywords": "overleaf_single_page_keywords",
+    "keywords": "overleaf_single_page_keywords",
+    "nico_krieger": "nico_krieger",
+    "modelo_nico_krieger": "nico_krieger",
+    "krieger": "nico_krieger",
+    "google_standard": "google_standard",
+    "google": "google_standard",
+}
+
+
+def _is_single_page_template(template_id: str) -> bool:
+    return _SINGLE_PAGE_TEMPLATE_ALIASES.get(str(template_id or "").strip().lower()) is not None
+
+
+def _retain_first_pdf_page(pdf_path: Path) -> bool:
+    """Replace an oversized single-page-template PDF with its first page only."""
+    temp_path: Path | None = None
+    try:
+        try:
+            from pypdf import PdfReader, PdfWriter
+        except ImportError:
+            from PyPDF2 import PdfReader, PdfWriter
+
+        with pdf_path.open("rb") as source:
+            reader = PdfReader(source)
+            if not reader.pages:
+                return False
+            if len(reader.pages) == 1:
+                return True
+            writer = PdfWriter()
+            writer.add_page(reader.pages[0])
+            with tempfile.NamedTemporaryFile(
+                mode="wb", suffix=".pdf", prefix=f"{pdf_path.stem}.first-page.",
+                dir=str(pdf_path.parent), delete=False,
+            ) as temp_file:
+                temp_path = Path(temp_file.name)
+                writer.write(temp_file)
+
+        temp_path.replace(pdf_path)
+        return True
+    except Exception:
+        if temp_path:
+            temp_path.unlink(missing_ok=True)
+        return False
 from .llm_client import LLMResumeGenerator
 from .token_plugins import TokenMetrics, diagnose_fallback_reason
 from .ui_theme import apply_custom_colors_and_portfolio_to_latex
@@ -406,6 +461,13 @@ def build_resume_pipeline(
             latex_code = safe_fallback_tex
             structured_cv = fb_cv
             ok, pdf_path, tex_path, comp_msg = fb_ok, fb_pdf_path, fb_tex_path, "Compilado com sucesso via fallback deterministico resiliente."
+
+    if _is_single_page_template(template_id) and pdf_path and pdf_path.exists():
+        if not _retain_first_pdf_page(pdf_path):
+            pdf_path.unlink(missing_ok=True)
+            pdf_path = None
+            ok = False
+            comp_msg = "Não foi possível garantir uma única página no PDF deste template."
 
     return ResumeGenerationResult(
         success=ok,
