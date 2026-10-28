@@ -108,18 +108,18 @@ TEMPLATES_I18N: Dict[str, Dict[str, Dict[str, str]]] = {
                 "na coluna lateral e experiências/projetos na coluna principal."
             ),
         },
-        "minimal_ats": {
-            "name": "Minimalista ATS-Friendly (Alta Densidade)",
-            "description": (
-                "Tipografia clássica de alto contraste otimizada para sistemas corporativos ATS "
-                "e leitura rápida por recrutadores."
-            ),
-        },
         "overleaf_russell_ti": {
             "name": "Russel CV",
             "description": (
                 "Modelo Overleaf Russell CV (https://www.overleaf.com/read/rgfqqnnynrmv#d5b171) com foto lateral "
                 "no cabeçalho, ícones FontAwesome 5, títulos com destaque nas 3 primeiras letras e níveis de idiomas em círculos."
+            ),
+        },
+        "minimal_ats": {
+            "name": "Minimalista ATS-Friendly (Alta Densidade)",
+            "description": (
+                "Tipografia clássica de alto contraste otimizada para sistemas corporativos ATS "
+                "e leitura rápida por recrutadores."
             ),
         },
         "overleaf_awesome_cv": {
@@ -187,18 +187,18 @@ TEMPLATES_I18N: Dict[str, Dict[str, Dict[str, str]]] = {
                 "in the sidebar and experience/projects in the main column."
             ),
         },
-        "minimal_ats": {
-            "name": "Minimalist ATS-Friendly (High Density)",
-            "description": (
-                "High-contrast classic typography optimized for corporate ATS parsers "
-                "and rapid recruiter scanning."
-            ),
-        },
         "overleaf_russell_ti": {
             "name": "Russel CV",
             "description": (
                 "Overleaf Russell CV template (https://www.overleaf.com/read/rgfqqnnynrmv#d5b171) featuring left header photo, "
                 "FontAwesome 5 icons, 3-letter colored section titles, skill tables, and 6-dot language proficiency bars."
+            ),
+        },
+        "minimal_ats": {
+            "name": "Minimalist ATS-Friendly (High Density)",
+            "description": (
+                "High-contrast classic typography optimized for corporate ATS parsers "
+                "and rapid recruiter scanning."
             ),
         },
         "overleaf_awesome_cv": {

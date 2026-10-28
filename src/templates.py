@@ -60,15 +60,6 @@ BUILTIN_TEMPLATES: Dict[str, Dict[str, str]] = {
             "na coluna lateral e experiências/projetos na coluna principal."
         ),
     },
-    "minimal_ats": {
-        "id": "minimal_ats",
-        "name": "Minimalista ATS-Friendly (Alta Densidade) / Minimalist ATS",
-        "recommended_for": "profissional",
-        "description": (
-            "Tipografia clássica de alto contraste otimizada para sistemas corporativos ATS "
-            "e leitura rápida por recrutadores."
-        ),
-    },
     "overleaf_russell_ti": {
         "id": "overleaf_russell_ti",
         "name": "Russel CV",
@@ -77,6 +68,15 @@ BUILTIN_TEMPLATES: Dict[str, Dict[str, str]] = {
         "description": (
             "Modelo Overleaf Russell CV (Currículo T.I.) com foto lateral no cabeçalho, ícones FontAwesome 5, "
             "títulos com destaque nas 3 primeiras letras, tabela de habilidades e níveis de idiomas em círculos."
+        ),
+    },
+    "minimal_ats": {
+        "id": "minimal_ats",
+        "name": "Minimalista ATS-Friendly (Alta Densidade) / Minimalist ATS",
+        "recommended_for": "profissional",
+        "description": (
+            "Tipografia clássica de alto contraste otimizada para sistemas corporativos ATS "
+            "e leitura rápida por recrutadores."
         ),
     },
     "overleaf_awesome_cv": {
