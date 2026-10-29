@@ -1440,14 +1440,9 @@ def _allocate_single_page_budget(
     # Fill the purpose's core sections first and reserve the other section as fallback.
     is_academic = resume_type in ("academico", "academic")
     if is_academic:
-        core_cost = cur_cost(total_exp, 0, total_pubs)
         core_order, fallback_kind = ("exp", "pub"), "proj"
     else:
-        core_cost = cur_cost(total_exp, total_proj, 0)
         core_order, fallback_kind = ("exp", "proj"), "pub"
-
-    if allow_fallback is None:
-        allow_fallback = core_cost < budget
 
     def add_item(kind: str) -> bool:
         nonlocal n_exp, n_proj, n_pub
@@ -1467,6 +1462,16 @@ def _allocate_single_page_budget(
         changed = False
         for kind in core_order:
             changed = add_item(kind) or changed
+
+    if allow_fallback is None:
+        core_remaining = any(
+            (kind == "exp" and n_exp < total_exp)
+            or (kind == "proj" and n_proj < total_proj)
+            or (kind == "pub" and n_pub < total_pubs)
+            for kind in core_order
+        )
+        has_primary_secondary = total_pubs > 0 if is_academic else total_proj > 0
+        allow_fallback = not has_primary_secondary or core_remaining
 
     if allow_fallback:
         while add_item(fallback_kind):
@@ -1543,7 +1548,8 @@ def _single_page_fallback_needed(
     else:
         cost = (header_exp + total_exp * weight_exp if total_exp else 0.0)
         cost += header_proj + total_proj * weight_proj if total_proj else 0.0
-    return cost < budget
+    has_primary_secondary = total_pubs > 0 if resume_type in ("academico", "academic") else total_proj > 0
+    return not has_primary_secondary or cost > budget
 
 
 def _render_sections_body(
@@ -1775,16 +1781,12 @@ def _build_skills_block(
     skills: List[Dict[str, Any]],
     lang: str = "pt-br",
     max_items: Optional[int] = None,
-    stretch_items: bool = False,
 ) -> str:
     if not skills:
         return ""
     t = LATEX_I18N[normalize_lang(lang)]
     lines = [rf"\section*{{{t['sec_skills']}}}"]
-    item_spacing = "itemsep=1pt plus 1fill" if stretch_items else "noitemsep"
-    lines.append(
-        rf"\begin{{itemize}}[leftmargin=1.2em,{item_spacing},topsep=1pt,partopsep=0pt,parsep=0pt]"
-    )
+    lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
     sks = skills[:max_items] if max_items else skills
     for sk in sks:
         if isinstance(sk, dict):
@@ -1965,9 +1967,7 @@ def _render_tech_sidebar(
 
     # 2. Contatos na barra lateral
     contact_items = _build_contact_links(links, cv.get("email", ""), cv.get("phone", ""), cv.get("location", ""), candidate_name=name)
-    sidebar_contacts = "\n\n\\vspace{0pt plus 1fill}\n\n".join(
-        rf"\noindent{{\footnotesize {c}}}" for c in contact_items
-    )
+    sidebar_contacts = "\n\n".join(rf"\noindent{{\footnotesize {c}}}" for c in contact_items)
 
     # 3. Formação Acadêmica na barra lateral (equilibra peso visual entre colunas)
     sidebar_edu = ""
@@ -1986,11 +1986,11 @@ def _render_tech_sidebar(
                 edu_entry.append(rf"{{\scriptsize\color{{sidecolor!70}} {per}}}")
             if det:
                 edu_entry.append(rf"{{\scriptsize {det}}}")
-            edu_lines.append(r"{\raggedright " + r"\\ ".join(edu_entry) + r"\par\vspace{3pt plus 1fill}}")
+            edu_lines.append(r"{\raggedright " + r"\\ ".join(edu_entry) + r"\par\vspace{3pt}}")
         sidebar_edu = "\n".join(edu_lines)
 
     # 4. Competências Técnicas na barra lateral
-    sidebar_skills = _build_skills_block(cv.get("skills") or [], lang, stretch_items=True)
+    sidebar_skills = _build_skills_block(cv.get("skills") or [], lang)
 
     # 5. Idiomas na barra lateral
     clean_langs = [str(x).strip() for x in (cv.get("languages") or []) if str(x).strip()][:4]
@@ -1999,7 +1999,7 @@ def _render_tech_sidebar(
         l_items = "\n".join(rf"    \item {{\footnotesize \raggedright {escape_latex(x)}}}" for x in clean_langs)
         sidebar_langs = (
             rf"\section*{{{t['sec_languages']}}}"
-            + f"\n\\begin{{itemize}}[leftmargin=1.1em,itemsep=1pt plus 1fill,topsep=1pt,partopsep=0pt,parsep=0pt]\n{l_items}\n\\end{{itemize}}"
+            + f"\n\\begin{{itemize}}[leftmargin=1.1em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]\n{l_items}\n\\end{{itemize}}"
         )
 
     # 6. Prêmios e Certificações na barra lateral
@@ -2009,7 +2009,7 @@ def _render_tech_sidebar(
         a_items = "\n".join(rf"    \item {{\footnotesize \raggedright {escape_latex(x)}}}" for x in clean_awards)
         sidebar_awards = (
             rf"\section*{{{t['sec_awards']}}}"
-            + f"\n\\begin{{itemize}}[leftmargin=1.1em,itemsep=1pt plus 1fill,topsep=1pt,partopsep=0pt,parsep=0pt]\n{a_items}\n\\end{{itemize}}"
+            + f"\n\\begin{{itemize}}[leftmargin=1.1em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]\n{a_items}\n\\end{{itemize}}"
         )
 
     # Resumo / Perfil na barra lateral (compacta o documento e equilibra o peso visual)
@@ -2036,7 +2036,7 @@ def _render_tech_sidebar(
     if sidebar_awards:
         sidebar_blocks.append(sidebar_awards)
 
-    sidebar_content = "\n\n\\vspace{0pt plus 1fill}\n\n".join(sidebar_blocks)
+    sidebar_content = "\n\n".join(sidebar_blocks)
 
     # 7. Coluna Principal (Main Body): Experience + Projects + Publications
     pubs = cv.get("publications") or []
@@ -2057,7 +2057,6 @@ def _render_tech_sidebar(
         weight_proj=1.2,
         weight_pub=1.5,
         resume_type=resume_type,
-        allow_fallback=True,
         exp_costs=exp_costs,
         proj_costs=proj_costs,
         pub_costs=pub_costs,
@@ -2180,7 +2179,7 @@ def _render_tech_sidebar(
 \input{{glyphtounicode}}
 \pdfgentounicode=1
 
-\flushbottom
+\raggedbottom
 \setlist{{noitemsep, topsep=1pt, parsep=0pt, partopsep=0pt}}
 \definecolor{{sidecolor}}{{HTML}}{{1E293B}}
 \definecolor{{accent}}{{HTML}}{{2563EB}}
@@ -2931,11 +2930,11 @@ def _render_overleaf_single_page_keywords(
     )
     allow_fallback = _single_page_fallback_needed(
         resume_type,
-        len(cv.get("experience") or []),
+        0,
         len(projs),
         len(pubs),
-        available_page_budget,
-        weight_exp=3.4,
+        avail_proj_pub,
+        weight_exp=0.0,
         weight_proj=2.5,
         weight_pub=1.8,
     )
@@ -3025,7 +3024,7 @@ def _render_overleaf_single_page_keywords(
     sk_sec = (rf"\cvsec{{\faIcon{{list}}}}{{{sk_lbl}}} " + "\n" + "\n".join(sk_rows)) if sk_rows else ""
 
     pub_sec = ""
-    if pubs:
+    if max_pubs > 0 and pubs:
         pub_lbl = "PUBLICATIONS" if is_en else "PUBLICAÇÕES"
         p_rows: List[str] = []
         for pb in pubs[:max_pubs]:
@@ -3829,7 +3828,7 @@ def _render_nico_krieger(
         len(cv.get("experience") or []),
         len(projs_all),
         len(pubs_all),
-        budget=55.0,
+        budget=44.0,
         weight_exp=4.0,
         weight_proj=2.8,
         weight_pub=2.2,
@@ -3905,7 +3904,7 @@ def _render_nico_krieger(
     # Publications
     pub_sec_nico = ""
     pubs = pubs_all[:max_pubs]
-    if pubs:
+    if max_pubs > 0 and pubs:
         pub_title = "PUBLICATIONS" if is_en else "PUBLICAÇÕES"
         pb_lines = [rf"{{\large\bfseries\color{{accent}} {pub_title}}}\\[-3pt]", r"\rule{\linewidth}{0.8pt}\nopagebreak\\[3pt]"]
         for idx, pb in enumerate(pubs):

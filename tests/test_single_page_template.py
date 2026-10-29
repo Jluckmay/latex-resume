@@ -6,7 +6,7 @@ from pathlib import Path
 import pypdf
 import pytest
 
-from src.templates import render_builtin_template
+from src.templates import _allocate_single_page_budget, render_builtin_template
 
 SAMPLE_MASSIVE_PROFILE = {
     "name": "João Lucas Mayrinck",
@@ -236,8 +236,11 @@ def test_tech_sidebar_no_blank_page_and_full_content(tmp_path):
         full_text = reader.pages[0].extract_text()
         # Garante que experiências, projetos e publicações prioritárias são preservados na página única
         assert "Student Electoral Board Member" in full_text
-        assert "PDI Interativo" in full_text
-        assert "latex-resume" in full_text
+        if resume_type == "profissional":
+            assert "latex-resume" in full_text
+            assert "PDI Interativo" not in full_text
+        else:
+            assert "PDI Interativo" in full_text
 
 
 def test_tech_sidebar_uses_remaining_space_for_short_projects(tmp_path):
@@ -272,8 +275,72 @@ def test_tech_sidebar_uses_remaining_space_for_short_projects(tmp_path):
     assert res.returncode == 0, res.stdout[-600:]
     reader = pypdf.PdfReader(str(tmp_path / "tech_many_projects.pdf"))
     assert len(reader.pages) == 1
-    assert "Additional-Project-12" in reader.pages[0].extract_text()
-    assert "Scientific Publications" in reader.pages[0].extract_text()
+    extracted_text = reader.pages[0].extract_text()
+    assert "Additional-Project-12" in extracted_text
+    assert "Oversized-Project" not in extracted_text
+    assert "Scientific Publications" in extracted_text
+
+
+@pytest.mark.parametrize("resume_type,expected", [("profissional", (2, 2, 0)), ("academico", (2, 0, 2))])
+def test_single_page_budget_keeps_fallback_out_when_primary_sections_fit(resume_type, expected):
+    allocated = _allocate_single_page_budget(
+        2,
+        2,
+        2,
+        budget=20.0,
+        weight_exp=2.0,
+        weight_proj=2.0,
+        weight_pub=2.0,
+        resume_type=resume_type,
+    )
+
+    assert allocated == expected
+
+
+@pytest.mark.parametrize("resume_type,expected", [("profissional", (1, 1, 1)), ("academico", (1, 1, 1))])
+def test_single_page_budget_uses_fallback_for_unfillable_primary_entry(resume_type, expected):
+    total_projects, total_publications = (2, 1) if resume_type == "profissional" else (1, 2)
+    project_costs, publication_costs = (
+        ([2.0, 20.0], [0.5]) if resume_type == "profissional" else ([2.0], [0.5, 20.0])
+    )
+    allocated = _allocate_single_page_budget(
+        1,
+        total_projects,
+        total_publications,
+        budget=15.0,
+        weight_exp=4.0,
+        weight_proj=2.0,
+        weight_pub=0.5,
+        resume_type=resume_type,
+        allow_fallback=True,
+        exp_costs=[4.0],
+        proj_costs=project_costs,
+        pub_costs=publication_costs,
+    )
+
+    assert allocated == expected
+
+
+def test_single_page_keywords_respects_resume_type_priorities():
+    profile = {
+        "experience": [{"role": "Developer", "period": "2024", "bullets": ["Built an internal tool."]}],
+        "projects": [
+            {"name": "Project Alpha", "description": "A focused software project."},
+            {"name": "Project Beta", "description": "Another focused software project."},
+        ],
+        "publications": [{"title": "Recent Publication", "venue": "Journal", "year": "2025"}],
+    }
+    professional_tex = render_builtin_template(
+        "overleaf_single_page_keywords", profile, {}, resume_type="profissional", lang="en-us"
+    )
+    academic_tex = render_builtin_template(
+        "overleaf_single_page_keywords", profile, {}, resume_type="academico", lang="en-us"
+    )
+
+    assert "Project Alpha" in professional_tex
+    assert "Recent Publication" not in professional_tex
+    assert "Recent Publication" in academic_tex
+    assert "Project Alpha" not in academic_tex
 
 
 def test_tech_sidebar_uses_page_height_for_many_short_projects(tmp_path):
@@ -317,7 +384,7 @@ def test_tech_sidebar_uses_page_height_for_many_short_projects(tmp_path):
     assert text_positions
     sidebar_positions = [y_position for x_position, y_position in text_positions if x_position < 170]
     main_positions = [y_position for x_position, y_position in text_positions if x_position >= 170]
-    assert min(sidebar_positions) < 100
+    assert min(sidebar_positions) > min(main_positions) + 100
     assert min(main_positions) < 100
 
 
@@ -510,7 +577,8 @@ def test_nico_krieger_single_page_layout(tmp_path):
     assert "IDIOMAS" in text
     assert "PRÊMIOS & DESTAQUES" in text
     assert "EXPERIÊNCIA PROFISSIONAL" in text
-    assert "PUBLICA" in text
+    assert "PROJETOS TÉCNICOS" in text
+    assert "PUBLICA" not in text
 
 
 def test_nico_krieger_previews_have_education_in_sidebar():
