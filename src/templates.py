@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 import unicodedata
 import urllib.parse
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Sequence, Tuple
 
 from .i18n import LATEX_I18N, normalize_lang
 from .text_utils import finalize_project_description, truncate_at_clause_boundary
@@ -1406,6 +1406,9 @@ def _allocate_single_page_budget(
     header_proj: float = 2.5,
     header_pub: float = 2.5,
     allow_fallback: bool | None = None,
+    exp_costs: Sequence[float] | None = None,
+    proj_costs: Sequence[float] | None = None,
+    pub_costs: Sequence[float] | None = None,
 ) -> tuple[int, int, int]:
     """Distribui dinamicamente a capacidade vertical da página entre experiências, projetos e publicações.
 
@@ -1416,25 +1419,31 @@ def _allocate_single_page_budget(
     n_proj = 0
     n_pub = 0
 
+    def item_cost(kind: str, count: int) -> float:
+        costs, weight = {
+            "exp": (exp_costs, weight_exp),
+            "proj": (proj_costs, weight_proj),
+            "pub": (pub_costs, weight_pub),
+        }[kind]
+        return sum(costs[:count]) if costs is not None else count * weight
+
     def cur_cost(e: int, p: int, u: int) -> float:
         c = 0.0
         if e > 0:
-            c += header_exp + e * weight_exp
+            c += header_exp + item_cost("exp", e)
         if p > 0:
-            c += header_proj + p * weight_proj
+            c += header_proj + item_cost("proj", p)
         if u > 0:
-            c += header_pub + u * weight_pub
+            c += header_pub + item_cost("pub", u)
         return c
 
     # Fill the purpose's core sections first and reserve the other section as fallback.
     is_academic = resume_type in ("academico", "academic")
     if is_academic:
-        core_cost = (header_exp + total_exp * weight_exp if total_exp else 0.0)
-        core_cost += header_pub + total_pubs * weight_pub if total_pubs else 0.0
+        core_cost = cur_cost(total_exp, 0, total_pubs)
         core_order, fallback_kind = ("exp", "pub"), "proj"
     else:
-        core_cost = (header_exp + total_exp * weight_exp if total_exp else 0.0)
-        core_cost += header_proj + total_proj * weight_proj if total_proj else 0.0
+        core_cost = cur_cost(total_exp, total_proj, 0)
         core_order, fallback_kind = ("exp", "proj"), "pub"
 
     if allow_fallback is None:
@@ -1464,6 +1473,48 @@ def _allocate_single_page_budget(
             pass
 
     return n_exp, n_proj, n_pub
+
+
+def _estimate_single_page_entry_costs(cv: Dict[str, Any]) -> tuple[List[float], List[float], List[float]]:
+    """Add line-wrap cost for long entries so fixed item counts do not overflow one-page layouts."""
+    def adjusted(base: float, text: str, baseline_chars: int, chars_per_line: int = 110) -> float:
+        overflow = max(0, len(re.sub(r"\s+", " ", text).strip()) - baseline_chars)
+        extra_lines = (overflow + chars_per_line - 1) // chars_per_line
+        return base + extra_lines * 1.35
+
+    exps = cv.get("experience") or []
+    projs = cv.get("projects") or []
+    pubs = cv.get("publications") or []
+    exp_costs = [
+        adjusted(
+            4.0,
+            " ".join([
+                str(exp.get("role") or ""),
+                str(exp.get("organization") or ""),
+                str(exp.get("period") or ""),
+                " ".join(str(b) for b in (exp.get("bullets") or [])),
+            ]),
+            180,
+        )
+        for exp in exps
+    ]
+    proj_costs = [
+        adjusted(
+            2.8,
+            " ".join((str(p.get("name") or ""), str(p.get("tech") or ""), str(p.get("description") or ""))),
+            170,
+        )
+        for p in projs
+    ]
+    pub_costs = [
+        adjusted(
+            2.0,
+            " ".join(str(p.get(field) or "") for field in ("authors", "title", "venue", "year", "doi")),
+            210,
+        )
+        for p in pubs
+    ]
+    return exp_costs, proj_costs, pub_costs
 
 
 def _single_page_fallback_needed(
@@ -1515,6 +1566,7 @@ def _render_sections_body(
         sk_cost = 2.0 if cv.get("skills") else 0.0
         base_budget = 50.0
         avail_budget = max(15.0, base_budget - sum_cost - edu_cost - aw_cost - lang_cost - sk_cost)
+        exp_costs, proj_costs, pub_costs = _estimate_single_page_entry_costs(cv)
         max_exp, max_proj, max_pubs = _allocate_single_page_budget(
             len(cv.get("experience") or []),
             len(projs),
@@ -1524,6 +1576,9 @@ def _render_sections_body(
             weight_proj=2.8,
             weight_pub=2.0,
             resume_type=resume_type,
+            exp_costs=exp_costs,
+            proj_costs=proj_costs,
+            pub_costs=pub_costs,
         )
     else:
         max_exp = None
@@ -3156,6 +3211,7 @@ def _render_google_standard(
     lang_cost = 2.0 if cv.get("languages") else 0.0
     base_budget = 50.0
     avail_budget = max(15.0, base_budget - sum_cost - edu_cost - skill_cost - aw_cost - lang_cost)
+    exp_costs, proj_costs, pub_costs = _estimate_single_page_entry_costs(cv)
 
     max_exp, max_proj, max_pubs = _allocate_single_page_budget(
         len(cv.get("experience") or []),
@@ -3166,6 +3222,9 @@ def _render_google_standard(
         weight_proj=2.8,
         weight_pub=2.0,
         resume_type=resume_type,
+        exp_costs=exp_costs,
+        proj_costs=proj_costs,
+        pub_costs=pub_costs,
     )
 
     # Summary
@@ -4179,6 +4238,9 @@ def _render_bubble(
     if links.get("github"):
         gh_disp = escape_latex(_get_platform_display(links, "github", candidate_name=raw_name))
         side_items.append(rf"\bubblesideitem{{\faGithub}}{{\href{{{escape_url(links['github'])}}}{{\textbf{{{gh_disp}}}}}}}")
+    if links.get("scholar"):
+        scholar_disp = escape_latex(_get_platform_display(links, "scholar", candidate_name=raw_name))
+        side_items.append(rf"\bubblesideitem{{\faIcon{{google}}}}{{\href{{{escape_url(links['scholar'])}}}{{\textbf{{{scholar_disp}}}}}}}")
     if links.get("orcid"):
         orcid_disp = escape_latex(_get_platform_display(links, "orcid", candidate_name=raw_name))
         side_items.append(rf"\bubblesideitem{{\faOrcid}}{{\href{{{escape_url(links['orcid'])}}}{{\textbf{{{orcid_disp}}}}}}}")

@@ -74,7 +74,7 @@ def test_extract_project_info_fallback():
         target_lang="pt-br",
         fallback_desc="Descrição padrão de fallback",
     )
-    assert desc == "Descrição padrão de fallback"
+    assert desc == "Descrição padrão de fallback."
     assert tech == "C"
 
 

@@ -327,8 +327,7 @@ def test_google_standard_strictly_one_page_academic_and_professional(tmp_path):
                 assert "Math-O-Ween" in tex
                 assert "PDI Interativo" in tex
                 assert "Impacto da Solução Inicial" in tex
-                assert "latex-resume" in tex
-                assert "jluckmay.github.io" in tex
+                assert r"\section*{Projetos de Pesquisa e Desenvolvimento}" not in tex
             else:
                 assert "latex-resume" in tex
                 assert "jluckmay.github.io" in tex
@@ -451,9 +450,18 @@ def test_nico_krieger_previews_have_education_in_sidebar():
     assert "FORMAÇÃO ACADÊMICA" in nico_js_match.group(0)
 
 
-def test_location_auto_resolved_when_user_location_omitted(tmp_path):
+def test_location_auto_resolved_when_user_location_omitted(tmp_path, monkeypatch):
     """Garante que a localização é inferida das fontes (GitHub / Portfólio) mesmo se omitida no formulário."""
     from src.pipeline import build_resume_pipeline
+
+    monkeypatch.setattr(
+        "src.pipeline.extract_github",
+        lambda *_args, **_kwargs: {"username": "jluck", "url": "https://github.com/jluckmay", "location": "Belo Horizonte, MG"},
+    )
+    monkeypatch.setattr(
+        "src.pipeline.extract_portfolio",
+        lambda url: {"url": url, "location": "Belo Horizonte, MG"},
+    )
 
     res = build_resume_pipeline(
         resume_type="profissional",
@@ -564,14 +572,16 @@ def test_bubble_cv_template_compiles_single_page(tmp_path):
     assert r"\bubbleskill{Spanish}{Iniciante}{0.18}" in tex_prof_colored
 
     # 4. Finalidade Profissional deve priorizar Projetos sobre Publicações (ordem e quantidade)
-    assert tex_prof_colored.index("PROJETOS RELEVANTES") < tex_prof_colored.index("PUBLICAÇÕES CIENTÍFICAS")
+    assert "PROJETOS RELEVANTES" in tex_prof_colored
+    assert "PUBLICAÇÕES CIENTÍFICAS" not in tex_prof_colored
     assert "latex-resume" in tex_prof_colored
     assert "jluckmay.github.io" in tex_prof_colored
     assert "minecraft-map-convertion" in tex_prof_colored
 
     # 5. Finalidade Acadêmica deve priorizar Publicações sobre Projetos
     tex_acad = render_builtin_template("bubble", SAMPLE_MASSIVE_PROFILE, links, resume_type="academico", photo_filename=None, lang="pt-br")
-    assert tex_acad.index("PUBLICAÇÕES CIENTÍFICAS") < tex_acad.index("PROJETOS RELEVANTES")
+    assert "PUBLICAÇÕES CIENTÍFICAS" in tex_acad
+    assert "PROJETOS RELEVANTES" not in tex_acad
     # Venues de publicações não devem conter sufixos repetidos do título
     assert "Operações Matemáticas de Forma Divertida e Assustadora Revista" not in tex_acad
     assert "Revista Brasileira de Informática na Educação" in tex_acad
