@@ -47,14 +47,23 @@ class LLMResumeGenerator:
         api_key: str | None = None,
         model: str | None = None,
         use_cache: bool = False,
+        use_token_plugins: Dict[str, bool] | None = None,
     ) -> None:
         self.provider = (provider or DEFAULT_PROVIDER).strip().lower()
         self._custom_key = api_key.strip() if api_key and api_key.strip() else None
 
         prov_cfg = PROVIDERS_CONFIG.get(self.provider, PROVIDERS_CONFIG["default"])
         self.model = model or prov_cfg.get("default_model") or DEFAULT_MODEL
-        self.use_cache = use_cache
+        self.use_cache = use_cache and (use_token_plugins or {}).get("cache", True)
         self.cache = SHA256DiskCachePlugin()
+        self.use_token_plugins = use_token_plugins or {
+            "caveman": True,
+            "thinking": True,
+            "toon": True,
+            "shortkey": True,
+            "preamble": True,
+            "cache": True,
+        }
 
     def _call_llm_chat(
         self,
@@ -126,16 +135,24 @@ class LLMResumeGenerator:
         lang: str = "pt-br",
     ) -> Tuple[str, Dict[str, Any], TokenMetrics]:
         """Gera o código LaTeX final, o dicionário estruturado do CV e as métricas de tokens."""
+        p = self.use_token_plugins
         metrics = TokenMetrics(
             active_plugins=[
-                CavemanPromptPlugin.name,
-                ThinkingSuppressionPlugin.name,
-                TOONContextPrunerPlugin.name,
+                plugin for plugin, enabled in [
+                    (CavemanPromptPlugin.name, p.get("caveman", True)),
+                    (ThinkingSuppressionPlugin.name, p.get("thinking", True)),
+                    (TOONContextPrunerPlugin.name, p.get("toon", True)),
+                ] if enabled
             ]
         )
 
         # 1. Plugin TOON: comprime os dados de entrada (GitHub, ORCID, Lattes, LinkedIn, Portfólio)
-        toon_context, raw_in_tok, comp_in_tok = TOONContextPrunerPlugin.compress_profile_data(raw_profile_data)
+        if p.get("toon", True):
+            toon_context, raw_in_tok, comp_in_tok = TOONContextPrunerPlugin.compress_profile_data(raw_profile_data)
+        else:
+            toon_context = json.dumps(raw_profile_data, ensure_ascii=False)
+            raw_in_tok = estimate_tokens(toon_context)
+            comp_in_tok = raw_in_tok
         metrics.raw_input_tokens_est = raw_in_tok
         metrics.compressed_input_tokens_est = comp_in_tok
 
@@ -143,16 +160,27 @@ class LLMResumeGenerator:
 
         # 2. Modo Template Customizado (.tex fornecido pelo usuário)
         if custom_latex_template and custom_latex_template.strip():
-            metrics.active_plugins.append(LaTeXPreambleSplitPlugin.name)
-            if self.use_cache:
+            if p.get("preamble", True):
+                metrics.active_plugins.append(LaTeXPreambleSplitPlugin.name)
+            if p.get("cache", True) and self.use_cache:
                 metrics.active_plugins.append(SHA256DiskCachePlugin.name)
 
-            preamble, body_template, custom_cmds = LaTeXPreambleSplitPlugin.split_template(
-                custom_latex_template
-            )
+            if p.get("preamble", True):
+                preamble, body_template, custom_cmds = LaTeXPreambleSplitPlugin.split_template(
+                    custom_latex_template
+                )
+            else:
+                preamble, body_template, custom_cmds = "", custom_latex_template, []
             preamble_tokens_saved = estimate_tokens(preamble) * 2
 
-            sys_prompt = CavemanPromptPlugin.build_system_prompt(resume_type, output_mode="latex", lang=lang)
+            if p.get("caveman", True):
+                sys_prompt = CavemanPromptPlugin.build_system_prompt(resume_type, output_mode="latex", lang=lang)
+            else:
+                sys_prompt = (
+                    f"Role: Expert LaTeX Architect & CV Synthesizer. "
+                    f"Write resume content in {lang}. "
+                    f"Emit ONLY valid compilable LaTeX code."
+                )
             photo_instr = (
                 f"Foto disponível no arquivo '{photo_filename}' (use \\includegraphics se o template suportar)."
                 if photo_filename
@@ -178,10 +206,15 @@ class LLMResumeGenerator:
                 ],
                 max_tokens=2500,
             )
-            clean_body = sanitize_latex_layout(CavemanPromptPlugin.strip_code_fences(content))
+            clean_body = sanitize_latex_layout(
+                CavemanPromptPlugin.strip_code_fences(content) if p.get("caveman", True) else content
+            )
             if not clean_body or len(clean_body.strip()) < 30 or r"\end{document}" not in clean_body:
                 raise ValueError("Resposta do modelo insuficiente ou incompleta (sem \\end{document}).")
-            final_latex = sanitize_latex_layout(LaTeXPreambleSplitPlugin.reassemble(preamble, clean_body))
+            if p.get("preamble", True):
+                final_latex = sanitize_latex_layout(LaTeXPreambleSplitPlugin.reassemble(preamble, clean_body))
+            else:
+                final_latex = sanitize_latex_layout(clean_body)
             if r"\end{document}" not in final_latex:
                 final_latex = final_latex.rstrip() + "\n\\end{document}\n"
             self._populate_metrics(
@@ -194,20 +227,34 @@ class LLMResumeGenerator:
             return final_latex, {"custom_template": True, "lang": lang}, metrics
 
         # 3. Modo Templates Integrados: Usa ShortKeySchemaPlugin + Renderização Local LaTeX
-        metrics.active_plugins.extend(
-            [
-                ShortKeySchemaPlugin.name,
-                "LaTeXLocalSkeletonPlugin (0-token LaTeX Preamble)",
-            ]
-        )
-        if self.use_cache:
+        if p.get("shortkey", True):
+            metrics.active_plugins.append(ShortKeySchemaPlugin.name)
+        metrics.active_plugins.append("LaTeXLocalSkeletonPlugin (0-token LaTeX Preamble)")
+        if p.get("cache", True) and self.use_cache:
             metrics.active_plugins.append(SHA256DiskCachePlugin.name)
 
-        sys_prompt = CavemanPromptPlugin.build_system_prompt(resume_type, output_mode="json", lang=lang)
+        if p.get("caveman", True):
+            sys_prompt = CavemanPromptPlugin.build_system_prompt(resume_type, output_mode="json", lang=lang)
+        else:
+            sys_prompt = (
+                f"Role: Senior CV synthesizer. "
+                f"Write all resume text values in polished, high-impact {lang}. "
+                f"Emit ONLY raw minified JSON matching requested short keys."
+            )
+        if p.get("toon", True):
+            toon_prompt_part = f"DADOS_TOON:\n{toon_context}\n\n"
+        else:
+            toon_prompt_part = f"DADOS_PERFIL:\n{json.dumps(raw_profile_data, ensure_ascii=False)}\n\n"
+        if p.get("shortkey", True):
+            schema_part = f"{ShortKeySchemaPlugin.PROMPT_SCHEMA_INSTRUCTION}"
+        else:
+            schema_part = (
+                'Retorne um objeto JSON com os campos: nm, tl, em, ph, lc, sm, ed, xp, pj, pb, sk, lg, aw.\n'
+            )
         user_prompt = (
             f"LANG:{lang.upper()}|TIPO:{resume_type.upper()}\n"
-            f"DADOS_TOON:\n{toon_context}\n\n"
-            f"{ShortKeySchemaPlugin.PROMPT_SCHEMA_INSTRUCTION}"
+            f"{toon_prompt_part}"
+            f"{schema_part}"
         )
 
         content, usage, used_model, is_cached = self._call_llm_chat(
@@ -286,33 +333,37 @@ class LLMResumeGenerator:
         """
         metrics = TokenMetrics(
             active_plugins=[
-                "LaTeXReviewEngine",
-                CavemanPromptPlugin.name,
-                ThinkingSuppressionPlugin.name,
-                LaTeXPreambleSplitPlugin.name,
+                plugin for plugin, enabled in [
+                    ("LaTeXReviewEngine", True),
+                    (CavemanPromptPlugin.name, p.get("caveman", True)),
+                    (ThinkingSuppressionPlugin.name, p.get("thinking", True)),
+                    (LaTeXPreambleSplitPlugin.name, p.get("preamble", True)),
+                ] if enabled
             ]
         )
-        preamble, body, _ = LaTeXPreambleSplitPlugin.split_template(base_latex)
+        p = self.use_token_plugins
+        preamble, body, _ = LaTeXPreambleSplitPlugin.split_template(base_latex) if p.get("preamble", True) else ("", base_latex, [])
         target = body if preamble else base_latex
         preamble_tokens_saved = estimate_tokens(preamble) * 2 if preamble else 0
 
         instruction_line = f"CUSTOM INSTRUCTION: {instructions.strip()}\n" if instructions.strip() else ""
 
-        sys_prompt = (
-            f"MODE:CAVEMAN_LATEX_CODE_AND_CONTENT_REVIEW. LANG:{lang.upper()}.\n"
-            "Role: Senior LaTeX Architect & Executive Technical Resume Editor.\n"
-            "Task: Perform a comprehensive dual review of the provided LaTeX resume body (LaTeX code audit + text content optimization).\n\n"
-            "PART 1: LATEX CODE & TYPESETTING AUDIT\n"
-            "1. SYNTAX & ENVIRONMENTS: Check and ensure all braces {} are balanced. Ensure all environments (\\begin{itemize} ... \\end{itemize}, paracol, minipage, tabular) are properly opened and closed.\n"
-            r"2. SPECIAL CHARACTER ESCAPING: Audit all user text, company names, skills, URLs, and descriptions for unescaped reserved LaTeX characters. Ensure '%', '&', '$', '#', and '_' are properly escaped (e.g. C\#, C\texttt{++}, R\&D, PL/SQL, 100\%, \$1M, tech\_stack) while preserving LaTeX commands and math symbols (\cdot, \textbf, \hfill)." "\n"
-            "3. ENTRY ISOLATION (ZERO COLLISION): Each education degree, job experience, or project entry MUST be an isolated paragraph block. Conclude each entry with \\par\\vspace{3pt} or a clean blank line. NEVER allow an institution, location, or details line to merge onto the same line as the next entry title or \\hfill.\n"
-            "4. LINE BREAK & SPACING DISCIPLINE: Avoid awkward line breaks, overlapping text, or overfull boxes. Ensure clean vertical rhythm and correct use of \\par and \\vspace.\n"
-            "5. MACRO PRESERVATION: Preserve existing template structure, commands, and styling macros (e.g. \\switchcolumn, \\cventry, \\cvsection, \\cvskill, \\textbf, \\textit, \\href, \\color). In two-column layouts using paracol (tech_sidebar, nico_krieger), NEVER remove \\switchcolumn or move sidebar sections (Contact, Education, Skills, Languages, Awards) into the main column.\n"
-            "6. HEADER CONTACT DISCIPLINE: In contact line / header, NEVER use prefixes 'Local:', 'Location:', 'Portfólio:', or 'Portfolio:'. Location MUST be the last item in the contact list.\n\n"
-            "PART 2: TEXT & CONTENT ENHANCEMENT\n"
-            "1. NOUN-FIRST EXPERIENCE DESCRIPTIONS (ACTION VERBS & METRICS): Avoid starting experience descriptions with past-tense verbs (participou, orientou, acompanhou, desenvolveu, ensinou, realizou...). Prefer professional nouns (participação, orientação, acompanhamento, desenvolvimento, ensino, realização, liderança, coordenação, implementação...). In English, prefer noun-oriented achievements (Leadership in, Development of, Instruction in, Coordination of, Participation in).\n"
-            "2. NOUN-FIRST PROJECT DESCRIPTIONS: Project descriptions MUST start with a descriptive NOUN (e.g., 'Gerador...', 'Aplicação...', 'Página...', 'Implementação...', 'Portfólio...', 'Utilitário...', 'Jogo...', 'Plataforma...', 'Ferramenta...') or in English ('Automated generator...', 'Web application...', 'Personal portfolio...', 'Manual implementations...', 'Utility...', 'Exploration game...'). NEVER begin project descriptions with past-tense action verbs (e.g. NEVER use 'Desenvolveu', 'Criou', 'Implementou', 'Reuniu', 'Construiu', or in English 'Developed', 'Created', 'Implemented', 'Built').\n"
-            "3. EXECUTIVE SUMMARY: If the summary/resumo section is sparse, missing, or contains generic website metadata (e.g. starting with 'Portfólio profissional de...'), synthesize a concise 2-3 sentence executive technical overview highlighting candidate's core expertise, academic background, and technical focus based strictly on their actual data.\n"
+        if p.get("caveman", True):
+            sys_prompt = (
+                f"MODE:CAVEMAN_LATEX_CODE_AND_CONTENT_REVIEW. LANG:{lang.upper()}.\n"
+                "Role: Senior LaTeX Architect & Executive Technical Resume Editor.\n"
+                "Task: Perform a comprehensive dual review of the provided LaTeX resume body (LaTeX code audit + text content optimization).\n\n"
+                "PART 1: LATEX CODE & TYPESETTING AUDIT\n"
+                "1. SYNTAX & ENVIRONMENTS: Check and ensure all braces {} are balanced. Ensure all environments (\\begin{itemize} ... \\end{itemize}, paracol, minipage, tabular) are properly opened and closed.\n"
+                r"2. SPECIAL CHARACTER ESCAPING: Audit all user text, company names, skills, URLs, and descriptions for unescaped reserved LaTeX characters. Ensure '%', '&', '$', '#', and '_' are properly escaped (e.g. C\#, C\texttt{++}, R\&D, PL/SQL, 100\%, \$1M, tech\_stack) while preserving LaTeX commands and math symbols (\cdot, \textbf, \hfill)." "\n"
+                "3. ENTRY ISOLATION (ZERO COLLISION): Each education degree, job experience, or project entry MUST be an isolated paragraph block. Conclude each entry with \\par\\vspace{3pt} or a clean blank line. NEVER allow an institution, location, or details line to merge onto the same line as the next entry title or \\hfill.\n"
+                "4. LINE BREAK & SPACING DISCIPLINE: Avoid awkward line breaks, overlapping text, or overfull boxes. Ensure clean vertical rhythm and correct use of \\par and \\vspace.\n"
+                "5. MACRO PRESERVATION: Preserve existing template structure, commands, and styling macros (e.g. \\switchcolumn, \\cventry, \\cvsection, \\cvskill, \\textbf, \\textit, \\href, \\color). In two-column layouts using paracol (tech_sidebar, nico_krieger), NEVER remove \\switchcolumn or move sidebar sections (Contact, Education, Skills, Languages, Awards) into the main column.\n"
+                "6. HEADER CONTACT DISCIPLINE: In contact line / header, NEVER use prefixes 'Local:', 'Location:', 'Portfólio:', or 'Portfolio:'. Location MUST be the last item in the contact list.\n\n"
+                "PART 2: TEXT & CONTENT ENHANCEMENT\n"
+                "1. NOUN-FIRST EXPERIENCE DESCRIPTIONS (ACTION VERBS & METRICS): Avoid starting experience descriptions with past-tense verbs (participou, orientou, acompanhou, desenvolveu, ensinou, realizou...). Prefer professional nouns (participação, orientação, acompanhamento, desenvolvimento, ensino, realização, liderança, coordenação, implementação...). In English, prefer noun-oriented achievements (Leadership in, Development of, Instruction in, Coordination of, Participation in).\n"
+                "2. NOUN-FIRST PROJECT DESCRIPTIONS: Project descriptions MUST start with a descriptive NOUN (e.g., 'Gerador...', 'Aplicação...', 'Página...', 'Implementação...', 'Portfólio...', 'Utilitário...', 'Jogo...', 'Plataforma...', 'Ferramenta...') or in English ('Automated generator...', 'Web application...', 'Personal portfolio...', 'Manual implementations...', 'Utility...', 'Exploration game...'). NEVER begin project descriptions with past-tense action verbs (e.g. NEVER use 'Desenvolveu', 'Criou', 'Implementou', 'Reuniu', 'Construiu', or in English 'Developed', 'Created', 'Implemented', 'Built').\n"
+                "3. EXECUTIVE SUMMARY: If the summary/resumo section is sparse, missing, or contains generic website metadata (e.g. starting with 'Portfólio profissional de...'), synthesize a concise 2-3 sentence executive technical overview highlighting candidate's core expertise, academic background, and technical focus based strictly on their actual data.\n"
             "4. STRICT TRUTHFULNESS & ZERO INVENTIONS: Keep all institutions, degrees, dates, metrics, and names 100% truthful to source facts. NEVER invent or hallucinate new projects, external URLs, project links, publications, DOI links, experiences, awards, or credentials not already present in the provided LaTeX code. Only enhance existing entries.\n"
             "5. PUBLICATIONS & AWARDS LISTING: Preserve and list ALL publications and awards individually. NEVER collapse them into a single line or summary. Each publication must include title, authors, venue, year, and DOI link. CRITICAL FOR PUBLICATIONS: All publications must be contained within a SINGLE \\begin{enumerate}[...] ... \\end{enumerate} environment. Each publication MUST be exactly ONE \\item containing authors, title, venue, year, and DOI. NEVER wrap each publication in its own \\begin{enumerate} and NEVER split a publication across multiple \\item elements (e.g. NEVER make venue/year a second item). Sequential numbering (1., 2., 3., ...) across all publications is strictly mandatory. Each award must be an individual item. ACADEMIC GRANTS & EXTENSION FELLOWSHIPS (e.g. Bolsa / Grant in extension or research projects) already present under work experience must NEVER be duplicated or included in awards/premiações.\n"
             "6. EXACT PERIODS: Never change explicit academic or work periods into 'Período não especificado', 'Em andamento', or 'Concluído'. Keep exact years and periods (e.g. 2026 - Atual, 2019 - 2025, 2023 - 2024).\n"
