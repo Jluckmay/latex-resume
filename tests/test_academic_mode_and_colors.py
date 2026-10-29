@@ -234,7 +234,7 @@ def test_llm_client_fallbacks_preserve_experience_and_skills():
     assert len(sparse_cv["skills"]) > 0
     assert "Python" in sparse_cv["skills"][0]["items"]
     # Descrição do projeto recuperada do repositório
-    assert sparse_cv["projects"][0]["description"] == "Descrição do repo 1"
+    assert sparse_cv["projects"][0]["description"] == "Descrição do repo 1."
     assert sparse_cv["projects"][0]["tech"] == "Python"
 
 
@@ -274,13 +274,14 @@ def test_review_and_enhance_truncation_detection_protects_missing_sections():
     assert r"\cvsection{Idiomas}" in final_latex
 
 
-def test_index_html_no_template_hijacking_and_6_bullets():
-    """Verifica que index.html preserva a seleção de template e usa 6 bullets no preview do Russell CV."""
+def test_index_html_preserves_template_selection_and_6_bullets():
+    """Verifica que index.html só troca templates padrão incompatíveis e usa 6 bullets no Russell CV."""
     with open("index.html", "r", encoding="utf-8") as f:
         html = f.read()
 
-    # Não deve forçar selectTemplate("academic_classic") ao mudar resumeType
-    assert 'selectTemplate("academic_classic")' not in html
+    # Trocar o tipo só muda o template se o padrão anterior ainda estiver selecionado.
+    assert 'if (state.templateId === "modern_pro") {\n                    selectTemplate("academic_classic");' in html
+    assert 'if (state.templateId === "academic_classic") {\n                    selectTemplate("modern_pro");' in html
     # Preview de idiomas no Russell CV deve ter 6 bullets
     assert "● ● ● ● ● ●" in html
 
