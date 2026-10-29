@@ -1241,22 +1241,25 @@ def build_structured_cv_deterministically(
         for field in ("title", "venue", "authors"):
             if publication.get(field):
                 publication[field] = remove_terminal_abbreviation_ellipsis(publication[field])
-    skills = merge_skill_groups(
-        {"items": gh.get("top_languages") or []},
-        {"items": gh.get("languages") or []},
-        {"items": portfolio.get("skills") or []},
-        {"items": li.get("skills") or []},
-        {"items": lattes.get("areas") or []},
-        {"items": orcid.get("keywords") or []},
-        manual.get("skills"),
-        extra_items=collect_project_technologies(
-            gh.get("repos") or [],
-            portfolio.get("projects") or [],
-            lattes.get("projects") or [],
-            manual.get("projects") or [],
-        ),
-        category="",
-    )
+    manual_skills = manual.get("skills") or []
+    if manual_skills:
+        skills = list(manual_skills)
+    else:
+        skills = merge_skill_groups(
+            {"items": gh.get("top_languages") or []},
+            {"items": gh.get("languages") or []},
+            {"items": portfolio.get("skills") or []},
+            {"items": li.get("skills") or []},
+            {"items": lattes.get("areas") or []},
+            {"items": orcid.get("keywords") or []},
+            extra_items=collect_project_technologies(
+                gh.get("repos") or [],
+                portfolio.get("projects") or [],
+                lattes.get("projects") or [],
+                manual.get("projects") or [],
+            ),
+            category="",
+        )
 
     # Limitações saudáveis para caber confortavelmente no layout LaTeX
 
