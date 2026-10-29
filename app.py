@@ -144,14 +144,31 @@ with st.sidebar:
 
     st.divider()
     st.subheader(txt["plugins_header"])
-    st.markdown(txt["plugins_md"])
     st.caption(txt["plugins_toggle_help"])
-    plugin_caveman = st.checkbox(txt["plugin_caveman"], value=True, key="plugin_caveman_cb")
-    plugin_thinking = st.checkbox(txt["plugin_thinking"], value=True, key="plugin_thinking_cb")
-    plugin_toon = st.checkbox(txt["plugin_toon"], value=True, key="plugin_toon_cb")
-    plugin_shortkey = st.checkbox(txt["plugin_shortkey"], value=True, key="plugin_shortkey_cb")
-    plugin_preamble = st.checkbox(txt["plugin_preamble"], value=True, key="plugin_preamble_cb")
-    plugin_cache = st.checkbox(txt["plugin_cache"], value=True, key="plugin_cache_cb")
+    plugin_caveman = st.checkbox(
+        f"✅ {txt['plugin_caveman']} — diretivas ultra-concisas sem preâmbulo (~-65% menos tokens)",
+        value=True, key="plugin_caveman_cb",
+    )
+    plugin_thinking = st.checkbox(
+        f"✅ {txt['plugin_thinking']} — `enable_thinking=False` (0 tokens gastos em CoT oculto)",
+        value=True, key="plugin_thinking_cb",
+    )
+    plugin_toon = st.checkbox(
+        f"✅ {txt['plugin_toon']} — minificação tabular e deduplicação local ORCID/Lattes",
+        value=True, key="plugin_toon_cb",
+    )
+    plugin_shortkey = st.checkbox(
+        f"✅ {txt['plugin_shortkey']} — chaves JSON de 1–2 letras na geração",
+        value=True, key="plugin_shortkey_cb",
+    )
+    plugin_preamble = st.checkbox(
+        f"✅ {txt['plugin_preamble']} — separa preâmbulo fixo de templates `.tex`",
+        value=True, key="plugin_preamble_cb",
+    )
+    plugin_cache = st.checkbox(
+        f"✅ {txt['plugin_cache']} — cache local SHA-256 (0 tokens em reuso)",
+        value=True, key="plugin_cache_cb",
+    )
 
     ai_mode = "disabled" if selected_provider == "none" else "auto"
     if selected_provider != "none":
