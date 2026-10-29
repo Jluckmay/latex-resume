@@ -237,10 +237,7 @@ def test_tech_sidebar_no_blank_page_and_full_content(tmp_path):
         # Garante que experiências, projetos e publicações prioritárias são preservados na página única
         assert "Student Electoral Board Member" in full_text
         assert "PDI Interativo" in full_text
-        if resume_type == "profissional":
-            assert "latex-resume" in full_text
-        else:
-            assert "latex-resume" not in full_text
+        assert "latex-resume" in full_text
 
 
 def test_tech_sidebar_uses_remaining_space_for_short_projects(tmp_path):
@@ -256,6 +253,11 @@ def test_tech_sidebar_uses_remaining_space_for_short_projects(tmp_path):
                 }
                 for index in range(7, 13)
             ],
+            {
+                "name": "Oversized-Project",
+                "tech": "Python",
+                "description": "Detailed workflow " * 300,
+            },
         ],
     }
     tex = render_builtin_template(
@@ -271,6 +273,7 @@ def test_tech_sidebar_uses_remaining_space_for_short_projects(tmp_path):
     reader = pypdf.PdfReader(str(tmp_path / "tech_many_projects.pdf"))
     assert len(reader.pages) == 1
     assert "Additional-Project-12" in reader.pages[0].extract_text()
+    assert "Scientific Publications" in reader.pages[0].extract_text()
 
 
 def test_tech_sidebar_balanced_columns_layout():

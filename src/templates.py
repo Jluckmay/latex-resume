@@ -1475,7 +1475,13 @@ def _allocate_single_page_budget(
     return n_exp, n_proj, n_pub
 
 
-def _estimate_single_page_entry_costs(cv: Dict[str, Any]) -> tuple[List[float], List[float], List[float]]:
+def _estimate_single_page_entry_costs(
+    cv: Dict[str, Any],
+    *,
+    weight_exp: float = 4.0,
+    weight_proj: float = 2.8,
+    weight_pub: float = 2.0,
+) -> tuple[List[float], List[float], List[float]]:
     """Add line-wrap cost for long entries so fixed item counts do not overflow one-page layouts."""
     def adjusted(base: float, text: str, baseline_chars: int, chars_per_line: int = 110) -> float:
         overflow = max(0, len(re.sub(r"\s+", " ", text).strip()) - baseline_chars)
@@ -1487,7 +1493,7 @@ def _estimate_single_page_entry_costs(cv: Dict[str, Any]) -> tuple[List[float], 
     pubs = cv.get("publications") or []
     exp_costs = [
         adjusted(
-            4.0,
+            weight_exp,
             " ".join([
                 str(exp.get("role") or ""),
                 str(exp.get("organization") or ""),
@@ -1500,7 +1506,7 @@ def _estimate_single_page_entry_costs(cv: Dict[str, Any]) -> tuple[List[float], 
     ]
     proj_costs = [
         adjusted(
-            2.8,
+            weight_proj,
             " ".join((str(p.get("name") or ""), str(p.get("tech") or ""), str(p.get("description") or ""))),
             170,
         )
@@ -1508,7 +1514,7 @@ def _estimate_single_page_entry_costs(cv: Dict[str, Any]) -> tuple[List[float], 
     ]
     pub_costs = [
         adjusted(
-            2.0,
+            weight_pub,
             " ".join(str(p.get(field) or "") for field in ("authors", "title", "venue", "year", "doi")),
             210,
         )
@@ -2033,15 +2039,22 @@ def _render_tech_sidebar(
     has_projs = bool(projs)
 
     # Alocação dinâmica de capacidade vertical para a coluna principal
+    exp_costs, proj_costs, pub_costs = _estimate_single_page_entry_costs(
+        cv, weight_exp=3.8, weight_proj=1.2, weight_pub=1.5
+    )
     max_exp, max_proj, max_pubs = _allocate_single_page_budget(
         len(cv.get("experience") or []),
         len(projs),
         len(pubs),
         budget=55.0,
         weight_exp=3.8,
-        weight_proj=1.8,
-        weight_pub=5.0,
+        weight_proj=1.2,
+        weight_pub=1.5,
         resume_type=resume_type,
+        allow_fallback=True,
+        exp_costs=exp_costs,
+        proj_costs=proj_costs,
+        pub_costs=pub_costs,
     )
 
     # Experiência com formatação profissional em 2 níveis
