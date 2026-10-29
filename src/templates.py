@@ -2039,8 +2039,8 @@ def _render_tech_sidebar(
         len(pubs),
         budget=55.0,
         weight_exp=3.8,
-        weight_proj=2.8,
-        weight_pub=1.8,
+        weight_proj=1.8,
+        weight_pub=5.0,
         resume_type=resume_type,
     )
 

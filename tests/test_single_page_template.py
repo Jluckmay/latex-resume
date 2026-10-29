@@ -236,8 +236,41 @@ def test_tech_sidebar_no_blank_page_and_full_content(tmp_path):
         full_text = reader.pages[0].extract_text()
         # Garante que experiências, projetos e publicações prioritárias são preservados na página única
         assert "Student Electoral Board Member" in full_text
-        assert "latex-resume" in full_text
         assert "PDI Interativo" in full_text
+        if resume_type == "profissional":
+            assert "latex-resume" in full_text
+        else:
+            assert "latex-resume" not in full_text
+
+
+def test_tech_sidebar_uses_remaining_space_for_short_projects(tmp_path):
+    profile = {
+        **SAMPLE_MASSIVE_PROFILE,
+        "projects": [
+            *SAMPLE_MASSIVE_PROFILE["projects"],
+            *[
+                {
+                    "name": f"Additional-Project-{index}",
+                    "tech": "Python",
+                    "description": "Small utility for automated workflows.",
+                }
+                for index in range(7, 13)
+            ],
+        ],
+    }
+    tex = render_builtin_template(
+        "tech_sidebar", profile, SAMPLE_LINKS, resume_type="profissional", lang="en-us"
+    )
+    tex_file = tmp_path / "tech_many_projects.tex"
+    tex_file.write_text(tex, encoding="utf-8")
+    res = subprocess.run(
+        ["pdflatex", "-interaction=nonstopmode", str(tex_file)],
+        cwd=str(tmp_path), capture_output=True, text=True,
+    )
+    assert res.returncode == 0, res.stdout[-600:]
+    reader = pypdf.PdfReader(str(tmp_path / "tech_many_projects.pdf"))
+    assert len(reader.pages) == 1
+    assert "Additional-Project-12" in reader.pages[0].extract_text()
 
 
 def test_tech_sidebar_balanced_columns_layout():
