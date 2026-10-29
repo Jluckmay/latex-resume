@@ -1982,7 +1982,7 @@ def _render_tech_sidebar(
         len(cv.get("experience") or []),
         len(projs),
         len(pubs),
-        budget=50.0,
+        budget=62.5,
         weight_exp=3.8,
         weight_proj=2.8,
         weight_pub=1.8,
