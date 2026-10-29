@@ -156,10 +156,10 @@ with st.sidebar:
     st.markdown(txt["plugins_md"])
 
 # Cabeçalho da página
-head_col1, head_col2 = st.columns([0.08, 0.92], vertical_alignment="center")
+head_col1, head_col2 = st.columns([0.1, 0.9], vertical_alignment="center")
 with head_col1:
     if FAVICON_PATH.exists():
-        st.image(str(FAVICON_PATH), width=58)
+        st.image(str(FAVICON_PATH), width=46)
 with head_col2:
     st.title(txt["app_title"])
 st.caption(txt["app_caption"])

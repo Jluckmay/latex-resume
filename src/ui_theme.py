@@ -712,9 +712,25 @@ def get_theme_css(theme_mode: str = "light", primary_color: str = "#18181B") -> 
         }}
 
         /* Mobile & Tablet Responsiveness */
+        @media (max-width: 1024px) {{
+            .block-container {{
+                padding: 1.1rem 0.9rem 2.5rem 0.9rem !important;
+            }}
+            div[data-testid="column"] {{
+                min-width: 100% !important;
+                margin-bottom: 0.6rem !important;
+            }}
+            div[data-testid="stHorizontalBlock"] {{
+                gap: 0.5rem !important;
+            }}
+            h1 {{ font-size: 1.5rem !important; }}
+            h2 {{ font-size: 1.25rem !important; }}
+            h3 {{ font-size: 1.1rem !important; }}
+        }}
+
         @media (max-width: 820px) {{
             .block-container {{
-                padding: 1.25rem 0.85rem 3rem 0.85rem !important;
+                padding: 0.75rem 0.5rem 2rem 0.5rem !important;
             }}
             .ui-card {{
                 padding: 12px !important;
@@ -724,12 +740,145 @@ def get_theme_css(theme_mode: str = "light", primary_color: str = "#18181B") -> 
                 min-width: 100% !important;
                 margin-bottom: 0.75rem !important;
             }}
+            div[data-testid="stHorizontalBlock"] {{
+                flex-direction: column !important;
+                gap: 0.5rem !important;
+            }}
             button[kind="primary"], button[kind="secondary"] {{
                 min-height: 44px !important;
                 width: 100% !important;
             }}
             div[data-testid="stMetric"] {{
                 padding: 10px 12px !important;
+            }}
+            h1 {{ font-size: 1.4rem !important; }}
+            h2 {{ font-size: 1.2rem !important; }}
+            h3 {{ font-size: 1.05rem !important; }}
+            .stApp > header {{
+                padding: 0.5rem 0.5rem !important;
+            }}
+            section[data-testid="stSidebar"] {{
+                width: 280px !important;
+                min-width: 280px !important;
+                overflow: visible !important;
+            }}
+            section[data-testid="stSidebar"][aria-expanded="false"],
+            section[data-testid="stSidebar"][data-collapsed="true"] {{
+                width: 4.5rem !important;
+                min-width: 4.5rem !important;
+                max-width: 4.5rem !important;
+                overflow: hidden !important;
+            }}
+            .st-brand-logo {{
+                width: 40px !important;
+                height: 40px !important;
+                max-width: 40px !important;
+                max-height: 40px !important;
+                overflow: visible !important;
+            }}
+            /* Ícone do header (app.py) — evita corte em telas estreitas como 780px */
+            section[data-testid="stHeader"] img,
+            div[data-testid="stHorizontalBlock"]:has(> div:first-child) img[src*="favicon"],
+            .stApp header img {{
+                max-width: 100% !important;
+                height: auto !important;
+                width: 40px !important;
+                display: block !important;
+            }}
+        }}
+
+        @media (max-width: 640px) {{
+            .block-container {{
+                padding: 0.75rem 0.5rem 2rem 0.5rem !important;
+            }}
+            .ui-card {{
+                padding: 10px !important;
+                margin-bottom: 10px !important;
+            }}
+            div[data-testid="column"] {{
+                min-width: 100% !important;
+                margin-bottom: 0.6rem !important;
+            }}
+            div[data-testid="stHorizontalBlock"] {{
+                flex-direction: column !important;
+                gap: 0.4rem !important;
+            }}
+            button[kind="primary"], button[kind="secondary"] {{
+                min-height: 48px !important;
+                width: 100% !important;
+                font-size: 0.95rem !important;
+            }}
+            div[data-testid="stMetric"] {{
+                padding: 8px 10px !important;
+                font-size: 0.85rem !important;
+            }}
+            h1 {{ font-size: 1.3rem !important; }}
+            h2 {{ font-size: 1.1rem !important; }}
+            h3 {{ font-size: 1rem !important; }}
+            .stApp > header {{
+                padding: 0.4rem 0.5rem !important;
+            }}
+            section[data-testid="stSidebar"] {{
+                width: 260px !important;
+                min-width: 260px !important;
+            }}
+            .stSelectbox, .stTextInput, .stTextArea, .stColorPicker, .stFileUploader {{
+                width: 100% !important;
+            }}
+            div[data-testid="stExpander"] {{
+                margin-bottom: 0.5rem !important;
+            }}
+        }}
+
+        @media (max-width: 480px) {{
+            .block-container {{
+                padding: 0.6rem 0.4rem 1.5rem 0.4rem !important;
+            }}
+            .ui-card {{
+                padding: 8px !important;
+                margin-bottom: 8px !important;
+            }}
+            div[data-testid="column"] {{
+                min-width: 100% !important;
+                margin-bottom: 0.5rem !important;
+            }}
+            div[data-testid="stHorizontalBlock"] {{
+                flex-direction: column !important;
+                gap: 0.4rem !important;
+            }}
+            button[kind="primary"], button[kind="secondary"] {{
+                min-height: 48px !important;
+                width: 100% !important;
+                font-size: 0.9rem !important;
+                padding: 0.5rem 0.8rem !important;
+            }}
+            div[data-testid="stMetric"] {{
+                padding: 6px 8px !important;
+                font-size: 0.8rem !important;
+            }}
+            h1 {{ font-size: 1.2rem !important; }}
+            h2 {{ font-size: 1rem !important; }}
+            h3 {{ font-size: 0.95rem !important; }}
+            .stApp > header {{
+                padding: 0.35rem 0.5rem !important;
+            }}
+            section[data-testid="stSidebar"] {{
+                width: 240px !important;
+                min-width: 240px !important;
+            }}
+            .stSelectbox, .stTextInput, .stTextArea, .stColorPicker, .stFileUploader {{
+                width: 100% !important;
+            }}
+            div[data-testid="stExpander"] {{
+                margin-bottom: 0.4rem !important;
+            }}
+            .stRadio > div {{
+                flex-direction: column !important;
+                gap: 0.3rem !important;
+            }}
+            .stRadio label {{
+                width: 100% !important;
+                text-align: left !important;
             }}
         }}
     </style>
