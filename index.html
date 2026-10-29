@@ -1319,12 +1319,31 @@
                     <span id="ui-key-sec-note"><b>Segurança Zero-Storage:</b> Chaves próprias são criptografadas no navegador (AES-256-GCM efêmero), isoladas na memória RAM volátil durante a requisição e destruídas imediatamente com bytes nulos (0x00). Nunca são salvas em disco ou cookies.</span>
                 </div>
 
-                <div class="plugin-chips" style="margin-bottom:1rem;">
-                    <span class="chip">⚡ CavemanPromptPlugin (-65% tokens)</span>
-                    <span class="chip">🧠 ThinkingSuppression (0 reasoning tokens)</span>
-                    <span class="chip">🗜️ TOONContextPruner</span>
-                    <span class="chip">🔑 ShortKeySchema</span>
-                    <span class="chip">🔒 Task-Bound TLS 1.3 Vault</span>
+                <div class="plugin-toggles" style="margin-bottom:1rem;">
+                    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.82rem;color:var(--text-main);margin-bottom:0.4rem;">
+                        <input type="checkbox" id="chk-plugin-caveman" checked style="cursor:pointer;width:16px;height:16px;">
+                        <span><b>CavemanPromptPlugin</b> — diretivas ultra-concisas sem preâmbulo (~-65% menos tokens)</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.82rem;color:var(--text-main);margin-bottom:0.4rem;">
+                        <input type="checkbox" id="chk-plugin-thinking" checked style="cursor:pointer;width:16px;height:16px;">
+                        <span><b>ThinkingSuppression</b> — `enable_thinking=False` (0 tokens gastos em CoT oculto)</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.82rem;color:var(--text-main);margin-bottom:0.4rem;">
+                        <input type="checkbox" id="chk-plugin-toon" checked style="cursor:pointer;width:16px;height:16px;">
+                        <span><b>TOONContextPruner</b> — minificação tabular e deduplicação local ORCID/Lattes</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.82rem;color:var(--text-main);margin-bottom:0.4rem;">
+                        <input type="checkbox" id="chk-plugin-shortkey" checked style="cursor:pointer;width:16px;height:16px;">
+                        <span><b>ShortKeySchema</b> — chaves JSON de 1–2 letras na geração</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.82rem;color:var(--text-main);margin-bottom:0.4rem;">
+                        <input type="checkbox" id="chk-plugin-preamble" checked style="cursor:pointer;width:16px;height:16px;">
+                        <span><b>LaTeXPreambleSplit</b> — separa preâmbulo fixo de templates `.tex`</span>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.82rem;color:var(--text-main);margin-bottom:0.4rem;">
+                        <input type="checkbox" id="chk-plugin-cache" checked style="cursor:pointer;width:16px;height:16px;">
+                        <span><b>SHA256Cache</b> — cache local de tokens (0 tokens em reuso)</span>
+                    </label>
                 </div>
 
                 <button type="button" class="btn-primary" id="btn-generate" onclick="generateResume()" aria-describedby="ui-screenreader-status">
@@ -3563,6 +3582,14 @@
                     api_key: encryptedKey,
                     use_ai: providerVal !== "none",
                     ai_mode: (document.getElementById("chk-review-only") && document.getElementById("chk-review-only").checked && providerVal !== "none") ? "review_only" : (providerVal === "none" ? "disabled" : "auto"),
+                    use_token_plugins: {
+                        caveman: document.getElementById("chk-plugin-caveman")?.checked ?? true,
+                        thinking: document.getElementById("chk-plugin-thinking")?.checked ?? true,
+                        toon: document.getElementById("chk-plugin-toon")?.checked ?? true,
+                        shortkey: document.getElementById("chk-plugin-shortkey")?.checked ?? true,
+                        preamble: document.getElementById("chk-plugin-preamble")?.checked ?? true,
+                        cache: document.getElementById("chk-plugin-cache")?.checked ?? true,
+                    },
                     custom_tex_code: customTexCode,
                     custom_tex_file: customTexData,
                     photo: photoData,
