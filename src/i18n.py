@@ -306,6 +306,16 @@ UI_TEXT: Dict[str, Dict[str, Any]] = {
             "- **ShortKeySchemaPlugin**: chaves JSON de 1–2 letras na geração\n"
             "- **LaTeXPreambleSplitPlugin**: separa preâmbulo fixo de templates `.tex`"
         ),
+        "plugins_toggle_label": "🔌 Habilitar plugins de economia de token",
+        "plugins_toggle_help": (
+            "Desativar para gerar o currículo sem compressão de prompts, chaves JSON curtas ou supressão de raciocínio oculto."
+        ),
+        "plugin_caveman": "CavemanPrompt (diretivas ultra-concisas)",
+        "plugin_thinking": "ThinkingSuppression (0 tokens de raciocínio oculto)",
+        "plugin_toon": "TOONContextPruner (minificação de perfis)",
+        "plugin_shortkey": "ShortKeySchema (chaves JSON curtas)",
+        "plugin_preamble": "LaTeXPreambleSplit (separar preâmbulo)",
+        "plugin_cache": "SHA256Cache (cache local de tokens)",
         "sec1_title": "1. Perfil, Modalidade e Modelo LaTeX",
         "resume_type_label": "Finalidade do Currículo",
         "resume_type_prof": "Profissional (Mercado / Indústria / Tech)",
@@ -483,6 +493,16 @@ UI_TEXT: Dict[str, Dict[str, Any]] = {
             "- **ShortKeySchemaPlugin**: 1–2 char JSON keys during generation\n"
             "- **LaTeXPreambleSplitPlugin**: splits static preamble from `.tex` templates"
         ),
+        "plugins_toggle_label": "🔌 Enable token-saving plugins",
+        "plugins_toggle_help": (
+            "Disable to generate the resume without prompt compression, short JSON keys, or hidden reasoning suppression."
+        ),
+        "plugin_caveman": "CavemanPrompt (ultra-concise directives)",
+        "plugin_thinking": "ThinkingSuppression (0 hidden reasoning tokens)",
+        "plugin_toon": "TOONContextPruner (profile minification)",
+        "plugin_shortkey": "ShortKeySchema (short JSON keys)",
+        "plugin_preamble": "LaTeXPreambleSplit (split static preamble)",
+        "plugin_cache": "SHA256Cache (local token cache)",
         "sec1_title": "1. Profile, Mode & LaTeX Template",
         "resume_type_label": "Resume Purpose",
         "resume_type_prof": "Professional (Industry / Corporate / Tech)",

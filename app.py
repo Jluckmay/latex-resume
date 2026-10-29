@@ -100,10 +100,14 @@ with st.sidebar:
         prov_labels[label] = pid
 
     prov_title = "🧠 " + ("Provedor de IA" if ui_lang == "pt-br" else "AI Provider")
+    prov_options = list(prov_labels.keys())
+    default_prov_idx = prov_options.index(
+        next(k for k, v in prov_labels.items() if v == "none")
+    ) if "none" in prov_labels.values() else 0
     selected_prov_label = st.selectbox(
         prov_title,
-        options=list(prov_labels.keys()),
-        index=0,
+        options=prov_options,
+        index=default_prov_idx,
     )
     selected_provider = prov_labels[selected_prov_label]
     prov_data = PROVIDERS_CONFIG[selected_provider]
@@ -137,6 +141,17 @@ with st.sidebar:
     )
     use_cache = st.checkbox(txt["cache_checkbox"], value=True)
 
+    st.divider()
+    st.subheader(txt["plugins_header"])
+    st.markdown(txt["plugins_md"])
+    st.caption(txt["plugins_toggle_help"])
+    plugin_caveman = st.checkbox(txt["plugin_caveman"], value=True, key="plugin_caveman_cb")
+    plugin_thinking = st.checkbox(txt["plugin_thinking"], value=True, key="plugin_thinking_cb")
+    plugin_toon = st.checkbox(txt["plugin_toon"], value=True, key="plugin_toon_cb")
+    plugin_shortkey = st.checkbox(txt["plugin_shortkey"], value=True, key="plugin_shortkey_cb")
+    plugin_preamble = st.checkbox(txt["plugin_preamble"], value=True, key="plugin_preamble_cb")
+    plugin_cache = st.checkbox(txt["plugin_cache"], value=True, key="plugin_cache_cb")
+
     ai_mode = "disabled" if selected_provider == "none" else "auto"
     if selected_provider != "none":
         review_only_cb = st.checkbox(
@@ -150,10 +165,6 @@ with st.sidebar:
         )
         if review_only_cb:
             ai_mode = "review_only"
-
-    st.divider()
-    st.subheader(txt["plugins_header"])
-    st.markdown(txt["plugins_md"])
 
 # Cabeçalho da página
 head_col1, head_col2 = st.columns([0.1, 0.9], vertical_alignment="center")
@@ -561,6 +572,14 @@ with col_right:
                     api_key=custom_api_key if custom_api_key.strip() else None,
                     model=selected_model,
                     use_cache=False,  # Zero-storage: nenhum documento persistido em disco
+                    use_token_plugins={
+                        "caveman": plugin_caveman,
+                        "thinking": plugin_thinking,
+                        "toon": plugin_toon,
+                        "shortkey": plugin_shortkey,
+                        "preamble": plugin_preamble,
+                        "cache": plugin_cache,
+                    },
                     output_stem=f"resume_{resume_lang}_{resume_type}_{selected_template_id}",
                     build_dir=build_path,
                     lang=resume_lang,

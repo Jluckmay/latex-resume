@@ -159,6 +159,7 @@ def build_resume_pipeline(
     ai_mode: str = "auto",
     data_source_mode: str = "import",
     manual_data: Dict[str, Any] | None = None,
+    use_token_plugins: Dict[str, bool] | None = None,
 ) -> ResumeGenerationResult:
     """Executa todo o fluxo de coleta, síntese IA com economia de tokens, customização de cores e compilação LaTeX."""
     if custom_latex_template:
@@ -294,6 +295,14 @@ def build_resume_pipeline(
     # 3. Geração do LaTeX (Direta / Determinística 0-token ou via IA com economia de tokens)
     chosen_provider = (provider or DEFAULT_PROVIDER).strip().lower()
     is_offline = (chosen_provider == "none") or (not use_ai) or (ai_mode == "disabled")
+    plugin_flags = use_token_plugins or {
+        "caveman": True,
+        "thinking": True,
+        "toon": True,
+        "shortkey": True,
+        "preamble": True,
+        "cache": True,
+    }
     generator = None
 
     if is_offline:
@@ -326,7 +335,13 @@ def build_resume_pipeline(
             photo_filename=photo_filename,
             lang=lang,
         )
-        generator = LLMResumeGenerator(provider=chosen_provider, api_key=api_key, model=model, use_cache=use_cache)
+        generator = LLMResumeGenerator(
+            provider=chosen_provider,
+            api_key=api_key,
+            model=model,
+            use_cache=use_cache and plugin_flags.get("cache", True),
+            use_token_plugins=plugin_flags,
+        )
         try:
             latex_code, metrics = generator.review_and_enhance_latex(
                 base_latex=base_latex,
