@@ -706,6 +706,10 @@ def get_theme_css(theme_mode: str = "light", primary_color: str = "#18181B") -> 
             box-shadow: 0 4px 12px rgba(15, 76, 129, 0.25);
             object-fit: cover;
         }}
+        .stApp :focus-visible {{
+            outline: 3px solid {primary_color} !important;
+            outline-offset: 3px !important;
+        }}
 
         /* Mobile & Tablet Responsiveness */
         @media (max-width: 820px) {{

@@ -653,6 +653,26 @@
             white-space: nowrap;
             border: 0;
         }
+        .skip-link:focus {
+            position: fixed;
+            z-index: 10001;
+            top: 0.75rem;
+            left: 0.75rem;
+            width: auto;
+            height: auto;
+            margin: 0;
+            padding: 0.7rem 1rem;
+            clip: auto;
+            color: var(--text-main);
+            background: var(--bg-card);
+            border: 2px solid var(--accent);
+            border-radius: 6px;
+            white-space: normal;
+        }
+        :focus-visible {
+            outline: 3px solid var(--accent);
+            outline-offset: 3px;
+        }
         .hidden {
             display: none !important;
         }
@@ -874,12 +894,12 @@
         <div class="brand">
             <img src="assets/icons/favicon.svg" alt="LaTeX Resume" class="brand-logo" onerror="this.onerror=null;this.src='assets/icons/favicon.png';">
             <div class="brand-text">
-                <div class="brand-title" id="ui-app-title">Gerador Automático de Currículos LaTeX (NVIDIA NIM)</div>
+                <div class="brand-title" id="ui-app-title" role="heading" aria-level="1">Gerador Automático de Currículos LaTeX (NVIDIA NIM)</div>
                 <div class="brand-subtitle" id="ui-app-subtitle">Extração GitHub, ORCID, Lattes, LinkedIn & Portfólio • Economia de Tokens Caveman + TOON</div>
             </div>
         </div>
         <div class="nav-controls">
-            <span class="pill-badge" id="ui-latex-badge" onclick="openBackendModal()" style="cursor:pointer;" title="Clique para verificar ou configurar a conexão com o backend">⏳ Conectando backend...</span>
+            <span class="pill-badge" id="ui-latex-badge" role="status" aria-live="polite">⏳ Conectando backend...</span>
             <button type="button" class="btn-toggle" id="btn-backend-settings" onclick="openBackendModal()" title="Configurações do Servidor Backend">⚙️ <span id="ui-backend-lbl">Backend</span></button>
             <label for="resume-lang-select" class="sr-only" id="ui-resume-lang-lbl">Idioma de Saída do Currículo (Resume Output Language)</label>
             <select id="resume-lang-select" class="btn-toggle" title="Resume Output Language" aria-label="Idioma de Saída do Currículo (Resume Output Language)">
@@ -887,20 +907,22 @@
                 <option value="en-us">📝 PDF: English (en-US)</option>
             </select>
             <button type="button" class="btn-toggle" id="btn-lang-switch" onclick="toggleLanguage()">🌐 PT-BR / EN-US</button>
-            <button type="button" class="btn-toggle" id="btn-theme-switch" onclick="toggleTheme()">☀️ Claro</button>
+            <button type="button" class="btn-toggle" id="btn-theme-switch" onclick="toggleTheme()" aria-label="Alternar tema claro/escuro">☀️ Claro</button>
         </div>
     </header>
 
     <!-- Main Content Container -->
-    <main class="container">
+    <a class="sr-only skip-link" href="#main-content" id="ui-skip-to-main">Pular para o conteúdo principal</a>
+    <main class="container" id="main-content">
+        <div id="ui-screenreader-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
         <!-- Left Column: Intuitive Step-by-Step Configuration -->
-        <section>
+        <section aria-labelledby="ui-step1-title">
             <!-- Step 1: Modalidade & Modelo LaTeX -->
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">
                         <span class="step-num">1</span>
-                        <span id="ui-step1-title">Modalidade e Modelo de Currículo LaTeX</span>
+                        <span id="ui-step1-title" role="heading" aria-level="2">Modalidade e Modelo de Currículo LaTeX</span>
                     </div>
                 </div>
 
@@ -985,7 +1007,7 @@
                 <div class="card-header">
                     <div class="card-title">
                         <span class="step-num">2</span>
-                        <span id="ui-step2-title">Personalização de Cores do Currículo</span>
+                        <span id="ui-step2-title" role="heading" aria-level="2">Personalização de Cores do Currículo</span>
                     </div>
                 </div>
                 <div class="grid-3">
@@ -1023,13 +1045,13 @@
                 <div class="card-header">
                     <div class="card-title">
                         <span class="step-num">3</span>
-                        <span id="ui-step3-title">Informações do Currículo</span>
+                        <span id="ui-step3-title" role="heading" aria-level="2">Informações do Currículo</span>
                     </div>
                 </div>
 
                 <!-- Seletor do Modo de Entrada -->
                 <div style="display:flex;margin-bottom:1.25rem;">
-                    <button type="button" class="btn btn-outline" id="btn-data-mode-toggle" onclick="toggleDataMode()" style="width:100%;padding:0.65rem 0.75rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:0.5rem;cursor:pointer;border-radius:8px;">
+                    <button type="button" class="btn btn-outline" id="btn-data-mode-toggle" onclick="toggleDataMode()" aria-controls="container-data-import container-data-manual" style="width:100%;padding:0.65rem 0.75rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:0.5rem;cursor:pointer;border-radius:8px;">
                         <span id="ui-mode-toggle-btn">📥 Importar Informações</span>
                     </button>
                 </div>
@@ -1115,56 +1137,56 @@
                     <!-- 1. Formação Acadêmica Estruturada -->
                     <div class="struct-section">
                         <div class="struct-section-header">
-                            <span class="struct-section-title" id="ui-struct-edu-title">🎓 Formação Acadêmica</span>
+                            <span class="struct-section-title" id="ui-struct-edu-title" role="heading" aria-level="3">🎓 Formação Acadêmica</span>
                             <button type="button" class="btn-add-item" id="btn-add-education" onclick="addStructuredEducation()" aria-label="Adicionar nova formação acadêmica">
                                 <span id="ui-btn-add-edu">+ Adicionar Formação</span>
                             </button>
                         </div>
-                        <div id="list-struct-education"></div>
+                        <div id="list-struct-education" role="list" aria-labelledby="ui-struct-edu-title"></div>
                     </div>
 
                     <!-- 2. Experiência Profissional Estruturada -->
                     <div class="struct-section">
                         <div class="struct-section-header">
-                            <span class="struct-section-title" id="ui-struct-exp-title">💼 Experiência Profissional</span>
+                            <span class="struct-section-title" id="ui-struct-exp-title" role="heading" aria-level="3">💼 Experiência Profissional</span>
                             <button type="button" class="btn-add-item" id="btn-add-experience" onclick="addStructuredExperience()" aria-label="Adicionar nova experiência profissional">
                                 <span id="ui-btn-add-exp">+ Adicionar Experiência</span>
                             </button>
                         </div>
-                        <div id="list-struct-experience"></div>
+                        <div id="list-struct-experience" role="list" aria-labelledby="ui-struct-exp-title"></div>
                     </div>
 
                     <!-- 3. Projetos Relevantes Estruturados -->
                     <div class="struct-section">
                         <div class="struct-section-header">
-                            <span class="struct-section-title" id="ui-struct-proj-title">🚀 Projetos Relevantes</span>
+                            <span class="struct-section-title" id="ui-struct-proj-title" role="heading" aria-level="3">🚀 Projetos Relevantes</span>
                             <button type="button" class="btn-add-item" id="btn-add-project" onclick="addStructuredProject()" aria-label="Adicionar novo projeto relevante">
                                 <span id="ui-btn-add-proj">+ Adicionar Projeto</span>
                             </button>
                         </div>
-                        <div id="list-struct-projects"></div>
+                        <div id="list-struct-projects" role="list" aria-labelledby="ui-struct-proj-title"></div>
                     </div>
 
                     <!-- 4. Publicações & Artigos Estruturados -->
                     <div class="struct-section">
                         <div class="struct-section-header">
-                            <span class="struct-section-title" id="ui-struct-pubs-title">📄 Publicações & Artigos</span>
+                            <span class="struct-section-title" id="ui-struct-pubs-title" role="heading" aria-level="3">📄 Publicações & Artigos</span>
                             <button type="button" class="btn-add-item" id="btn-add-publication" onclick="addStructuredPublication()" aria-label="Adicionar nova publicação ou artigo">
                                 <span id="ui-btn-add-pub">+ Adicionar Publicação</span>
                             </button>
                         </div>
-                        <div id="list-struct-publications"></div>
+                        <div id="list-struct-publications" role="list" aria-labelledby="ui-struct-pubs-title"></div>
                     </div>
 
                     <!-- 5. Prêmios & Certificações Estruturados -->
                     <div class="struct-section">
                         <div class="struct-section-header">
-                            <span class="struct-section-title" id="ui-struct-awards-title">🏆 Prêmios & Certificações</span>
+                            <span class="struct-section-title" id="ui-struct-awards-title" role="heading" aria-level="3">🏆 Prêmios & Certificações</span>
                             <button type="button" class="btn-add-item" id="btn-add-award" onclick="addStructuredAward()" aria-label="Adicionar novo prêmio ou certificação">
                                 <span id="ui-btn-add-award">+ Adicionar Prêmio / Certificação</span>
                             </button>
                         </div>
-                        <div id="list-struct-awards"></div>
+                        <div id="list-struct-awards" role="list" aria-labelledby="ui-struct-awards-title"></div>
                     </div>
 
                     <!-- Modo Rápido / Colar em Texto Puro (Compatibilidade e Entrada em Bloco) -->
@@ -1233,7 +1255,7 @@
                 <div class="card-header">
                     <div class="card-title">
                         <span class="step-num">4</span>
-                        <span id="ui-step4-title">Cabeçalho Pessoal, Provedor de IA & Chave Opcional</span>
+                        <span id="ui-step4-title" role="heading" aria-level="2">Cabeçalho Pessoal, Provedor de IA & Chave Opcional</span>
                     </div>
                 </div>
                 <div class="grid-2">
@@ -1280,7 +1302,7 @@
                         <label for="inp-api-key" id="ui-api-key-lbl">Chave de API do Provedor (Opcional)</label>
                         <div style="position:relative;display:flex;align-items:center;">
                             <input type="text" id="inp-api-key" class="form-control masked-key" style="padding-right:2.4rem;" placeholder="Padrão seguro do servidor ativo" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" autocorrect="off" autocapitalize="off" aria-autocomplete="none" aria-label="Chave de API do Provedor (Opcional)">
-                            <button type="button" id="btn-toggle-key" onclick="toggleKeyVisibility()" style="position:absolute;right:8px;background:none;border:none;cursor:pointer;font-size:0.95rem;color:var(--text-muted);" title="Exibir/Ocultar chave">👁️</button>
+                            <button type="button" id="btn-toggle-key" onclick="toggleKeyVisibility()" style="position:absolute;right:8px;background:none;border:none;cursor:pointer;font-size:0.95rem;color:var(--text-muted);" title="Exibir/Ocultar chave" aria-label="Exibir chave" aria-controls="inp-api-key" aria-pressed="false">👁️</button>
                         </div>
                     </div>
                 </div>
@@ -1305,18 +1327,18 @@
                     <span class="chip">🔒 Task-Bound TLS 1.3 Vault</span>
                 </div>
 
-                <button type="button" class="btn-primary" id="btn-generate" onclick="generateResume()">
+                <button type="button" class="btn-primary" id="btn-generate" onclick="generateResume()" aria-describedby="ui-screenreader-status">
                     <span id="ui-gen-btn-txt">🚀 Gerar Currículo</span>
                 </button>
             </div>
         </section>
 
         <!-- Right Column: Real-Time Template Preview & Generated PDF Output -->
-        <section>
+        <section aria-labelledby="ui-preview-title">
             <!-- Live Template & Color Preview Card -->
             <div class="card">
                 <div class="card-header">
-                    <div class="card-title" id="ui-preview-title">👁️ Preview em Tempo Real do Modelo LaTeX & Cores</div>
+                    <div class="card-title" id="ui-preview-title" role="heading" aria-level="2">👁️ Preview em Tempo Real do Modelo LaTeX & Cores</div>
                     <span class="pill-badge" id="preview-tpl-badge">ai_ats_max</span>
                 </div>
                 <div id="live-preview-box"></div>
@@ -1325,7 +1347,7 @@
             <!-- Result, Token Economy Metrics & PDF Viewer Card -->
             <div class="card">
                 <div class="card-header">
-                    <div class="card-title" id="ui-result-title">📑 Resultado, PDF Compilado & Economia de Tokens</div>
+                    <div class="card-title" id="ui-result-title" role="heading" aria-level="2">📑 Resultado, PDF Compilado & Economia de Tokens</div>
                 </div>
 
                 <div id="result-idle-msg" style="color:var(--text-muted);font-size:0.86rem;padding:0.5rem 0;">
@@ -1367,12 +1389,12 @@
                         <div id="pdf-toolbar">
                             <div style="display:flex;align-items:center;gap:0.35rem;">
                                 <button type="button" id="pdf-btn-prev" class="btn-toggle" style="padding:0.25rem 0.55rem;" title="Página Anterior" aria-label="Página Anterior">◀</button>
-                                <span id="pdf-page-display" style="font-weight:600;min-width:65px;text-align:center;">1 / 1</span>
+                                <span id="pdf-page-display" aria-live="polite" aria-atomic="true" style="font-weight:600;min-width:65px;text-align:center;">1 / 1</span>
                                 <button type="button" id="pdf-btn-next" class="btn-toggle" style="padding:0.25rem 0.55rem;" title="Próxima Página" aria-label="Próxima Página">▶</button>
                             </div>
                             <div style="display:flex;align-items:center;gap:0.35rem;">
                                 <button type="button" id="pdf-btn-zoom-out" class="btn-toggle" style="padding:0.25rem 0.55rem;" title="Reduzir Zoom" aria-label="Reduzir Zoom">−</button>
-                                <span id="pdf-zoom-display" style="font-weight:600;min-width:45px;text-align:center;">100%</span>
+                                <span id="pdf-zoom-display" aria-live="polite" aria-atomic="true" style="font-weight:600;min-width:45px;text-align:center;">100%</span>
                                 <button type="button" id="pdf-btn-zoom-in" class="btn-toggle" style="padding:0.25rem 0.55rem;" title="Aumentar Zoom" aria-label="Aumentar Zoom">+</button>
                                 <button type="button" id="pdf-btn-zoom-fit" class="btn-toggle" style="padding:0.25rem 0.55rem;" title="Ajustar à Tela" aria-label="Ajustar à Tela">Ajustar</button>
                             </div>
@@ -1397,10 +1419,10 @@
 
     <!-- Backend Connection Settings Modal -->
     <div id="backend-modal" class="modal-overlay hidden" onclick="if(event.target===this) closeBackendModal()">
-        <div class="modal-box">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="ui-backend-modal-title" aria-describedby="ui-backend-modal-desc" tabindex="-1">
             <div class="modal-header">
-                <div class="modal-title" id="ui-backend-modal-title">⚙️ Conexão com o Backend (Render / Local)</div>
-                <button type="button" class="modal-close" onclick="closeBackendModal()">✕</button>
+                <div class="modal-title" id="ui-backend-modal-title" role="heading" aria-level="2">⚙️ Conexão com o Backend (Render / Local)</div>
+                <button type="button" class="modal-close" onclick="closeBackendModal()" aria-label="Fechar configurações do backend">✕</button>
             </div>
             <div class="modal-body">
                 <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.9rem;" id="ui-backend-modal-desc">
@@ -1414,7 +1436,7 @@
                     <button type="button" class="btn-secondary" style="font-size:0.78rem;padding:0.35rem 0.65rem;" onclick="setBackendPreset('local')">🏠 Localhost (127.0.0.1:5000)</button>
                     <button type="button" class="btn-secondary" style="font-size:0.78rem;padding:0.35rem 0.65rem;" onclick="setBackendPreset('render')">☁️ Render (Padrão Protegido)</button>
                 </div>
-                <div id="backend-test-result" style="padding:0.6rem 0.8rem;border-radius:8px;font-size:0.8rem;display:none;margin-bottom:0.8rem;"></div>
+                <div id="backend-test-result" role="status" aria-live="polite" aria-atomic="true" style="padding:0.6rem 0.8rem;border-radius:8px;font-size:0.8rem;display:none;margin-bottom:0.8rem;"></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-secondary" id="btn-test-backend" onclick="testBackendModalConnection()">🔄 Testar Conexão</button>
@@ -1568,6 +1590,7 @@
                 pcolLbl: "Cor Principal",
                 scolLbl: "Cor Secundária",
                 step3: "Informações do Currículo",
+                skipToMain: "Pular para o conteúdo principal",
                 modeImportBtn: "📥 Importar Informações",
                 modeManualBtn: "✍️ Inserir Manualmente",
                 manSummaryLbl: "Resumo Profissional / Perfil",
@@ -1674,6 +1697,7 @@
                 pcolLbl: "Primary Color",
                 scolLbl: "Secondary Color",
                 step3: "Resume Information",
+                skipToMain: "Skip to main content",
                 modeImportBtn: "📥 Import Information",
                 modeManualBtn: "✍️ Manual Entry",
                 manSummaryLbl: "Professional Summary / Bio",
@@ -1762,6 +1786,30 @@
                 .replace(/"/g, '&quot;');
         }
 
+        let backendModalOpener = null;
+
+        function announceScreenReader(message) {
+            const status = document.getElementById("ui-screenreader-status");
+            if (!status) return;
+            status.textContent = "";
+            window.requestAnimationFrame(() => { status.textContent = message; });
+        }
+
+        function announceStructuredChange(section, count, added) {
+            const labels = {
+                education: { "pt-br": "Formação", "en-us": "Education" },
+                experience: { "pt-br": "Experiência", "en-us": "Experience" },
+                project: { "pt-br": "Projeto", "en-us": "Project" },
+                publication: { "pt-br": "Publicação", "en-us": "Publication" },
+                award: { "pt-br": "Prêmio ou certificação", "en-us": "Award or certification" }
+            };
+            const label = labels[section][state.uiLang];
+            const message = state.uiLang === "en-us"
+                ? `${label} ${added ? "added" : "removed"}. ${count} remaining.`
+                : `Registro de ${label.toLowerCase()} ${added ? "adicionado" : "removido"}. ${count} restante(s).`;
+            announceScreenReader(message);
+        }
+
         function addStructuredEducation(data = {}) {
             structIdSequence++;
             const id = structIdSequence;
@@ -1771,6 +1819,8 @@
             const count = list.children.length + 1;
             const card = document.createElement("div");
             card.className = "struct-card card-struct-edu";
+            card.setAttribute("role", "listitem");
+            card.setAttribute("aria-label", `${isEn ? "Education entry" : "Formação"} ${count}`);
             card.id = `card-struct-edu-${id}`;
             card.innerHTML = `
                 <div class="struct-card-header">
@@ -1798,13 +1848,17 @@
             `;
             list.appendChild(card);
             updateStructuredCardBadges("list-struct-education", isEn ? "Education" : "Formação");
+            announceStructuredChange("education", count, true);
             onStructuredInputChanged();
         }
 
         function removeStructuredEducation(id) {
             const card = document.getElementById(`card-struct-edu-${id}`);
             if (card) card.remove();
+            const list = document.getElementById("list-struct-education");
             updateStructuredCardBadges("list-struct-education", state.uiLang === "en-us" ? "Education" : "Formação");
+            (list?.querySelector(".btn-remove-card") || document.getElementById("btn-add-education"))?.focus();
+            announceStructuredChange("education", list?.children.length || 0, false);
             onStructuredInputChanged();
         }
 
@@ -1817,6 +1871,8 @@
             const count = list.children.length + 1;
             const card = document.createElement("div");
             card.className = "struct-card card-struct-exp";
+            card.setAttribute("role", "listitem");
+            card.setAttribute("aria-label", `${isEn ? "Experience entry" : "Experiência"} ${count}`);
             card.id = `card-struct-exp-${id}`;
             card.innerHTML = `
                 <div class="struct-card-header">
@@ -1848,13 +1904,17 @@
             `;
             list.appendChild(card);
             updateStructuredCardBadges("list-struct-experience", isEn ? "Experience" : "Experiência");
+            announceStructuredChange("experience", count, true);
             onStructuredInputChanged();
         }
 
         function removeStructuredExperience(id) {
             const card = document.getElementById(`card-struct-exp-${id}`);
             if (card) card.remove();
+            const list = document.getElementById("list-struct-experience");
             updateStructuredCardBadges("list-struct-experience", state.uiLang === "en-us" ? "Experience" : "Experiência");
+            (list?.querySelector(".btn-remove-card") || document.getElementById("btn-add-experience"))?.focus();
+            announceStructuredChange("experience", list?.children.length || 0, false);
             onStructuredInputChanged();
         }
 
@@ -1867,6 +1927,8 @@
             const count = list.children.length + 1;
             const card = document.createElement("div");
             card.className = "struct-card card-struct-proj";
+            card.setAttribute("role", "listitem");
+            card.setAttribute("aria-label", `${isEn ? "Project" : "Projeto"} ${count}`);
             card.id = `card-struct-proj-${id}`;
             card.innerHTML = `
                 <div class="struct-card-header">
@@ -1894,13 +1956,17 @@
             `;
             list.appendChild(card);
             updateStructuredCardBadges("list-struct-projects", isEn ? "Project" : "Projeto");
+            announceStructuredChange("project", count, true);
             onStructuredInputChanged();
         }
 
         function removeStructuredProject(id) {
             const card = document.getElementById(`card-struct-proj-${id}`);
             if (card) card.remove();
+            const list = document.getElementById("list-struct-projects");
             updateStructuredCardBadges("list-struct-projects", state.uiLang === "en-us" ? "Project" : "Projeto");
+            (list?.querySelector(".btn-remove-card") || document.getElementById("btn-add-project"))?.focus();
+            announceStructuredChange("project", list?.children.length || 0, false);
             onStructuredInputChanged();
         }
 
@@ -1913,6 +1979,8 @@
             const count = list.children.length + 1;
             const card = document.createElement("div");
             card.className = "struct-card card-struct-pub";
+            card.setAttribute("role", "listitem");
+            card.setAttribute("aria-label", `${isEn ? "Publication" : "Publicação"} ${count}`);
             card.id = `card-struct-pub-${id}`;
             card.innerHTML = `
                 <div class="struct-card-header">
@@ -1944,13 +2012,17 @@
             `;
             list.appendChild(card);
             updateStructuredCardBadges("list-struct-publications", isEn ? "Publication" : "Publicação");
+            announceStructuredChange("publication", count, true);
             onStructuredInputChanged();
         }
 
         function removeStructuredPublication(id) {
             const card = document.getElementById(`card-struct-pub-${id}`);
             if (card) card.remove();
+            const list = document.getElementById("list-struct-publications");
             updateStructuredCardBadges("list-struct-publications", state.uiLang === "en-us" ? "Publication" : "Publicação");
+            (list?.querySelector(".btn-remove-card") || document.getElementById("btn-add-publication"))?.focus();
+            announceStructuredChange("publication", list?.children.length || 0, false);
             onStructuredInputChanged();
         }
 
@@ -1963,6 +2035,8 @@
             const count = list.children.length + 1;
             const card = document.createElement("div");
             card.className = "struct-card card-struct-award";
+            card.setAttribute("role", "listitem");
+            card.setAttribute("aria-label", `${isEn ? "Award or certification" : "Prêmio ou certificação"} ${count}`);
             card.id = `card-struct-award-${id}`;
             card.innerHTML = `
                 <div class="struct-card-header">
@@ -1986,13 +2060,17 @@
             `;
             list.appendChild(card);
             updateStructuredCardBadges("list-struct-awards", isEn ? "Award" : "Premiação");
+            announceStructuredChange("award", count, true);
             onStructuredInputChanged();
         }
 
         function removeStructuredAward(id) {
             const card = document.getElementById(`card-struct-award-${id}`);
             if (card) card.remove();
+            const list = document.getElementById("list-struct-awards");
             updateStructuredCardBadges("list-struct-awards", state.uiLang === "en-us" ? "Award" : "Premiação");
+            (list?.querySelector(".btn-remove-card") || document.getElementById("btn-add-award"))?.focus();
+            announceStructuredChange("award", list?.children.length || 0, false);
             onStructuredInputChanged();
         }
 
@@ -2192,6 +2270,15 @@
         function applyTranslations() {
             const t = I18N[state.uiLang];
             document.documentElement.lang = state.uiLang === "en-us" ? "en-US" : "pt-BR";
+            document.getElementById("ui-skip-to-main").textContent = t.skipToMain;
+            const keyToggle = document.getElementById("btn-toggle-key");
+            const keyInput = document.getElementById("inp-api-key");
+            if (keyToggle && keyInput) {
+                const isRevealed = keyInput.classList.contains("revealed");
+                keyToggle.setAttribute("aria-label", state.uiLang === "en-us"
+                    ? (isRevealed ? "Hide API key" : "Show API key")
+                    : (isRevealed ? "Ocultar chave" : "Exibir chave"));
+            }
             document.getElementById("ui-app-title").textContent = t.appTitle;
             document.getElementById("ui-app-subtitle").textContent = t.appSubtitle;
             document.getElementById("btn-theme-switch").textContent = state.theme === "light" ? t.themeLight : t.themeDark;
@@ -2372,6 +2459,10 @@
             if (!inp || !btn) return;
             const isRevealed = inp.classList.toggle("revealed");
             btn.textContent = isRevealed ? "🙈" : "👁️";
+            btn.setAttribute("aria-pressed", String(isRevealed));
+            btn.setAttribute("aria-label", state.uiLang === "en-us"
+                ? (isRevealed ? "Hide API key" : "Show API key")
+                : (isRevealed ? "Ocultar chave" : "Exibir chave"));
         }
 
         function bufToB64(buf) {
@@ -3158,6 +3249,7 @@
 
         function openBackendModal() {
             const modal = document.getElementById("backend-modal");
+            backendModalOpener = document.activeElement;
             const inp = document.getElementById("inp-backend-url");
             const resBox = document.getElementById("backend-test-result");
             if (resBox) resBox.style.display = "none";
@@ -3175,13 +3267,41 @@
                     inp.value = isLocal ? "http://127.0.0.1:5000" : BackendEnclave.aliasLabel;
                 }
             }
-            if (modal) modal.classList.remove("hidden");
+            if (modal) {
+                modal.classList.remove("hidden");
+                modal.querySelector(".modal-box")?.focus();
+            }
         }
 
         function closeBackendModal() {
             const modal = document.getElementById("backend-modal");
             if (modal) modal.classList.add("hidden");
+            if (backendModalOpener?.isConnected) backendModalOpener.focus();
+            backendModalOpener = null;
         }
+
+        document.addEventListener("keydown", event => {
+            const modal = document.getElementById("backend-modal");
+            if (!modal || modal.classList.contains("hidden")) return;
+            if (event.key === "Escape") {
+                event.preventDefault();
+                closeBackendModal();
+                return;
+            }
+            if (event.key !== "Tab") return;
+            const modalBox = modal.querySelector(".modal-box");
+            const focusable = [...modal.querySelectorAll('button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])')];
+            if (!focusable.length) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && (document.activeElement === first || document.activeElement === modalBox)) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && (document.activeElement === last || document.activeElement === modalBox)) {
+                event.preventDefault();
+                first.focus();
+            }
+        });
 
         function setBackendPreset(type) {
             const inp = document.getElementById("inp-backend-url");
@@ -3334,6 +3454,7 @@
 
             btn.disabled = true;
             btnTxt.textContent = t.genLoading;
+            announceScreenReader(state.uiLang === "en-us" ? "Resume generation started." : "Geração do currículo iniciada.");
 
             try {
                 const providerVal = document.getElementById("inp-provider").value;
@@ -3545,6 +3666,9 @@
                 }
 
                 const hasPdf = data.success !== false && Boolean(data.pdf_base64);
+                announceScreenReader(hasPdf
+                    ? (state.uiLang === "en-us" ? "Resume generated successfully. PDF is ready." : "Currículo gerado. O PDF está pronto.")
+                    : (state.uiLang === "en-us" ? "Resume generated, but PDF compilation failed. See compilation status." : "Currículo gerado, mas a compilação do PDF falhou. Consulte o status da compilação."));
 
                 document.getElementById("result-idle-msg").classList.add("hidden");
                 document.getElementById("result-content").classList.remove("hidden");
@@ -3735,6 +3859,7 @@
                 }
             } catch (err) {
                 let errMsg = err?.message || (typeof err === "string" ? err : "Erro desconhecido / Unknown error");
+                announceScreenReader(state.uiLang === "en-us" ? "Resume generation failed. See the error message." : "Falha ao gerar o currículo. Consulte a mensagem de erro.");
                 const errStr = ((err?.name || "") + " " + errMsg + " " + String(err)).toLowerCase();
                 const isNetErr = (
                     errStr.includes("failed to fetch")

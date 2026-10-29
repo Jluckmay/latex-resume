@@ -110,6 +110,15 @@ def test_ui_theme_responsive_css():
     assert "@media (max-width: 820px)" in css
     assert ".st-brand-logo" in css
     assert "min-height: 44px" in css
+    assert ".stApp :focus-visible" in css
+    assert "outline-offset: 3px" in css
+
+
+def test_streamlit_preview_has_accessible_region_label():
+    app_text = (PROJECT_ROOT / "app.py").read_text(encoding="utf-8")
+    assert 'preview_markup = f\'<div role="region" aria-label="{preview_label}">' in app_text
+    assert 'if hasattr(st, "html"):' in app_text
+    assert "st.html(preview_markup)" in app_text
 
 
 def test_index_html_encrypted_transport_and_devtools_defense():
@@ -381,6 +390,22 @@ def test_all_form_fields_have_associated_labels_and_accessibility():
         violating.append((el.name, el_id, el_type))
 
     assert len(violating) == 0, f"Campos de formulário sem label associado: {violating}"
+
+
+def test_screen_reader_support_for_dynamic_controls_and_status():
+    html_text = (PROJECT_ROOT / "index.html").read_text(encoding="utf-8")
+    app_text = (PROJECT_ROOT / "app.py").read_text(encoding="utf-8")
+
+    assert 'href="#main-content"' in html_text
+    assert 'id="ui-screenreader-status" class="sr-only" role="status" aria-live="polite"' in html_text
+    assert html_text.count('card.setAttribute("role", "listitem")') == 5
+    assert "announceStructuredChange(section, count, added)" in html_text
+    assert 'aria-pressed="false"' in html_text
+    assert 'aria-pressed", String(isRevealed)' in html_text
+    assert 'role="dialog" aria-modal="true"' in html_text
+    assert 'event.key === "Escape"' in html_text
+    assert 'id="pdf-page-display" aria-live="polite"' in html_text
+    assert 'role="region" aria-label="{preview_label}"' in app_text
 
 
 def test_pdf_viewer_continuous_scroll_and_wheel_page_switching():

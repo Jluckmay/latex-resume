@@ -522,7 +522,12 @@ with col_right:
         lang=resume_lang,
         has_photo=True,
     )
-    st.markdown(preview_html, unsafe_allow_html=True)
+    preview_label = "Pré-visualização visual do currículo" if ui_lang == "pt-br" else "Resume visual preview"
+    preview_markup = f'<div role="region" aria-label="{preview_label}">{preview_html}</div>'
+    if hasattr(st, "html"):
+        st.html(preview_markup)
+    else:
+        st.markdown(preview_html, unsafe_allow_html=True)
 
     st.divider()
     st.subheader(txt["res_header"])
