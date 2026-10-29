@@ -283,7 +283,7 @@ MODELS_I18N: Dict[str, Dict[str, Dict[str, str]]] = {
 UI_TEXT: Dict[str, Dict[str, Any]] = {
     "pt-br": {
         "page_title": "Gerador de Currículos LaTeX — NVIDIA AI",
-        "app_title": "📄 Gerador Automático de Currículos LaTeX (NVIDIA NIM AI)",
+        "app_title": "Gerador de Currículo",
         "app_caption": (
             "Extração automática de GitHub, ORCID, Lattes e LinkedIn • Compilação PDF via LaTeX • "
             "Otimizado com Plugins de Economia de Tokens (Caveman + TOON + 0-Reasoning)"
@@ -460,7 +460,7 @@ UI_TEXT: Dict[str, Dict[str, Any]] = {
     },
     "en-us": {
         "page_title": "LaTeX Resume Generator — NVIDIA AI",
-        "app_title": "📄 Automatic LaTeX Resume Generator (NVIDIA NIM AI)",
+        "app_title": "Resume Generator",
         "app_caption": (
             "Automatic extraction from GitHub, ORCID, Lattes, LinkedIn & Portfolio • PDF compilation via LaTeX • "
             "Optimized with Token-Saving Plugins (Caveman + TOON + 0-Reasoning)"
