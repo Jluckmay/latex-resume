@@ -276,6 +276,51 @@ def test_tech_sidebar_uses_remaining_space_for_short_projects(tmp_path):
     assert "Scientific Publications" in reader.pages[0].extract_text()
 
 
+def test_tech_sidebar_uses_page_height_for_many_short_projects(tmp_path):
+    profile = {
+        **SAMPLE_MASSIVE_PROFILE,
+        "publications": [],
+        "projects": [
+            {
+                "name": f"Short-Project-{index}",
+                "tech": "Python",
+                "description": "Small utility for automated workflows.",
+            }
+            for index in range(1, 27)
+        ],
+    }
+    tex = render_builtin_template(
+        "tech_sidebar", profile, SAMPLE_LINKS, resume_type="profissional", lang="en-us"
+    )
+    tex_file = tmp_path / "tech_many_short_projects.tex"
+    tex_file.write_text(tex, encoding="utf-8")
+    res = subprocess.run(
+        ["pdflatex", "-interaction=nonstopmode", str(tex_file)],
+        cwd=str(tmp_path),
+        capture_output=True,
+        text=True,
+    )
+    assert res.returncode == 0, res.stdout[-600:]
+
+    page = pypdf.PdfReader(str(tmp_path / "tech_many_short_projects.pdf")).pages[0]
+    assert len(pypdf.PdfReader(str(tmp_path / "tech_many_short_projects.pdf")).pages) == 1
+    extracted_text = page.extract_text()
+    assert re.search(r"Short-Project-26\b", extracted_text)
+
+    text_positions = []
+
+    def collect_text_position(text, _cm, tm, _font_dict, _font_size):
+        if text.strip():
+            text_positions.append((tm[4], tm[5]))
+
+    page.extract_text(visitor_text=collect_text_position)
+    assert text_positions
+    sidebar_positions = [y_position for x_position, y_position in text_positions if x_position < 170]
+    main_positions = [y_position for x_position, y_position in text_positions if x_position >= 170]
+    assert min(sidebar_positions) < 100
+    assert min(main_positions) < 100
+
+
 def test_tech_sidebar_balanced_columns_layout():
     """Valida se o Tech Sidebar distribui Formação e Contatos na barra lateral e Experiência/Projetos no corpo principal."""
     tex = render_builtin_template(

@@ -1775,12 +1775,16 @@ def _build_skills_block(
     skills: List[Dict[str, Any]],
     lang: str = "pt-br",
     max_items: Optional[int] = None,
+    stretch_items: bool = False,
 ) -> str:
     if not skills:
         return ""
     t = LATEX_I18N[normalize_lang(lang)]
     lines = [rf"\section*{{{t['sec_skills']}}}"]
-    lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
+    item_spacing = "itemsep=1pt plus 1fill" if stretch_items else "noitemsep"
+    lines.append(
+        rf"\begin{{itemize}}[leftmargin=1.2em,{item_spacing},topsep=1pt,partopsep=0pt,parsep=0pt]"
+    )
     sks = skills[:max_items] if max_items else skills
     for sk in sks:
         if isinstance(sk, dict):
@@ -1961,7 +1965,9 @@ def _render_tech_sidebar(
 
     # 2. Contatos na barra lateral
     contact_items = _build_contact_links(links, cv.get("email", ""), cv.get("phone", ""), cv.get("location", ""), candidate_name=name)
-    sidebar_contacts = "\n\n".join(rf"\noindent{{\footnotesize {c}}}" for c in contact_items)
+    sidebar_contacts = "\n\n\\vspace{0pt plus 1fill}\n\n".join(
+        rf"\noindent{{\footnotesize {c}}}" for c in contact_items
+    )
 
     # 3. Formação Acadêmica na barra lateral (equilibra peso visual entre colunas)
     sidebar_edu = ""
@@ -1980,11 +1986,11 @@ def _render_tech_sidebar(
                 edu_entry.append(rf"{{\scriptsize\color{{sidecolor!70}} {per}}}")
             if det:
                 edu_entry.append(rf"{{\scriptsize {det}}}")
-            edu_lines.append(r"{\raggedright " + r"\\ ".join(edu_entry) + r"\par\vspace{3pt}}")
+            edu_lines.append(r"{\raggedright " + r"\\ ".join(edu_entry) + r"\par\vspace{3pt plus 1fill}}")
         sidebar_edu = "\n".join(edu_lines)
 
     # 4. Competências Técnicas na barra lateral
-    sidebar_skills = _build_skills_block(cv.get("skills") or [], lang)
+    sidebar_skills = _build_skills_block(cv.get("skills") or [], lang, stretch_items=True)
 
     # 5. Idiomas na barra lateral
     clean_langs = [str(x).strip() for x in (cv.get("languages") or []) if str(x).strip()][:4]
@@ -1993,7 +1999,7 @@ def _render_tech_sidebar(
         l_items = "\n".join(rf"    \item {{\footnotesize \raggedright {escape_latex(x)}}}" for x in clean_langs)
         sidebar_langs = (
             rf"\section*{{{t['sec_languages']}}}"
-            + f"\n\\begin{{itemize}}[leftmargin=1.1em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]\n{l_items}\n\\end{{itemize}}"
+            + f"\n\\begin{{itemize}}[leftmargin=1.1em,itemsep=1pt plus 1fill,topsep=1pt,partopsep=0pt,parsep=0pt]\n{l_items}\n\\end{{itemize}}"
         )
 
     # 6. Prêmios e Certificações na barra lateral
@@ -2003,7 +2009,7 @@ def _render_tech_sidebar(
         a_items = "\n".join(rf"    \item {{\footnotesize \raggedright {escape_latex(x)}}}" for x in clean_awards)
         sidebar_awards = (
             rf"\section*{{{t['sec_awards']}}}"
-            + f"\n\\begin{{itemize}}[leftmargin=1.1em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]\n{a_items}\n\\end{{itemize}}"
+            + f"\n\\begin{{itemize}}[leftmargin=1.1em,itemsep=1pt plus 1fill,topsep=1pt,partopsep=0pt,parsep=0pt]\n{a_items}\n\\end{{itemize}}"
         )
 
     # Resumo / Perfil na barra lateral (compacta o documento e equilibra o peso visual)
@@ -2030,7 +2036,7 @@ def _render_tech_sidebar(
     if sidebar_awards:
         sidebar_blocks.append(sidebar_awards)
 
-    sidebar_content = "\n\n".join(sidebar_blocks)
+    sidebar_content = "\n\n\\vspace{0pt plus 1fill}\n\n".join(sidebar_blocks)
 
     # 7. Coluna Principal (Main Body): Experience + Projects + Publications
     pubs = cv.get("publications") or []
@@ -2046,7 +2052,7 @@ def _render_tech_sidebar(
         len(cv.get("experience") or []),
         len(projs),
         len(pubs),
-        budget=55.0,
+        budget=65.0,
         weight_exp=3.8,
         weight_proj=1.2,
         weight_pub=1.5,
@@ -2079,16 +2085,16 @@ def _render_tech_sidebar(
                 exp_lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
                 for b in bullets:
                     exp_lines.append(rf"    \item {{\small {b}}}")
-                exp_lines.append(r"\end{itemize}\vspace{2pt}")
+                exp_lines.append(r"\end{itemize}\vspace{2pt plus 1fill}")
             else:
-                exp_lines.append(r"\par\vspace{3pt}")
+                exp_lines.append(r"\par\vspace{3pt plus 1fill}")
         exp_block = "\n".join(exp_lines)
 
     # Projetos
     proj_block = ""
     if has_projs and max_proj > 0:
         proj_lines = [rf"\section*{{{t['sec_proj_acad'] if resume_type == 'academico' else t['sec_proj_prof']}}}"]
-        proj_lines.append(r"\begin{itemize}[leftmargin=1.2em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
+        proj_lines.append(r"\begin{itemize}[leftmargin=1.2em,itemsep=1pt plus 1fill,topsep=1pt,partopsep=0pt,parsep=0pt]")
         for pj in projs[:max_proj]:
             nm = escape_latex(pj.get("name") or "").strip()
             if not nm:
@@ -2110,7 +2116,7 @@ def _render_tech_sidebar(
     pub_block = ""
     if has_pubs and max_pubs > 0:
         pub_lines = [rf"\section*{{{t['sec_publications']}}}"]
-        pub_lines.append(r"\begin{enumerate}[label=\arabic*.,leftmargin=1.5em,noitemsep,topsep=1pt,partopsep=0pt,parsep=0pt]")
+        pub_lines.append(r"\begin{enumerate}[label=\arabic*.,leftmargin=1.5em,itemsep=1pt plus 1fill,topsep=1pt,partopsep=0pt,parsep=0pt]")
         for pb in pubs[:max_pubs]:
             raw_t_p = pb.get("title") or ""
             title_p = escape_latex(raw_t_p).strip()
@@ -2153,7 +2159,7 @@ def _render_tech_sidebar(
     else:
         ordered = [exp_block, proj_block, pub_block]
 
-    main_body = "\n\n".join(b for b in ordered if b)
+    main_body = "\n\n\\vspace{0pt plus 1fill}\n\n".join(b for b in ordered if b)
 
     return rf"""\documentclass[10pt,a4paper]{{article}}
 \usepackage[utf8]{{inputenc}}
@@ -2174,7 +2180,7 @@ def _render_tech_sidebar(
 \input{{glyphtounicode}}
 \pdfgentounicode=1
 
-\raggedbottom
+\flushbottom
 \setlist{{noitemsep, topsep=1pt, parsep=0pt, partopsep=0pt}}
 \definecolor{{sidecolor}}{{HTML}}{{1E293B}}
 \definecolor{{accent}}{{HTML}}{{2563EB}}
@@ -2192,17 +2198,21 @@ def _render_tech_sidebar(
 
 \begin{{document}}
 \begin{{paracol}}{{2}}
+\begin{{minipage}}[t][\textheight][s]{{\linewidth}}
 \sloppy
 \raggedright
 {photo_tex}
 {{\Large\bfseries\color{{sidecolor}} {name}}}\\[2pt]
 {{\normalsize\itshape\color{{accent}} {prof_title}}}\\[6pt]
 {sidebar_content}
+\end{{minipage}}
 
 \switchcolumn
+\begin{{minipage}}[t][\textheight][s]{{\linewidth}}
 \sloppy
 
 {main_body}
+\end{{minipage}}
 
 \end{{paracol}}
 \end{{document}}
