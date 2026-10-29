@@ -223,10 +223,16 @@ def test_server_api_generate_with_manual_data(client):
 def test_ui_elements_for_manual_and_import_mode():
     """Valida se as interfaces index.html e app.py possuem os seletores e campos de importação vs manual."""
     html = Path("index.html").read_text(encoding="utf-8")
-    assert 'id="btn-mode-import"' in html
-    assert 'id="btn-mode-manual"' in html
+    assert 'id="btn-data-mode-toggle"' in html
+    assert 'onclick="toggleDataMode()"' in html
+    assert 'id="btn-mode-import"' not in html
+    assert 'id="btn-mode-manual"' not in html
     assert 'id="container-data-import"' in html
     assert 'id="container-data-manual"' in html
+    assert 'dataMode: "manual"' in html
+    assert 'style="display:none;">' in html[html.index('id="container-data-import"'):html.index('id="container-data-import"') + 100]
+    assert 'function toggleDataMode()' in html
+    assert 'Importação ou Manual' not in html
     assert 'id="inp-man-summary"' in html
     assert 'id="inp-man-education"' in html
     assert 'id="inp-man-experience"' in html
@@ -239,10 +245,13 @@ def test_ui_elements_for_manual_and_import_mode():
     assert 'data_source_mode: state.dataMode' in html
 
     app_py = Path("app.py").read_text(encoding="utf-8")
-    assert 'txt["data_mode_label"]' in app_py
+    assert 'st.session_state["data_mode"] = "manual"' in app_py
+    assert 'st.button(toggle_mode_label' in app_py
+    assert 'st.session_state["data_mode"] = "import" if is_manual_mode else "manual"' in app_py
+    assert 'st.rerun()' in app_py
     assert 'txt["mode_import_label"]' in app_py
     assert 'txt["mode_manual_label"]' in app_py
-    assert 'is_manual_mode = (data_mode == txt["mode_manual_label"])' in app_py
+    assert 'is_manual_mode = st.session_state["data_mode"] == "manual"' in app_py
     assert 'man_summary = st.text_area' in app_py
     assert 'man_edu = st.text_area' in app_py
     assert 'man_exp = st.text_area' in app_py

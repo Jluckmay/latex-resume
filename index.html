@@ -1018,7 +1018,7 @@
                 </div>
             </div>
 
-            <!-- Step 3: Informações do Currículo (Importação ou Manual) -->
+            <!-- Step 3: Informações do Currículo -->
             <div class="card">
                 <div class="card-header">
                     <div class="card-title">
@@ -1028,17 +1028,14 @@
                 </div>
 
                 <!-- Seletor do Modo de Entrada -->
-                <div style="display:flex;gap:0.75rem;margin-bottom:1.25rem;">
-                    <button type="button" class="btn btn-outline active" id="btn-mode-import" onclick="setDataMode('import')" style="flex:1;padding:0.65rem 0.75rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:0.5rem;cursor:pointer;border-radius:8px;">
-                        <span id="ui-mode-import-btn">📥 Importar Informações</span>
-                    </button>
-                    <button type="button" class="btn btn-outline" id="btn-mode-manual" onclick="setDataMode('manual')" style="flex:1;padding:0.65rem 0.75rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:0.5rem;cursor:pointer;border-radius:8px;">
-                        <span id="ui-mode-manual-btn">✍️ Inserir Manualmente</span>
+                <div style="display:flex;margin-bottom:1.25rem;">
+                    <button type="button" class="btn btn-outline" id="btn-data-mode-toggle" onclick="toggleDataMode()" style="width:100%;padding:0.65rem 0.75rem;font-weight:600;display:flex;align-items:center;justify-content:center;gap:0.5rem;cursor:pointer;border-radius:8px;">
+                        <span id="ui-mode-toggle-btn">📥 Importar Informações</span>
                     </button>
                 </div>
 
                 <!-- Container 1: Modo Importação (APIs & Arquivos) -->
-                <div id="container-data-import">
+                <div id="container-data-import" style="display:none;">
                     <div class="grid-2">
                         <div class="form-group">
                             <label for="inp-scholar" id="ui-scholar-lbl">Google Scholar (ID ou URL)</label>
@@ -1098,7 +1095,7 @@
                 </div>
 
                 <!-- Container 2: Modo Manual (Preenchimento Direto Estruturado) -->
-                <div id="container-data-manual" style="display:none;">
+                <div id="container-data-manual">
                     <div class="form-group">
                         <label for="inp-man-summary" id="ui-man-summary-lbl">Resumo Profissional / Perfil</label>
                         <textarea id="inp-man-summary" class="form-control" rows="3" placeholder="Ex: Especialista em tecnologia com sólida trajetória..." oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Resumo Profissional / Perfil"></textarea>
@@ -1570,7 +1567,7 @@
                 paletteLbl: "Paleta Predefinida",
                 pcolLbl: "Cor Principal",
                 scolLbl: "Cor Secundária",
-                step3: "Informações do Currículo (Importação ou Manual)",
+                step3: "Informações do Currículo",
                 modeImportBtn: "📥 Importar Informações",
                 modeManualBtn: "✍️ Inserir Manualmente",
                 manSummaryLbl: "Resumo Profissional / Perfil",
@@ -1676,7 +1673,7 @@
                 paletteLbl: "Color Palette Preset",
                 pcolLbl: "Primary Color",
                 scolLbl: "Secondary Color",
-                step3: "Resume Information (Import or Manual)",
+                step3: "Resume Information",
                 modeImportBtn: "📥 Import Information",
                 modeManualBtn: "✍️ Manual Entry",
                 manSummaryLbl: "Professional Summary / Bio",
@@ -1750,7 +1747,7 @@
             resumeType: "profissional",
             templateSource: "builtin",
             templateId: "ai_ats_max",
-            dataMode: "import",
+            dataMode: "manual",
             photoDataUrl: null
         };
 
@@ -2169,16 +2166,21 @@
 
         function setDataMode(mode) {
             state.dataMode = mode;
-            const btnImp = document.getElementById("btn-mode-import");
-            const btnMan = document.getElementById("btn-mode-manual");
+            const toggleLabel = document.getElementById("ui-mode-toggle-btn");
             const cImp = document.getElementById("container-data-import");
             const cMan = document.getElementById("container-data-manual");
-            if (btnImp) btnImp.classList.toggle("active", mode === "import");
-            if (btnMan) btnMan.classList.toggle("active", mode === "manual");
+            if (toggleLabel) {
+                const t = I18N[state.uiLang];
+                toggleLabel.textContent = mode === "manual" ? t.modeImportBtn : t.modeManualBtn;
+            }
             if (cImp) cImp.style.display = mode === "import" ? "block" : "none";
             if (cMan) cMan.style.display = mode === "manual" ? "block" : "none";
             if (mode === "manual") initStructuredManualInputs();
             renderLivePreview();
+        }
+
+        function toggleDataMode() {
+            setDataMode(state.dataMode === "manual" ? "import" : "manual");
         }
 
         function toggleTheme() {
@@ -2249,8 +2251,10 @@
             document.getElementById("ui-lattes-file-lbl").textContent = t.lattesFileLbl;
             document.getElementById("ui-li-pdf-lbl").textContent = t.liPdfLbl;
             document.getElementById("ui-extra-txt-lbl").textContent = t.extraTxtLbl;
-            if (document.getElementById("ui-mode-import-btn")) document.getElementById("ui-mode-import-btn").textContent = t.modeImportBtn;
-            if (document.getElementById("ui-mode-manual-btn")) document.getElementById("ui-mode-manual-btn").textContent = t.modeManualBtn;
+            const modeToggleLabel = document.getElementById("ui-mode-toggle-btn");
+            if (modeToggleLabel) {
+                modeToggleLabel.textContent = state.dataMode === "manual" ? t.modeImportBtn : t.modeManualBtn;
+            }
             if (document.getElementById("ui-man-summary-lbl")) document.getElementById("ui-man-summary-lbl").textContent = t.manSummaryLbl;
             if (document.getElementById("ui-man-edu-lbl")) document.getElementById("ui-man-edu-lbl").textContent = t.manEduLbl;
             if (document.getElementById("ui-man-exp-lbl")) document.getElementById("ui-man-exp-lbl").textContent = t.manExpLbl;
@@ -4065,6 +4069,7 @@
         );
 
         window.addEventListener("DOMContentLoaded", () => {
+            setDataMode(state.dataMode);
             initAutoPreferences();
             const inp = document.getElementById("inp-backend-url");
             if (inp) {

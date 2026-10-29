@@ -248,14 +248,16 @@ with col_left:
     # Aplica folha de estilo CSS do tema (Claro / Escuro) com a cor de destaque escolhida
     st.markdown(get_theme_css(active_theme, primary_color), unsafe_allow_html=True)
 
-    # Seção 2: Informações do Currículo (Importação ou Manual)
+    # Seção 2: Informações do Currículo
     st.subheader(txt["sec2_title"])
-    data_mode = st.radio(
-        txt["data_mode_label"],
-        options=[txt["mode_import_label"], txt["mode_manual_label"]],
-        horizontal=True,
-    )
-    is_manual_mode = (data_mode == txt["mode_manual_label"])
+    if "data_mode" not in st.session_state:
+        st.session_state["data_mode"] = "manual"
+    is_manual_mode = st.session_state["data_mode"] == "manual"
+    toggle_mode_label = txt["mode_import_label"] if is_manual_mode else txt["mode_manual_label"]
+    if st.button(toggle_mode_label, key="data-mode-toggle", use_container_width=True):
+        st.session_state["data_mode"] = "import" if is_manual_mode else "manual"
+        st.rerun()
+    is_manual_mode = st.session_state["data_mode"] == "manual"
     manual_data_dict: dict = {}
 
     if not is_manual_mode:

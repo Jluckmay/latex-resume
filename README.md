@@ -272,8 +272,8 @@ Você pode executar o gerador e compilar seus currículos inteiramente na sua m�
 #### 1. Preparação do Ambiente Local
 ```powershell
 # 1. Clonar o repositório
-git clone https://github.com/Jluckmay/latex-resume.git
-cd latex-resume
+git clone https://github.com/Jluckmay/resume-generator.git
+cd resume-generator
 
 # 2. Criar e ativar ambiente virtual Python (recomendado)
 python -m venv venv
@@ -360,13 +360,13 @@ python scripts/generate_direct_resume.py --lang pt-br --template modern_pro --gi
 python cli.py --lang pt-br --type profissional --template ai_ats_max --github octocat --review-only --output cv_revisado
 ```
 
-### 🌐 Guia de Uso da Aplicação Web Online (`https://github.com/Jluckmay/latex-resume`)
+### 🌐 Guia de Uso da Aplicação Web Online (`https://github.com/Jluckmay/resume-generator`)
 
 A aplicação web pode ser utilizada diretamente pela nuvem através do GitHub Pages e do backend no Render:
 
 #### 1. Acesso à Aplicação Web
-- **Repositório Oficial:** [`https://github.com/Jluckmay/latex-resume`](https://github.com/Jluckmay/latex-resume)
-- **Página Web Oficial (GitHub Pages):** [`https://jluckmay.github.io/latex-resume/`](https://jluckmay.github.io/latex-resume/) (ou integrada via [`https://jluckmay.github.io/`](https://jluckmay.github.io/))
+- **Repositório Oficial:** [`https://github.com/Jluckmay/resume-generator`](https://github.com/Jluckmay/resume-generator)
+- **Página Web Oficial (GitHub Pages):** [`https://jluckmay.github.io/resume-generator/`](https://jluckmay.github.io/resume-generator/) (ou integrada via [`https://jluckmay.github.io/`](https://jluckmay.github.io/))
 
 #### 2. Conectando a Interface Web ao Backend no Render
 1. Abra a página web oficial no navegador.
@@ -518,7 +518,7 @@ To run the generator and compile resumes into PDF, your environment must meet th
 The repository adheres to clean software engineering practices with strict modular separation:
 
 ```
-latex-resume/
+resume-generator/
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml              # Automated CI matrix test suite (Python 3.10, 3.11, 3.12)
@@ -597,14 +597,14 @@ The project is architected for strict separation between the Static Frontend (Gi
 
 ```mermaid
 flowchart LR
-    A["🌐 Official Web Frontend<br>(https://jluckmay.github.io/latex-resume/)"] -- "1. POST /api/generate<br>(Origin: https://jluckmay.github.io<br>+ Optional SECKEY_V1 Envelope)" --> B["🛡️ Render Backend<br>(Docker + pdflatex + Gunicorn)"]
+    A["🌐 Official Web Frontend<br>(https://jluckmay.github.io/resume-generator/)"] -- "1. POST /api/generate<br>(Origin: https://jluckmay.github.io<br>+ Optional SECKEY_V1 Envelope)" --> B["🛡️ Render Backend<br>(Docker + pdflatex + Gunicorn)"]
     B -- "2. Token-Saving LLM Synthesis<br>(TLS 1.3 + Zero-Storage Vault)" --> C["⚡ Multi-Provider AI Engine<br>(NVIDIA NIM / Gemini / Claude / OpenAI / DeepSeek)"]
     C -- "3. Structured JSON / TOON" --> B
     B -- "4. Sandboxed LaTeX Compilation<br>(-no-shell-escape + openin_any=p)" --> B
     B -- "5. Compiled PDF (Base64) + X-Backend-Attestation" --> A
 ```
 
-#### 1. Frontend Hosting on GitHub Pages (`https://jluckmay.github.io/latex-resume/`)
+#### 1. Frontend Hosting on GitHub Pages (`https://jluckmay.github.io/resume-generator/`)
 - Pushing to the `main` branch triggers GitHub Actions (`.github/workflows/deploy-pages.yml`) to automatically publish the standalone web UI (`index.html`) to GitHub Pages.
 - The frontend enforces a strict **Content Security Policy (CSP)** and mutual client attestation headers (`X-Resume-Client: jluckmay-github-pages-v1`).
 
@@ -680,8 +680,8 @@ You can run the entire resume generator and compile PDFs locally on your worksta
 #### 1. Local Environment Setup
 ```powershell
 # 1. Clone the repository
-git clone https://github.com/Jluckmay/latex-resume.git
-cd latex-resume
+git clone https://github.com/Jluckmay/resume-generator.git
+cd resume-generator
 
 # 2. Create and activate a Python virtual environment (recommended)
 python -m venv venv
