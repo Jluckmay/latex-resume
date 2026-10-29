@@ -100,10 +100,11 @@ with st.sidebar:
         prov_labels[label] = pid
 
     prov_title = "🧠 " + ("Provedor de IA" if ui_lang == "pt-br" else "AI Provider")
-    prov_options = list(prov_labels.keys())
+    # Remove "none" (offline) from Streamlit UI — only available via CLI/programmatic API
+    prov_options = [k for k, v in prov_labels.items() if v != "none"]
     default_prov_idx = prov_options.index(
-        next(k for k, v in prov_labels.items() if v == "none")
-    ) if "none" in prov_labels.values() else 0
+        next(k for k, v in prov_labels.items() if v == "default")
+    ) if "default" in prov_labels.values() else 0
     selected_prov_label = st.selectbox(
         prov_title,
         options=prov_options,
