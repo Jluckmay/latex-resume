@@ -189,6 +189,9 @@ def check_latex_compiler() -> Tuple[bool, str]:
             env=_build_safe_tex_env(),
         )
         first_line = (proc.stdout or "").splitlines()[0].strip() if proc.stdout else "pdflatex"
+        # Remove o trecho entre parênteses com distribuição (ex: "(TeX Live 2022/Debian)")
+        import re as _re
+        first_line = _re.sub(r"\s*\(TeX Live[^)]*\)", "", first_line).strip()
         return True, first_line
     except Exception:
         return False, "Erro ao verificar pdflatex / Error checking pdflatex"

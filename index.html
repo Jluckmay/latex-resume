@@ -3131,7 +3131,7 @@
                     <div style="width:67%;">
                         <div style="font-weight:700;font-size:10px;color:${pCol};border-bottom:1.5px solid ${pCol};margin-bottom:6px;">${lblExp}</div>
                         <div style="display:flex;justify-content:space-between;font-weight:700;font-size:10px;color:${sCol};">
-                            <span>${isEn ? defaultExpRoleEn : defaultExpRolePt}</span><span style="color:#64748b;font-weight:400;">2023–Present</span>
+                            <span>${isEn ? defaultExpRoleEn : defaultExpRolePt}</span><span style="color:#64748b;font-weight:400;">${isEn ? "2023–Present" : "2023–Atual"}</span>
                         </div>
                         <div style="font-size:9px;color:#334155;margin:3px 0 8px 8px;">${isEn ? defaultExpDescEn : defaultExpDescPt}</div>
                     </div>
@@ -3181,7 +3181,7 @@
                             <div style="position:relative;margin-bottom:8px;">
                                 <div style="width:8px;height:8px;border-radius:50%;background:${sCol};border:1.5px solid #fff;position:absolute;left:-18px;top:4px;"></div>
                                 <div style="display:flex;justify-content:space-between;font-weight:700;font-size:9.5px;color:#0f172a;">
-                                    <span>${isEn ? defaultExpRoleEn : defaultExpRolePt}</span><span style="color:#64748b;font-size:8px;">2023–Now</span>
+                                    <span>${isEn ? defaultExpRoleEn : defaultExpRolePt}</span><span style="color:#64748b;font-size:8px;">${isEn ? "2023–Now" : "2023–Agora"}</span>
                                 </div>
                                 <div style="color:${pCol};font-weight:600;font-size:8.5px;">Tech Innovations Inc.</div>
                                 <div style="color:#475569;font-size:8.5px;margin-top:2px;">${isEn ? defaultExpDescEn : defaultExpDescPt}</div>
@@ -3237,7 +3237,7 @@
                         <div style="font-size:9px;color:#52525b;margin-top:2px;">🌐 ${portDisp} | 🔗 ${liNick} | 🐙 ${ghNick} | 🆔 ${orcidId} | 📍 ${locVal}</div>
                     </div>
                     <div style="font-weight:800;font-size:9.5px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:5px;">${lblExp}</div>
-                    <div style="font-size:9.5px;color:#27272a;margin-bottom:8px;"><b>${isEn ? defaultExpRoleEn : defaultExpRolePt}</b> (2022–Present)<br>• ${isEn ? defaultExpDescEn.replace("• ", "") : defaultExpDescPt.replace("• ", "")}</div>
+                    <div style="font-size:9.5px;color:#27272a;margin-bottom:8px;"><b>${isEn ? defaultExpRoleEn : defaultExpRolePt}</b> (${isEn ? "2022–Present" : "2022–Atual"})<br>• ${isEn ? defaultExpDescEn.replace("• ", "") : defaultExpDescPt.replace("• ", "")}</div>
                     <div style="font-weight:800;font-size:9.5px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:5px;">${lblSk}</div>
                     <div style="font-size:9.5px;color:#27272a;">${isEn ? defaultSkillsEn : defaultSkillsPt}</div>
                 </div>`;
@@ -3258,16 +3258,16 @@
                     </div>
                             <div style="font-size:9.5px;color:#334155;margin-bottom:6px;">${roleVal} — ${isEn ? "UX Design, Information Security & AI" : "UX Design, Segurança da Informação & IA."}</div>
                     <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-                        <span style="font-weight:800;font-size:11px;"><span style="color:${pCol};">Hab</span><span style="color:${sCol};">ilidades</span></span>
+                                <span style="font-weight:800;font-size:11px;"><span style="color:${pCol};">Skills</span><span style="color:${sCol};">lls</span></span>
                         <div style="flex:1;height:1px;background:#94a3b8;"></div>
                     </div>
-                    <div style="font-size:9.5px;color:#334155;margin-bottom:6px;"><b>Programação:</b> Python, C/C++, JS, SQL &nbsp;•&nbsp; <b>Ferramentas:</b> Linux, LaTeX, Git</div>
+                            <div style="font-size:9.5px;color:#334155;margin-bottom:6px;"><b>${isEn ? "Programming:" : "Programação:"}</b> Python, C/C++, JS, SQL &nbsp;•&nbsp; <b>${isEn ? "Tools:" : "Ferramentas:"}</b> Linux, LaTeX, Git</div>
                     <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-                        <span style="font-weight:800;font-size:11px;"><span style="color:${pCol};">Idi</span><span style="color:${sCol};">omas</span></span>
+                                <span style="font-weight:800;font-size:11px;"><span style="color:${pCol};">Lang</span><span style="color:${sCol};">uages</span></span>
                         <div style="flex:1;height:1px;background:#94a3b8;"></div>
                     </div>
                     <div style="display:flex;justify-content:space-between;font-size:9.5px;">
-                                <span><b>Português</b> (${lblNativo})</span><span style="color:${pCol};">● ● ● ● ● ●</span>
+                                        <span><b>${isEn ? "Portuguese" : "Português"}</b> (${lblNativo})</span><span style="color:${pCol};">● ● ● ● ● ●</span>
                     </div>
                 </div>`;
             } else if (state.templateId === "overleaf_awesome_cv") {
@@ -3283,13 +3283,13 @@
                             <span style="font-weight:800;font-size:11px;"><span style="color:${pCol};">Ski</span><span style="color:${sCol};">lls</span></span>
                             <div style="flex:1;height:1px;background:#94a3b8;"></div>
                         </div>
-                        <div style="font-size:9.5px;color:#334155;margin-bottom:6px;"><b>Stack:</b> Python, LaTeX, FastAPI, NVIDIA NIM, Docker</div>
+                        <div style="font-size:9.5px;color:#334155;margin-bottom:6px;"><b>${isEn ? "Stack:" : "Stack:"}</b> Python, LaTeX, FastAPI, NVIDIA NIM, Docker</div>
                         <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
                             <span style="font-weight:800;font-size:11px;"><span style="color:${pCol};">Exp</span><span style="color:${sCol};">erience</span></span>
                             <div style="flex:1;height:1px;background:#94a3b8;"></div>
                         </div>
                         <div style="display:flex;justify-content:space-between;font-size:9.5px;font-weight:700;color:${sCol};">
-                            <span>${isEn ? defaultExpRoleEn : defaultExpRolePt}</span><span style="color:${pCol};font-style:italic;">2023–Present</span>
+                            <span>${isEn ? defaultExpRoleEn : defaultExpRolePt}</span><span style="color:${pCol};font-style:italic;">${isEn ? "2023–Present" : "2023–Atual"}</span>
                         </div>
                     </div>
                     <div style="display:flex;justify-content:space-between;font-size:8px;color:#94a3b8;border-top:1px solid #f1f5f9;padding-top:4px;margin-top:6px;">
@@ -3319,14 +3319,14 @@
                                 <span style="background:${sCol};color:#fff;border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;font-size:7px;">✏️</span>
                                 <span style="font-weight:800;font-size:9.5px;color:${pCol};">${lblWork}</span>
                             </div>
-                            <div style="font-size:8.5px;"><b>ML Engineer / 2023–Now</b><br><i>Keywords: Python, PyTorch, LaTeX</i></div>
+                            <div style="font-size:8.5px;"><b>${isEn ? "ML Engineer / 2023–Now" : "Engenheiro de ML / 2023–Agora"}</b><br><i>${isEn ? "Keywords:" : "Palavras-chave:"} Python, PyTorch, LaTeX</i></div>
                         </div>
                         <div>
                             <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;">
                                 <span style="background:${sCol};color:#fff;border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;font-size:7px;">🎓</span>
                                 <span style="font-weight:800;font-size:9.5px;color:${pCol};">${lblEdu}</span>
                             </div>
-                            <div style="font-size:8.5px;"><b>M.Sc. Computer Science</b><br>Thesis on Deep Neural Networks</div>
+                                <div style="font-size:8.5px;"><b>${isEn ? defaultEduTitleEn : defaultEduTitlePt}</b><br>${isEn ? "Thesis on Deep Neural Networks" : "Tese sobre Redes Neurais Profundas"}</div>
                         </div>
                     </div>
                 </div>`;
@@ -3360,13 +3360,13 @@
                             <div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span>Docker</span><span style="color:${pCol};">● ● ● ● ○</span></div>
                             <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>AWS</span><span style="color:${pCol};">● ● ● ○ ○</span></div>
                             <div style="font-weight:800;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};padding-bottom:2px;margin-bottom:4px;">${lblLanguages}</div>
-                            <div style="display:flex;justify-content:space-between;"><span>Português</span><span style="color:${pCol};">● ● ● ● ● ●</span></div>
-                            <div style="display:flex;justify-content:space-between;"><span>Inglês</span><span style="color:${pCol};">● ● ● ● ○ ○</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span>${isEn ? "Portuguese" : "Português"}</span><span style="color:${pCol};">● ● ● ● ● ●</span></div>
+                            <div style="display:flex;justify-content:space-between;"><span>${isEn ? "English" : "Inglês"}</span><span style="color:${pCol};">● ● ● ● ○ ○</span></div>
                         </div>
                         <div style="width:66%;padding:10px 12px;font-size:9px;">
                             <div style="font-weight:800;font-size:9.5px;color:${pCol};border-bottom:1px solid #cbd5e1;padding-bottom:2px;margin-bottom:4px;">${lblExp}</div>
                             <div style="display:flex;justify-content:space-between;font-weight:700;color:#0f172a;">
-                                <span>${isEn ? defaultExpRoleEn : defaultExpRolePt}</span><span style="color:#64748b;font-size:8px;">2021–Present</span>
+                                <span>${isEn ? defaultExpRoleEn : defaultExpRolePt}</span><span style="color:#64748b;font-size:8px;">${isEn ? "2021–Present" : "2021–Atual"}</span>
                             </div>
                             <div style="color:${pCol};font-weight:600;font-size:8.5px;margin-bottom:2px;">Tech Innovations Inc.</div>
                             <div style="color:#334155;font-size:8.5px;margin-bottom:6px;">
@@ -3385,7 +3385,7 @@
                     </div>
                     <div style="font-weight:800;font-size:9.5px;color:${sCol};border-bottom:1px solid ${pCol};margin-bottom:4px;letter-spacing:0.5px;">${isEn ? "EXPERIENCE" : "EXPERIÊNCIA"}</div>
                     <div style="display:flex;justify-content:space-between;font-size:9.5px;font-weight:700;color:${sCol};">
-                        <span>Google — ${isEn ? defaultExpRoleEn : defaultExpRolePt}</span><span style="color:#444746;">2022–Present</span>
+                        <span>Google — ${isEn ? defaultExpRoleEn : defaultExpRolePt}</span><span style="color:#444746;">${isEn ? "2022–Present" : "2022–Atual"}</span>
                     </div>
                     <div style="font-size:9px;color:#334155;margin:2px 0 6px 8px;">
                         • ${isEn ? "Designed distributed caching architecture reducing P99 latency by 42% across 10M daily active users.<br>• Built deterministic resume synthesis pipeline saving 78% tokens via NVIDIA NIM." : "Projetou arquitetura de cache distribuído reduzindo latência P99 em 42% em 10M de usuários ativos diários.<br>• Criou pipeline de síntese de currículos determinístico economizando 78% de tokens via NVIDIA NIM."}
@@ -3394,7 +3394,7 @@
                     <div style="display:flex;justify-content:space-between;font-size:9.5px;font-weight:700;color:${sCol};">
                         <span>Universidade de São Paulo (USP)</span><span style="color:#444746;">2018–2022</span>
                     </div>
-                    <div style="font-size:9px;color:#475569;font-style:italic;">B.S. in Computer Science — GPA: 3.9/4.0</div>
+                    <div style="font-size:9px;color:#475569;font-style:italic;">${isEn ? "B.S. in Computer Science" : "Bacharelado em Ciência da Computação"} — GPA: 3.9/4.0</div>
                     <div style="font-weight:800;font-size:9.5px;color:${sCol};border-bottom:1px solid ${pCol};margin:6px 0 4px 0;letter-spacing:0.5px;">${lblSk}</div>
                     <div style="font-size:9px;color:#334155;"><b>Languages & Cloud:</b> Python, Go, C++, SQL, TypeScript, GCP, Docker, Kubernetes</div>
                 </div>`;
@@ -3413,14 +3413,13 @@
                     </div>
                     <div style="font-weight:800;font-size:9px;color:${sCol};border-bottom:1px solid #cbd5e1;margin-bottom:3px;">${lblExp}</div>
                     <div style="display:flex;justify-content:space-between;font-size:9px;font-weight:700;">
-                        <span>Lead AI Architect | Enterprise Systems</span><span>2023–Present</span>
+                        <span>${isEn ? "Lead AI Architect | Enterprise Systems" : "Arquiteto de IA Líder | Sistemas Empresariais"}</span><span>${isEn ? "2023–Present" : "2023–Atual"}</span>
                     </div>
                     <div style="font-size:8.5px;color:#334155;margin:1px 0 5px 6px;">
-                        • Architected neural parsing pipelines processing 2M docs/day with 99.9% uptime.<br>
-                        • Engineered zero-leakage TLS 1.3 token vault for enterprise LLM infrastructure.
+                        • ${isEn ? "Architected neural parsing pipelines processing 2M docs/day with 99.9% uptime.<br>• Engineered zero-leakage TLS 1.3 token vault for enterprise LLM infrastructure." : "Arquiteto de pipelines de parsing neural processando 2M docs/dia com 99,9% de disponibilidade.<br>• Cofre de token TLS 1.3 sem vazamento para infraestrutura corporativa de LLM."}
                     </div>
                     <div style="font-weight:800;font-size:9px;color:${sCol};border-bottom:1px solid #cbd5e1;margin-bottom:3px;">${lblEdu}</div>
-                    <div style="font-size:8.5px;"><b>B.S. in Computer Science</b> — Universidade Federal (2018–2022)</div>
+                    <div style="font-size:8.5px;"><b>${isEn ? defaultEduTitleEn : defaultEduTitlePt}</b> — ${isEn ? "Federal University" : "Universidade Federal"} (2018–2022)</div>
                 </div>`;
             } else {
                 html = `
@@ -3435,11 +3434,11 @@
                     </div>
                     <div style="font-weight:700;font-size:10.5px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:5px;">${lblExp}</div>
                     <div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;color:${sCol};">
-                        <span>${isEn ? defaultExpRoleEn : defaultExpRolePt}</span><span style="color:#64748b;">2023–Present</span>
+                        <span>${isEn ? defaultExpRoleEn : defaultExpRolePt}</span><span style="color:#64748b;">${isEn ? "2023–Present" : "2023–Atual"}</span>
                     </div>
                     <div style="font-size:9.5px;color:#334155;margin:3px 0 8px 10px;">• ${isEn ? "Reduced LLM token consumption by 78% with Caveman & TOON plugins<br>• Multi-source extraction from GitHub, ORCID, Lattes & Portfolio" : "Redução de 78% no consumo de tokens de LLM com Caveman & TOON plugins<br>• Extração multi-fonte de GitHub, ORCID, Lattes & Portfólio"}</div>
                     <div style="font-weight:700;font-size:10.5px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:5px;">${lblSk}</div>
-                    <div style="font-size:9.5px;color:#334155;"><b>Stack:</b> Python, LaTeX, FastAPI, Flask, Streamlit, LLMOps</div>
+                    <div style="font-size:9.5px;color:#334155;"><b>${isEn ? "Stack:" : "Stack:"}</b> Python, LaTeX, FastAPI, Flask, Streamlit, LLMOps</div>
                 </div>`;
             }
             document.getElementById("live-preview-box").innerHTML = html;
