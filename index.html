@@ -115,6 +115,7 @@
             --shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
             --accent: #18181B;
             --accent-sec: #3F3F46;
+            --accent-rgb: 24, 24, 27;
         }
         :root[data-theme="dark"] {
             --bg-body: #0b0f19;
@@ -127,6 +128,7 @@
             --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
             --accent: #38bdf8;
             --accent-sec: #cbd5e1;
+            --accent-rgb: 56, 189, 248;
         }
         * {
             box-sizing: border-box;
@@ -141,20 +143,240 @@
             transition: background-color 0.2s ease, color 0.2s ease;
             -webkit-font-smoothing: antialiased;
         }
-        /* Top Navigation Bar */
-        .navbar {
+        /* Sidebar (replaces top navigation bar) */
+        .sidebar {
             background-color: var(--bg-card);
-            border-bottom: 1px solid var(--border);
-            padding: 0.85rem clamp(1rem, 3vw, 2rem);
+            border-right: 1px solid var(--border);
+            padding: 1rem clamp(1rem, 3vw, 1.5rem);
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: sticky;
+            flex-direction: column;
+            gap: 0.85rem;
+            position: fixed;
             top: 0;
+            left: 0;
+            height: 100vh;
+            overflow-y: auto;
             z-index: 50;
             box-shadow: var(--shadow);
-            flex-wrap: wrap;
-            gap: 0.85rem;
+            width: clamp(260px, 22vw, 340px);
+            flex-shrink: 0;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .sidebar::-webkit-scrollbar {
+            display: none;
+            width: 0;
+            height: 0;
+        }
+        /* Discreet page scrollbar */
+        html,
+        body {
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-sec) transparent;
+        }
+        body::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+            background: transparent;
+        }
+        body::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        body::-webkit-scrollbar-thumb {
+            background-color: rgba(var(--accent-rgb, 24, 24, 27), 0.35);
+            border-radius: 10px;
+            border: 2px solid transparent;
+            background-clip: content-box;
+        }
+        body::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(var(--accent-rgb, 24, 24, 27), 0.55);
+        }
+        .container {
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent-sec) transparent;
+        }
+        .container::-webkit-scrollbar {
+            width: 6px;
+            background: transparent;
+        }
+        .container::-webkit-scrollbar-thumb {
+            background-color: rgba(var(--accent-rgb, 24, 24, 27), 0.35);
+            border-radius: 10px;
+        }
+        .container::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(var(--accent-rgb, 24, 24, 27), 0.55);
+        }
+        /* Reduced motion for accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+        .sidebar .brand {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+        }
+        .sidebar .brand-logo {
+            width: 40px;
+            height: 40px;
+        }
+        .sidebar .brand-title {
+            font-size: 1.05rem;
+        }
+        .sidebar .brand-subtitle {
+            font-size: 0.78rem;
+        }
+        .sidebar .nav-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            width: 100%;
+        }
+        .sidebar .pill-badge {
+            width: 100%;
+            justify-content: flex-start;
+        }
+        .sidebar .btn-toggle,
+        .sidebar select.btn-toggle {
+            width: 100%;
+            justify-content: flex-start;
+            text-align: left;
+        }
+        .sidebar .btn-sidebar-discreet {
+            width: auto !important;
+            padding: 0.35rem 0.5rem !important;
+            font-size: 0.75rem !important;
+            opacity: 0.7;
+            margin-left: auto;
+        }
+        .sidebar .btn-sidebar-discreet:hover {
+            opacity: 1;
+        }
+        .sidebar .sidebar-generate-btn {
+            width: 100%;
+            justify-content: center;
+            font-size: 0.9rem;
+            padding: 0.75rem 1rem;
+            margin-top: 0.5rem;
+        }
+        .sidebar.collapsed {
+            width: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+            border-right: none !important;
+            box-shadow: none !important;
+        }
+        .sidebar.collapsed .brand,
+        .sidebar.collapsed .nav-controls,
+        .sidebar.collapsed .sidebar-section,
+        .sidebar.collapsed .sidebar-generate-btn {
+            display: none !important;
+        }
+        .container.sidebar-collapsed {
+            margin-left: clamp(0.75rem, 2vw, 1.5rem) !important;
+        }
+        .sidebar-reopen {
+            position: fixed;
+            top: 1rem;
+            left: 0.5rem;
+            z-index: 60;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            display: none;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        body.sidebar-collapsed .sidebar-reopen {
+            display: inline-flex;
+        }
+        .sidebar-generate-float {
+            position: fixed;
+            top: 1rem;
+            left: 5.5rem;
+            z-index: 60;
+            display: none;
+            flex-direction: row;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.65rem 1rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            box-shadow: var(--shadow);
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        body.sidebar-collapsed .sidebar-generate-float {
+            display: inline-flex;
+        }
+        .sidebar-section {
+            border-top: 1px solid var(--border);
+            padding-top: 0.75rem;
+            margin-top: 0.75rem;
+        }
+        .sidebar-section-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .sidebar .form-group {
+            margin-bottom: 0.6rem;
+        }
+        .sidebar .form-group label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        .sidebar .form-control {
+            font-size: 0.82rem;
+            padding: 0.45rem 0.65rem;
+            min-height: 36px;
+        }
+        .sidebar .plugin-toggles {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .sidebar .plugin-toggles label {
+            font-size: 0.76rem;
+            gap: 0.4rem;
+            margin-bottom: 0;
+        }
+        .sidebar .security-note {
+            background-color: var(--bg-subtle);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.5rem 0.7rem;
+            margin-top: 0.6rem;
+            margin-bottom: 0.9rem;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
         }
         .brand {
             display: flex;
@@ -185,6 +407,11 @@
             flex-shrink: 0;
         }
         .brand-text {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.4rem;
+            flex: 1;
             min-width: 0;
         }
         .brand-title {
@@ -263,7 +490,7 @@
         /* Main Grid Layout */
         .container {
             max-width: 1440px;
-            margin: clamp(0.75rem, 2vw, 1.5rem) auto;
+            margin: clamp(0.75rem, 2vw, 1.5rem) clamp(0.75rem, 2.5vw, 1.5rem) clamp(0.75rem, 2vw, 1.5rem) clamp(300px, 26vw, 380px);
             padding: 0 clamp(0.75rem, 2.5vw, 1.5rem);
             display: grid;
             grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
@@ -657,7 +884,7 @@
             position: fixed;
             z-index: 10001;
             top: 0.75rem;
-            left: 0.75rem;
+            left: clamp(320px, 28vw, 420px);
             width: auto;
             height: auto;
             margin: 0;
@@ -825,8 +1052,40 @@
 
         /* Responsive Media Queries */
         @media (max-width: 820px) {
-            .navbar {
+            .sidebar {
+                position: static;
+                height: auto;
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
+                flex-direction: row;
+                flex-wrap: wrap;
+                overflow-y: visible;
                 padding: 0.75rem 1rem;
+            }
+            .sidebar .brand {
+                flex-direction: row;
+                align-items: center;
+                gap: 0.75rem;
+            }
+            .sidebar .nav-controls {
+                flex-direction: row;
+                width: auto;
+                flex: 1;
+                justify-content: flex-start;
+                gap: 0.45rem;
+            }
+            .sidebar .pill-badge,
+            .sidebar .btn-toggle,
+            .sidebar select.btn-toggle {
+                width: auto;
+            }
+            .sidebar .sidebar-generate-btn {
+                width: auto;
+                margin-top: 0;
+            }
+            .skip-link:focus {
+                left: 0.75rem;
             }
             .brand-title {
                 white-space: normal;
@@ -834,10 +1093,8 @@
             .brand-subtitle {
                 white-space: normal;
             }
-            .nav-controls {
-                width: 100%;
-                justify-content: flex-start;
-                gap: 0.45rem;
+            .container {
+                margin-left: 0;
             }
             .grid-3 {
                 grid-template-columns: 1fr;
@@ -884,32 +1141,111 @@
             .metric-val {
                 font-size: 0.95rem;
             }
+            .sidebar-reopen {
+                left: 0.4rem;
+                padding: 0.4rem 0.6rem;
+                font-size: 0.8rem;
+            }
+            .sidebar-generate-float {
+                left: 4.2rem;
+                padding: 0.5rem 0.8rem;
+                font-size: 0.85rem;
+            }
         }
     </style>
 </head>
 <body>
 
-    <!-- Top Navigation Bar -->
-    <header class="navbar">
+    <!-- Sidebar -->
+    <aside class="sidebar" aria-label="Navegação Principal">
         <div class="brand">
-            <img src="assets/icons/favicon.svg" alt="LaTeX Resume" class="brand-logo" onerror="this.onerror=null;this.src='assets/icons/favicon.png';">
-            <div class="brand-text">
-                <div class="brand-title" id="ui-app-title" role="heading" aria-level="1">Gerador de Currículo</div>
-                <div class="brand-subtitle" id="ui-app-subtitle">Extração GitHub, ORCID, Lattes, LinkedIn & Portfólio • Economia de Tokens Caveman + TOON</div>
+            <div class="brand-text" style="display:flex;flex-direction:column;align-items:center;gap:0.4rem;flex:1;min-width:0;">
+                <img src="assets/icons/favicon.svg" alt="LaTeX Resume" class="brand-logo" onerror="this.onerror=null;this.src='assets/icons/favicon.png';">
+                <div>
+                    <div class="brand-title" id="ui-app-title" role="heading" aria-level="1">Gerador de Currículo</div>
+                    <div class="brand-subtitle" id="ui-app-subtitle">Extração GitHub, ORCID, Lattes, LinkedIn & Portfólio • Economia de Tokens Caveman + TOON</div>
+                </div>
             </div>
+            <button type="button" class="btn-toggle btn-sidebar-discreet" id="btn-sidebar-toggle" onclick="toggleSidebar()" title="Ocultar/Mostrar barra lateral" aria-label="Ocultar/Mostrar barra lateral" aria-pressed="false">◀</button>
         </div>
+        <button type="button" class="btn-primary sidebar-generate-btn" id="btn-generate" onclick="generateResume()" aria-describedby="ui-screenreader-status">
+            <span id="ui-gen-btn-txt">🚀 Gerar Currículo</span>
+        </button>
         <div class="nav-controls">
             <span class="pill-badge" id="ui-latex-badge" role="status" aria-live="polite">⏳ Conectando backend...</span>
             <button type="button" class="btn-toggle" id="btn-backend-settings" onclick="openBackendModal()" title="Configurações do Servidor Backend">⚙️ <span id="ui-backend-lbl">Backend</span></button>
-            <label for="resume-lang-select" class="sr-only" id="ui-resume-lang-lbl">Idioma de Saída do Currículo (Resume Output Language)</label>
-            <select id="resume-lang-select" class="btn-toggle" title="Resume Output Language" aria-label="Idioma de Saída do Currículo (Resume Output Language)">
-                <option value="pt-br">📝 PDF: Português (pt-BR)</option>
-                <option value="en-us">📝 PDF: English (en-US)</option>
-            </select>
+            <button type="button" class="btn-toggle" id="resume-lang-select" onclick="toggleResumeLang()" title="Resume Output Language" aria-label="Idioma de Saída do Currículo (Resume Output Language)" data-value="pt-br" aria-pressed="false">📝 <span id="ui-resume-lang-text">PDF: Português (pt-BR)</span></button>
             <button type="button" class="btn-toggle" id="btn-lang-switch" onclick="toggleLanguage()">🌐 PT-BR / EN-US</button>
             <button type="button" class="btn-toggle" id="btn-theme-switch" onclick="toggleTheme()" aria-label="Alternar tema claro/escuro">☀️ Claro</button>
         </div>
-    </header>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">🤖 IA & Provedor</div>
+            <div class="form-group">
+                <label for="inp-provider" id="ui-provider-lbl">Provedor de IA</label>
+                <select id="inp-provider" class="form-control" onchange="onProviderChange()" aria-label="Provedor de IA">
+                    <option value="default">⚡ NVIDIA NIM (Padrão do Servidor — Sem chave)</option>
+                    <option value="none">🚀 Sem IA / Offline (0 Tokens — Extração Direta)</option>
+                    <option value="nvidia">🟢 NVIDIA NIM (Chave própria)</option>
+                    <option value="google">🔵 Google Gemini (Chave própria)</option>
+                    <option value="claude">🟣 Anthropic Claude (Chave própria)</option>
+                    <option value="openai">🟢 OpenAI (Chave própria)</option>
+                    <option value="deepseek">🔷 DeepSeek (Chave própria)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="inp-model" id="ui-model-lbl">Modelo de IA</label>
+                <select id="inp-model" class="form-control" aria-label="Modelo de IA"></select>
+            </div>
+            <div class="form-group">
+                <label for="inp-api-key" id="ui-api-key-lbl">Chave de API do Provedor (Opcional)</label>
+                <div style="position:relative;display:flex;align-items:center;">
+                    <input type="text" id="inp-api-key" class="form-control masked-key" style="padding-right:2.4rem;" placeholder="Padrão seguro do servidor ativo" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" autocorrect="off" autocapitalize="off" aria-autocomplete="none" aria-label="Chave de API do Provedor (Opcional)">
+                    <button type="button" id="btn-toggle-key" onclick="toggleKeyVisibility()" style="position:absolute;right:8px;background:none;border:none;cursor:pointer;font-size:0.95rem;color:var(--text-muted);" title="Exibir/Ocultar chave" aria-label="Exibir chave" aria-controls="inp-api-key" aria-pressed="false">👁️</button>
+                </div>
+            </div>
+            <div class="security-note">
+                <span style="font-size:1rem;">🔒</span>
+                <span id="ui-key-sec-note"><b>Segurança Zero-Storage:</b> Chaves próprias são criptografadas no navegador (AES-256-GCM efêmero), isoladas na memória RAM volátil durante a requisição e destruídas imediatamente com bytes nulos (0x00). Nunca são salvas em disco ou cookies.</span>
+            </div>
+            <div class="form-group" id="group-ai-mode" style="margin-top:-0.3rem;margin-bottom:0.6rem;">
+                <label for="chk-review-only" style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;font-size:0.8rem;color:var(--text-main);">
+                    <input type="checkbox" id="chk-review-only" style="cursor:pointer;width:16px;height:16px;" checked aria-label="Modo Apenas Revisão de LaTeX e Conteúdo">
+                    <span id="ui-review-only-lbl">⚡ <b>Modo Apenas Revisão:</b> Gerar direto via extratores e usar IA para revisar código LaTeX e textos (Economiza ~75% de tokens)</span>
+                </label>
+            </div>
+            <div class="plugin-toggles">
+                <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.78rem;color:var(--text-main);margin-bottom:0.3rem;">
+                    <input type="checkbox" id="chk-plugin-caveman" checked style="cursor:pointer;width:16px;height:16px;">
+                    <span>⚡ <b>CavemanPromptPlugin</b> — diretivas ultra-concisas sem preâmbulo (~-65% menos tokens)</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.78rem;color:var(--text-main);margin-bottom:0.3rem;">
+                    <input type="checkbox" id="chk-plugin-thinking" checked style="cursor:pointer;width:16px;height:16px;">
+                    <span>🧠 <b>ThinkingSuppression</b> — `enable_thinking=False` (0 tokens gastos em CoT oculto)</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.78rem;color:var(--text-main);margin-bottom:0.3rem;">
+                    <input type="checkbox" id="chk-plugin-toon" checked style="cursor:pointer;width:16px;height:16px;">
+                    <span>🗜️ <b>TOONContextPruner</b> — minificação tabular e deduplicação local ORCID/Lattes</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.78rem;color:var(--text-main);margin-bottom:0.3rem;">
+                    <input type="checkbox" id="chk-plugin-shortkey" checked style="cursor:pointer;width:16px;height:16px;">
+                    <span>🔑 <b>ShortKeySchema</b> — chaves JSON de 1–2 letras na geração</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.78rem;color:var(--text-main);margin-bottom:0.3rem;">
+                    <input type="checkbox" id="chk-plugin-preamble" checked style="cursor:pointer;width:16px;height:16px;">
+                    <span>🔒 <b>LaTeXPreambleSplit</b> — separa preâmbulo fixo de templates `.tex`</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.78rem;color:var(--text-main);margin-bottom:0.3rem;">
+                    <input type="checkbox" id="chk-plugin-cache" checked style="cursor:pointer;width:16px;height:16px;">
+                    <span>💾 <b>SHA256Cache</b> — cache local de tokens (0 tokens em reuso)</span>
+                </label>
+            </div>
+        </div>
+    </aside>
+    <button type="button" class="sidebar-reopen" id="btn-sidebar-reopen" onclick="toggleSidebar()" title="Mostrar barra lateral" aria-label="Mostrar barra lateral">☰ Menu</button>
+    <button type="button" class="sidebar-generate-float" id="btn-generate-float" onclick="generateResume()" aria-describedby="ui-screenreader-status">
+        <span id="ui-gen-btn-txt-float">🚀 Gerar Currículo</span>
+    </button>
 
     <!-- Main Content Container -->
     <a class="sr-only skip-link" href="#main-content" id="ui-skip-to-main">Pular para o conteúdo principal</a>
@@ -1046,6 +1382,30 @@
                     <div class="card-title">
                         <span class="step-num">3</span>
                         <span id="ui-step3-title" role="heading" aria-level="2">Informações do Currículo</span>
+                    </div>
+                </div>
+
+                <!-- Dados Pessoais (movido da Sessão 4) -->
+                <div class="grid-2" style="margin-top:1rem;">
+                    <div class="form-group">
+                        <label for="inp-name" id="ui-name-lbl">Nome Completo (opcional)</label>
+                        <input type="text" id="inp-name" class="form-control" placeholder="Detectado automaticamente se vazio" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Nome Completo (opcional)">
+                    </div>
+                    <div class="form-group">
+                        <label for="inp-role" id="ui-role-lbl">Cargo / Título Principal (opcional)</label>
+                        <input type="text" id="inp-role" class="form-control" placeholder="Ex: Engenheiro de IA Sênior / Pesquisador" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Cargo / Título Principal (opcional)">
+                    </div>
+                    <div class="form-group">
+                        <label for="inp-email" id="ui-email-lbl">E-mail</label>
+                        <input type="text" inputmode="email" id="inp-email" class="form-control" placeholder="seu.email@dominio.com" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="E-mail">
+                    </div>
+                    <div class="form-group">
+                        <label for="inp-location" id="ui-loc-lbl">Cidade / UF / País</label>
+                        <input type="text" id="inp-location" class="form-control" placeholder="São Paulo, SP, Brasil" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Cidade / UF / País">
+                    </div>
+                    <div class="form-group">
+                        <label for="inp-phone" id="ui-phone-lbl">Telefone</label>
+                        <input type="text" id="inp-phone" class="form-control" placeholder="+55 (11) 99999-9999" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Telefone">
                     </div>
                 </div>
 
@@ -1247,108 +1607,7 @@
                             </div>
                         </div>
                     </div>
-                </div>                </div>
-            </div>
-
-            <!-- Step 4: Dados Pessoais & Motor de IA Multi-Provedor -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">
-                        <span class="step-num">4</span>
-                        <span id="ui-step4-title" role="heading" aria-level="2">Cabeçalho Pessoal, Provedor de IA & Chave Opcional</span>
-                    </div>
                 </div>
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label for="inp-name" id="ui-name-lbl">Nome Completo (opcional)</label>
-                        <input type="text" id="inp-name" class="form-control" placeholder="Detectado automaticamente se vazio" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Nome Completo (opcional)">
-                    </div>
-                    <div class="form-group">
-                        <label for="inp-role" id="ui-role-lbl">Cargo / Título Principal (opcional)</label>
-                        <input type="text" id="inp-role" class="form-control" placeholder="Ex: Engenheiro de IA Sênior / Pesquisador" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Cargo / Título Principal (opcional)">
-                    </div>
-                    <div class="form-group">
-                        <label for="inp-email" id="ui-email-lbl">E-mail</label>
-                        <input type="text" inputmode="email" id="inp-email" class="form-control" placeholder="seu.email@dominio.com" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="E-mail">
-                    </div>
-                    <div class="form-group">
-                        <label for="inp-location" id="ui-loc-lbl">Cidade / UF / País</label>
-                        <input type="text" id="inp-location" class="form-control" placeholder="São Paulo, SP, Brasil" oninput="renderLivePreview()" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Cidade / UF / País">
-                    </div>
-                    <div class="form-group">
-                        <label for="inp-phone" id="ui-phone-lbl">Telefone</label>
-                        <input type="text" id="inp-phone" class="form-control" placeholder="+55 (11) 99999-9999" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" aria-label="Telefone">
-                    </div>
-                    <div class="form-group">
-                        <label for="inp-provider" id="ui-provider-lbl">Provedor de IA</label>
-                        <select id="inp-provider" class="form-control" onchange="onProviderChange()" aria-label="Provedor de IA">
-                            <option value="default">⚡ NVIDIA NIM (Padrão do Servidor — Sem chave)</option>
-                            <option value="none">🚀 Sem IA / Offline (0 Tokens — Extração Direta)</option>
-                            <option value="nvidia">🟢 NVIDIA NIM (Chave própria)</option>
-                            <option value="google">🔵 Google Gemini (Chave própria)</option>
-                            <option value="claude">🟣 Anthropic Claude (Chave própria)</option>
-                            <option value="openai">🟢 OpenAI (Chave própria)</option>
-                            <option value="deepseek">🔷 DeepSeek (Chave própria)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="grid-2">
-                    <div class="form-group">
-                        <label for="inp-model" id="ui-model-lbl">Modelo de IA</label>
-                        <select id="inp-model" class="form-control" aria-label="Modelo de IA"></select>
-                    </div>
-                    <div class="form-group">
-                        <label for="inp-api-key" id="ui-api-key-lbl">Chave de API do Provedor (Opcional)</label>
-                        <div style="position:relative;display:flex;align-items:center;">
-                            <input type="text" id="inp-api-key" class="form-control masked-key" style="padding-right:2.4rem;" placeholder="Padrão seguro do servidor ativo" autocomplete="off" data-lpignore="true" data-1p-ignore="true" data-bwignore="true" data-form-type="other" spellcheck="false" autocorrect="off" autocapitalize="off" aria-autocomplete="none" aria-label="Chave de API do Provedor (Opcional)">
-                            <button type="button" id="btn-toggle-key" onclick="toggleKeyVisibility()" style="position:absolute;right:8px;background:none;border:none;cursor:pointer;font-size:0.95rem;color:var(--text-muted);" title="Exibir/Ocultar chave" aria-label="Exibir chave" aria-controls="inp-api-key" aria-pressed="false">👁️</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group" id="group-ai-mode" style="margin-top:-0.3rem;margin-bottom:0.85rem;">
-                    <label for="chk-review-only" style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-weight:normal;font-size:0.84rem;color:var(--text-main);">
-                        <input type="checkbox" id="chk-review-only" style="cursor:pointer;width:16px;height:16px;" checked aria-label="Modo Apenas Revisão de LaTeX e Conteúdo">
-                        <span id="ui-review-only-lbl">⚡ <b>Modo Apenas Revisão:</b> Gerar direto via extratores e usar IA para revisar código LaTeX e textos (Economiza ~75% de tokens)</span>
-                    </label>
-                </div>
-
-                <div style="background-color:var(--bg-subtle);border:1px solid var(--border);border-radius:8px;padding:0.6rem 0.85rem;margin-bottom:1rem;font-size:0.75rem;color:var(--text-muted);display:flex;align-items:center;gap:0.5rem;">
-                    <span style="font-size:1.1rem;">🔒</span>
-                    <span id="ui-key-sec-note"><b>Segurança Zero-Storage:</b> Chaves próprias são criptografadas no navegador (AES-256-GCM efêmero), isoladas na memória RAM volátil durante a requisição e destruídas imediatamente com bytes nulos (0x00). Nunca são salvas em disco ou cookies.</span>
-                </div>
-
-                <div class="plugin-toggles" style="margin-bottom:1rem;">
-                    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.82rem;color:var(--text-main);margin-bottom:0.4rem;">
-                        <input type="checkbox" id="chk-plugin-caveman" checked style="cursor:pointer;width:16px;height:16px;">
-                        <span>⚡ <b>CavemanPromptPlugin</b> — diretivas ultra-concisas sem preâmbulo (~-65% menos tokens)</span>
-                    </label>
-                    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.82rem;color:var(--text-main);margin-bottom:0.4rem;">
-                        <input type="checkbox" id="chk-plugin-thinking" checked style="cursor:pointer;width:16px;height:16px;">
-                        <span>🧠 <b>ThinkingSuppression</b> — `enable_thinking=False` (0 tokens gastos em CoT oculto)</span>
-                    </label>
-                    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.82rem;color:var(--text-main);margin-bottom:0.4rem;">
-                        <input type="checkbox" id="chk-plugin-toon" checked style="cursor:pointer;width:16px;height:16px;">
-                        <span>🗜️ <b>TOONContextPruner</b> — minificação tabular e deduplicação local ORCID/Lattes</span>
-                    </label>
-                    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.82rem;color:var(--text-main);margin-bottom:0.4rem;">
-                        <input type="checkbox" id="chk-plugin-shortkey" checked style="cursor:pointer;width:16px;height:16px;">
-                        <span>🔑 <b>ShortKeySchema</b> — chaves JSON de 1–2 letras na geração</span>
-                    </label>
-                    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.82rem;color:var(--text-main);margin-bottom:0.4rem;">
-                        <input type="checkbox" id="chk-plugin-preamble" checked style="cursor:pointer;width:16px;height:16px;">
-                        <span>🔒 <b>LaTeXPreambleSplit</b> — separa preâmbulo fixo de templates `.tex`</span>
-                    </label>
-                    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.82rem;color:var(--text-main);margin-bottom:0.4rem;">
-                        <input type="checkbox" id="chk-plugin-cache" checked style="cursor:pointer;width:16px;height:16px;">
-                        <span>💾 <b>SHA256Cache</b> — cache local de tokens (0 tokens em reuso)</span>
-                    </label>
-                </div>
-
-                <button type="button" class="btn-primary" id="btn-generate" onclick="generateResume()" aria-describedby="ui-screenreader-status">
-                    <span id="ui-gen-btn-txt">🚀 Gerar Currículo</span>
-                </button>
             </div>
         </section>
 
@@ -1673,7 +1932,8 @@
                 backendModalDesc: "O compilador LaTeX (<code>pdflatex</code>) e a síntese de currículo por IA executam no backend Python. Configure a URL do servidor abaixo:",
                 backendUrlLbl: "URL do Servidor Backend:",
                 backendTestBtn: "🔄 Testar Conexão",
-                backendSaveBtn: "💾 Salvar URL"
+                backendSaveBtn: "💾 Salvar URL",
+                langSwitch: "🌐 PT-BR / EN-US"
             },
             "en-us": {
                 appTitle: "Resume Generator",
@@ -1780,19 +2040,22 @@
                 backendModalDesc: "The LaTeX compiler (<code>pdflatex</code>) and resume synthesis execute on the Python backend. Configure the server URL below:",
                 backendUrlLbl: "Backend Server URL:",
                 backendTestBtn: "🔄 Test Connection",
-                backendSaveBtn: "💾 Save URL"
+                backendSaveBtn: "💾 Save URL",
+                langSwitch: "🌐 EN-US / PT-BR"
             }
         };
 
         let state = {
             uiLang: "pt-br",
+            pdfLang: "pt-br",
             theme: "light",
             resumeType: "profissional",
             templateSource: "builtin",
             templateId: "ai_ats_max",
             dataMode: "manual",
-            photoDataUrl: null
-        };
+                    photoDataUrl: null,
+                    sidebarCollapsed: false
+                };
 
         let structIdSequence = 0;
 
@@ -2241,9 +2504,11 @@
             // 1. Auto-detect default language from browser/OS
             const navLang = (navigator.language || navigator.userLanguage || "pt-BR").toLowerCase();
             state.uiLang = navLang.startsWith("en") ? "en-us" : "pt-br";
-            document.getElementById("resume-lang-select").value = state.uiLang;
+            state.pdfLang = navLang.startsWith("en") ? "en-us" : "pt-br";
+                        updateResumeLangButton();
+                                    updateLangSwitchButton();
 
-            // 2. Auto-detect default theme (Light vs Dark) from OS/Browser media query
+                        // 2. Auto-detect default theme (Light vs Dark) from OS/Browser media query
             const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
             state.theme = prefersDark ? "dark" : "light";
             document.documentElement.setAttribute("data-theme", state.theme);
@@ -2255,10 +2520,53 @@
         }
 
         function toggleLanguage() {
-            state.uiLang = state.uiLang === "pt-br" ? "en-us" : "pt-br";
-            document.getElementById("resume-lang-select").value = state.uiLang;
-            applyTranslations();
-            renderLivePreview();
+                    state.uiLang = state.uiLang === "pt-br" ? "en-us" : "pt-br";
+                    updateLangSwitchButton();
+                    applyTranslations();
+                    renderLivePreview();
+                }
+
+        function toggleResumeLang() {
+                    state.pdfLang = state.pdfLang === "pt-br" ? "en-us" : "pt-br";
+                    updateResumeLangButton();
+                    renderLivePreview();
+                }
+
+        function toggleSidebar() {
+            state.sidebarCollapsed = !state.sidebarCollapsed;
+            const sidebar = document.querySelector(".sidebar");
+            const container = document.getElementById("main-content");
+            const btn = document.getElementById("btn-sidebar-toggle");
+            if (state.sidebarCollapsed) {
+                sidebar.classList.add("collapsed");
+                container.classList.add("sidebar-collapsed");
+                document.body.classList.add("sidebar-collapsed");
+                btn.setAttribute("aria-pressed", "true");
+                btn.textContent = "▶";
+            } else {
+                sidebar.classList.remove("collapsed");
+                container.classList.remove("sidebar-collapsed");
+                document.body.classList.remove("sidebar-collapsed");
+                btn.setAttribute("aria-pressed", "false");
+                btn.textContent = "◀";
+            }
+        }
+
+        function updateResumeLangButton() {
+            const btn = document.getElementById("resume-lang-select");
+            const txt = document.getElementById("ui-resume-lang-text");
+            if (!btn || !txt) return;
+            btn.dataset.value = state.pdfLang;
+            btn.setAttribute("aria-pressed", state.pdfLang === "en-us");
+            txt.textContent = state.pdfLang === "en-us" ? "PDF: English (en-US)" : "PDF: Português (pt-BR)";
+        }
+
+        function updateLangSwitchButton() {
+            const btn = document.getElementById("btn-lang-switch");
+            if (!btn) return;
+            const t = I18N[state.uiLang];
+            btn.textContent = t.langSwitch;
+            btn.setAttribute("aria-pressed", state.uiLang === "en-us");
         }
 
         function setDataMode(mode) {
@@ -2381,7 +2689,7 @@
             if (document.getElementById("ui-struct-awards-title")) document.getElementById("ui-struct-awards-title").textContent = t.structAwardsTitle;
             if (document.getElementById("ui-btn-add-award")) document.getElementById("ui-btn-add-award").textContent = t.btnAddAward;
             if (document.getElementById("ui-man-raw-summary")) document.getElementById("ui-man-raw-summary").textContent = t.manRawModeSummary;
-            document.getElementById("ui-step4-title").textContent = t.step4;
+            if (document.getElementById("ui-step4-title")) document.getElementById("ui-step4-title").textContent = t.step4;
             document.getElementById("ui-name-lbl").textContent = t.nameLbl;
             document.getElementById("ui-role-lbl").textContent = t.roleLbl;
             document.getElementById("ui-email-lbl").textContent = t.emailLbl;
@@ -2629,7 +2937,7 @@
             const dynamicSlot = document.getElementById("tpl-slot-dynamic");
             const dynamicTitle = document.getElementById("tpl-name-dynamic");
             const dynamicDesc = document.getElementById("tpl-desc-dynamic");
-            const isEn = (document.getElementById("resume-lang-select")?.value || state.uiLang) === "en-us";
+            const isEn = state.uiLang === "en-us";
             const t = I18N[isEn ? "en-us" : "pt-br"];
 
             if (type === "academico") {
@@ -2711,7 +3019,7 @@
         function renderLivePreview() {
             const pCol = document.getElementById("primary-color").value;
             const sCol = document.getElementById("secondary-color").value;
-            const isEn = document.getElementById("resume-lang-select").value === "en-us";
+            const isEn = document.getElementById("resume-lang-select").dataset.value === "en-us";
             const nameVal = document.getElementById("inp-name").value.trim() || "Lucas Silva";
             const roleVal = document.getElementById("inp-role").value.trim() || (isEn ? "Senior AI & Software Architect" : "Arquiteto de Software & IA Sênior");
             const locVal = document.getElementById("inp-location").value.trim() || "São Paulo, BR";
@@ -2772,6 +3080,38 @@
             const lblEdu = isEn ? "EDUCATION" : "FORMAÇÃO ACADÊMICA";
             const lblPub = isEn ? "SCIENTIFIC PUBLICATIONS" : "PRODUÇÃO CIENTÍFICA";
             const lblSk = isEn ? "TECHNICAL SKILLS" : "COMPETÊNCIAS TÉCNICAS";
+            const lblLinks = isEn ? "LINKS" : "LINKS";
+            const lblContact = isEn ? "CONTACT" : "CONTATO";
+            const lblCompetencies = isEn ? "COMPETENCIES" : "COMPETÊNCIAS";
+            const lblLanguages = isEn ? "LANGUAGES" : "IDIOMAS";
+            const lblSummary = isEn ? "SUMMARY" : "RESUMO";
+            const lblWork = isEn ? "WORK" : "TRABALHO";
+            const lblPortfolio = isEn ? "PORTFOLIO" : "PORTFÓLIO";
+            const lblLinkedin = isEn ? "LINKEDIN" : "LINKEDIN";
+            const lblGithub = isEn ? "GITHUB" : "GITHUB";
+            const lblEmail = isEn ? "EMAIL" : "E-MAIL";
+            const lblLocation = isEn ? "LOCATION" : "LOCALIZAÇÃO";
+            const lblPhone = isEn ? "PHONE" : "TELEFONE";
+            const lblCoreCompetencies = isEn ? "CORE COMPETENCIES & KEYWORDS" : "COMPETÊNCIAS PRINCIPAIS & PALAVRAS-CHAVE";
+            const lblAiLlms = isEn ? "AI & LLMs:" : "IA & LLMs:";
+            const lblBackendCloud = isEn ? "Backend & Cloud:" : "Backend & Cloud:";
+            const lblFluente = isEn ? "Fluent" : "Fluente";
+            const lblIntermediario = isEn ? "Intermediate" : "Intermediário";
+            const lblNativo = isEn ? "Native" : "Nativo";
+            const defaultEduPt = "M.Sc. Computer Science<br><span style='color:#64748b;'>USP (2021–2023)</span>";
+            const defaultEduEn = "M.Sc. Computer Science<br><span style='color:#64748b;'>USP (2021–2023)</span>";
+            const defaultSkillsPt = "Python, LaTeX, IA, Cloud";
+            const defaultSkillsEn = "Python, LaTeX, AI, Cloud";
+            const defaultExpRolePt = "Engenheiro de IA Sênior";
+            const defaultExpRoleEn = "Senior AI & Software Architect";
+            const defaultExpDescPt = "• Liderança técnica e otimização de LLMs (-78% tokens).<br>• Automação de pipelines LaTeX via PDF";
+            const defaultExpDescEn = "• Token-saving LLM synthesis (-78% cost)<br>• Automated LaTeX PDF pipelines";
+            const defaultEduTitlePt = "Mestrado em Ciência da Computação";
+            const defaultEduTitleEn = "M.Sc. in Computer Science";
+            const defaultPubTitlePt = "Raciocínio Eficiente de Tokens em Grandes Modelos de Linguagem";
+            const defaultPubTitleEn = "Token-Efficient Reasoning in Large Language Models";
+            const defaultPubVenuePt = "JAIR, 2025";
+            const defaultPubVenueEn = "JAIR, 2025";
 
             let html = "";
             if (state.templateId === "tech_sidebar") {
@@ -2781,19 +3121,19 @@
                         <div style="margin-bottom:6px;">${avatarHtml}</div>
                         <div style="font-weight:800;font-size:13px;color:${sCol};">${nameVal}</div>
                         <div style="font-style:italic;font-size:10px;color:${pCol};margin-bottom:6px;">${roleVal}</div>
-                        <div style="font-weight:700;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:4px;">LINKS</div>
+                        <div style="font-weight:700;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:4px;">${lblLinks}</div>
                         <div style="font-size:8.5px;color:#475569;margin-bottom:6px;">📍 ${locVal}<br>🌐 ${portDisp}<br>🔗 ${liNick}</div>
                         <div style="font-weight:700;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:4px;">${lblEdu}</div>
-                        <div style="font-size:8.5px;color:#334155;margin-bottom:6px;"><b>M.Sc. Computer Science</b><br><span style="color:#64748b;">USP (2021–2023)</span></div>
+                        <div style="font-size:8.5px;color:#334155;margin-bottom:6px;"><b>${isEn ? defaultEduTitleEn : defaultEduTitlePt}</b><br><span style="color:#64748b;">USP (2021–2023)</span></div>
                         <div style="font-weight:700;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:4px;">${lblSk}</div>
-                        <div style="font-size:8.5px;color:#475569;">Python, LaTeX, AI, Cloud</div>
+                        <div style="font-size:8.5px;color:#475569;">${isEn ? defaultSkillsEn : defaultSkillsPt}</div>
                     </div>
                     <div style="width:67%;">
                         <div style="font-weight:700;font-size:10px;color:${pCol};border-bottom:1.5px solid ${pCol};margin-bottom:6px;">${lblExp}</div>
                         <div style="display:flex;justify-content:space-between;font-weight:700;font-size:10px;color:${sCol};">
-                            <span>Lead AI Engineer</span><span style="color:#64748b;font-weight:400;">2023–Present</span>
+                            <span>${isEn ? defaultExpRoleEn : defaultExpRolePt}</span><span style="color:#64748b;font-weight:400;">2023–Present</span>
                         </div>
-                        <div style="font-size:9px;color:#334155;margin:3px 0 8px 8px;">• Token-saving LLM synthesis (-78% cost)<br>• Automated LaTeX PDF pipelines</div>
+                        <div style="font-size:9px;color:#334155;margin:3px 0 8px 8px;">${isEn ? defaultExpDescEn : defaultExpDescPt}</div>
                     </div>
                 </div>`;
             } else if (state.templateId === "academic_classic") {
@@ -2808,11 +3148,11 @@
                         ${avatarHtml}
                     </div>
                     <div style="font-weight:700;font-size:10px;color:${pCol};border-bottom:1px solid #cbd5e1;margin-bottom:5px;">${lblEdu}</div>
-                    <div style="font-size:10px;margin-bottom:7px;"><b>Ph.D. in Computer Science</b> — USP (2020–2024)</div>
+                    <div style="font-size:10px;margin-bottom:7px;"><b>${isEn ? "Ph.D. in Computer Science" : "Ph.D. em Ciência da Computação"}</b> — USP (2020–2024)</div>
                     <div style="font-weight:700;font-size:10px;color:${pCol};border-bottom:1px solid #cbd5e1;margin-bottom:5px;">${lblPub}</div>
                     <div style="font-size:9.5px;color:#334155;">
-                        1. <b>Token-Efficient Reasoning in Large Language Models</b>. <i>JAIR</i>, 2025. <span style="color:${pCol};">DOI:10.1000/jair</span><br>
-                        2. <b>Graph Neural Networks in Bioinformatics</b>. 2024.
+                        1. <b>${isEn ? defaultPubTitleEn : defaultPubTitlePt}</b>. <i>JAIR</i>, 2025. <span style="color:${pCol};">DOI:10.1000/jair</span><br>
+                        2. <b>${isEn ? "Graph Neural Networks in Bioinformatics" : "Redes Neurais de Grafos em Bioinformática"}</b>. 2024.
                     </div>
                 </div>`;
             } else if (state.templateId === "bubble" || state.templateId === "bubble_cv") {
@@ -2841,10 +3181,10 @@
                             <div style="position:relative;margin-bottom:8px;">
                                 <div style="width:8px;height:8px;border-radius:50%;background:${sCol};border:1.5px solid #fff;position:absolute;left:-18px;top:4px;"></div>
                                 <div style="display:flex;justify-content:space-between;font-weight:700;font-size:9.5px;color:#0f172a;">
-                                    <span>Lead AI Engineer</span><span style="color:#64748b;font-size:8px;">2023–Now</span>
+                                    <span>${isEn ? defaultExpRoleEn : defaultExpRolePt}</span><span style="color:#64748b;font-size:8px;">2023–Now</span>
                                 </div>
                                 <div style="color:${pCol};font-weight:600;font-size:8.5px;">Tech Innovations Inc.</div>
-                                <div style="color:#475569;font-size:8.5px;margin-top:2px;">• Liderança técnica e otimização de LLMs (-78% tokens).</div>
+                                <div style="color:#475569;font-size:8.5px;margin-top:2px;">${isEn ? defaultExpDescEn : defaultExpDescPt}</div>
                             </div>
 
                             <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
@@ -2854,7 +3194,7 @@
                             <div style="position:relative;">
                                 <div style="width:8px;height:8px;border-radius:50%;background:${sCol};border:1.5px solid #fff;position:absolute;left:-18px;top:4px;"></div>
                                 <div style="display:flex;justify-content:space-between;font-weight:700;font-size:9.5px;color:#0f172a;">
-                                    <span>B.S. Ciência da Computação</span><span style="color:#64748b;font-size:8px;">2018–2022</span>
+                                    <span>${isEn ? defaultEduTitleEn : defaultEduTitlePt}</span><span style="color:#64748b;font-size:8px;">2018–2022</span>
                                 </div>
                                 <div style="color:${pCol};font-weight:600;font-size:8.5px;">Universidade de São Paulo (USP)</div>
                             </div>
@@ -2862,14 +3202,12 @@
 
                         <!-- Sidebar (38%) -->
                         <div style="flex:1;border-left:1px dashed #e2e8f0;padding-left:10px;font-size:8.5px;">
-                            <div style="font-weight:800;font-size:9.5px;color:${pCol};margin-bottom:4px;">CONTATO</div>
+                            <div style="font-weight:800;font-size:9.5px;color:${pCol};margin-bottom:4px;">${lblContact}</div>
                             <div style="color:#475569;line-height:1.45;margin-bottom:8px;">
                                 ✉️ email@domain.com<br>
                                 📱 +55 11 99999-8888<br>
-                                🌐 ${portDisp}<br>
-                                🔗 ${liNick}
                             </div>
-                            <div style="font-weight:800;font-size:9.5px;color:${pCol};margin-bottom:4px;">COMPETÊNCIAS</div>
+                            <div style="font-weight:800;font-size:9.5px;color:${pCol};margin-bottom:4px;">${lblCompetencies}</div>
                             <div style="margin-bottom:6px;">
                                 <div style="display:flex;justify-content:space-between;margin-bottom:1px;"><span>Python</span><span style="color:#64748b;">95%</span></div>
                                 <div style="background:#edf2f7;height:4px;border-radius:2px;overflow:hidden;"><div style="width:95%;height:100%;background:${sCol};"></div></div>
@@ -2878,13 +3216,13 @@
                                 <div style="display:flex;justify-content:space-between;margin-bottom:1px;"><span>Docker & AI</span><span style="color:#64748b;">85%</span></div>
                                 <div style="background:#edf2f7;height:4px;border-radius:2px;overflow:hidden;"><div style="width:85%;height:100%;background:${sCol};"></div></div>
                             </div>
-                            <div style="font-weight:800;font-size:9.5px;color:${pCol};margin-bottom:4px;">IDIOMAS</div>
+                            <div style="font-weight:800;font-size:9.5px;color:${pCol};margin-bottom:4px;">${lblLanguages}</div>
                             <div style="margin-bottom:4px;">
-                                <div style="display:flex;justify-content:space-between;margin-bottom:1px;"><span>Português</span><span style="color:#64748b;">Fluente</span></div>
+                                <div style="display:flex;justify-content:space-between;margin-bottom:1px;"><span>Português</span><span style="color:#64748b;">${lblNativo}</span></div>
                                 <div style="background:#edf2f7;height:4px;border-radius:2px;overflow:hidden;"><div style="width:100%;height:100%;background:${sCol};"></div></div>
                             </div>
                             <div>
-                                <div style="display:flex;justify-content:space-between;margin-bottom:1px;"><span>Inglês</span><span style="color:#64748b;">Intermediário</span></div>
+                                <div style="display:flex;justify-content:space-between;margin-bottom:1px;"><span>Inglês</span><span style="color:#64748b;">${lblIntermediario}</span></div>
                                 <div style="background:#edf2f7;height:4px;border-radius:2px;overflow:hidden;"><div style="width:50%;height:100%;background:${sCol};"></div></div>
                             </div>
                         </div>
@@ -2899,9 +3237,9 @@
                         <div style="font-size:9px;color:#52525b;margin-top:2px;">🌐 ${portDisp} | 🔗 ${liNick} | 🐙 ${ghNick} | 🆔 ${orcidId} | 📍 ${locVal}</div>
                     </div>
                     <div style="font-weight:800;font-size:9.5px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:5px;">${lblExp}</div>
-                    <div style="font-size:9.5px;color:#27272a;margin-bottom:8px;"><b>Senior Software Engineer</b> (2022–Present)<br>• High-throughput microservices & automated LaTeX generation</div>
+                    <div style="font-size:9.5px;color:#27272a;margin-bottom:8px;"><b>${isEn ? defaultExpRoleEn : defaultExpRolePt}</b> (2022–Present)<br>• ${isEn ? defaultExpDescEn.replace("• ", "") : defaultExpDescPt.replace("• ", "")}</div>
                     <div style="font-weight:800;font-size:9.5px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:5px;">${lblSk}</div>
-                    <div style="font-size:9.5px;color:#27272a;">Python, Go, TypeScript, LaTeX, Docker, Kubernetes, AWS</div>
+                    <div style="font-size:9.5px;color:#27272a;">${isEn ? defaultSkillsEn : defaultSkillsPt}</div>
                 </div>`;
             } else if (state.templateId === "overleaf_russell_ti") {
                 html = `
@@ -2918,7 +3256,7 @@
                         <span style="font-weight:800;font-size:11px;"><span style="color:${pCol};">Per</span><span style="color:${sCol};">fil</span></span>
                         <div style="flex:1;height:1px;background:#94a3b8;"></div>
                     </div>
-                    <div style="font-size:9.5px;color:#334155;margin-bottom:6px;">${roleVal} — UX Design, Segurança da Informação & IA.</div>
+                            <div style="font-size:9.5px;color:#334155;margin-bottom:6px;">${roleVal} — ${isEn ? "UX Design, Information Security & AI" : "UX Design, Segurança da Informação & IA."}</div>
                     <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
                         <span style="font-weight:800;font-size:11px;"><span style="color:${pCol};">Hab</span><span style="color:${sCol};">ilidades</span></span>
                         <div style="flex:1;height:1px;background:#94a3b8;"></div>
@@ -2929,7 +3267,7 @@
                         <div style="flex:1;height:1px;background:#94a3b8;"></div>
                     </div>
                     <div style="display:flex;justify-content:space-between;font-size:9.5px;">
-                        <span><b>Português</b> (Proficiência Nativa)</span><span style="color:${pCol};">● ● ● ● ● ●</span>
+                                <span><b>Português</b> (${lblNativo})</span><span style="color:${pCol};">● ● ● ● ● ●</span>
                     </div>
                 </div>`;
             } else if (state.templateId === "overleaf_awesome_cv") {
@@ -2939,7 +3277,7 @@
                         <div style="text-align:center;margin-bottom:8px;">
                             <div><span style="font-size:16px;color:#64748b;font-weight:300;">${firstPart}</span> <span style="font-size:16px;color:${sCol};font-weight:800;">${restPart}</span></div>
                             <div style="font-size:9.5px;font-variant:small-caps;color:${pCol};font-weight:700;">${roleVal}</div>
-                            <div style="font-size:8.5px;color:#64748b;margin-top:2px;">📱 Phone &nbsp;|&nbsp; ✉️ Email &nbsp;|&nbsp; 🌐 ${portDisp} &nbsp;|&nbsp; 🔗 ${liNick} &nbsp;|&nbsp; 🐙 ${ghNick} &nbsp;|&nbsp; 📍 ${locVal}</div>
+                            <div style="font-size:8.5px;color:#64748b;margin-top:2px;">📱 ${lblPhone} &nbsp;|&nbsp; ✉️ ${lblEmail} &nbsp;|&nbsp; 🌐 ${portDisp} &nbsp;|&nbsp; 🔗 ${liNick} &nbsp;|&nbsp; 🐙 ${ghNick} &nbsp;|&nbsp; 📍 ${locVal}</div>
                         </div>
                         <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
                             <span style="font-weight:800;font-size:11px;"><span style="color:${pCol};">Ski</span><span style="color:${sCol};">lls</span></span>
@@ -2951,11 +3289,11 @@
                             <div style="flex:1;height:1px;background:#94a3b8;"></div>
                         </div>
                         <div style="display:flex;justify-content:space-between;font-size:9.5px;font-weight:700;color:${sCol};">
-                            <span>Senior Software Engineer</span><span style="color:${pCol};font-style:italic;">2023–Present</span>
+                            <span>${isEn ? defaultExpRoleEn : defaultExpRolePt}</span><span style="color:${pCol};font-style:italic;">2023–Present</span>
                         </div>
                     </div>
                     <div style="display:flex;justify-content:space-between;font-size:8px;color:#94a3b8;border-top:1px solid #f1f5f9;padding-top:4px;margin-top:6px;">
-                        <span>2026</span><span>${nameVal} · Résumé</span><span>1</span>
+                        <span>2026</span><span>${nameVal} · ${isEn ? "Résumé" : "Currículo"}</span><span>1</span>
                     </div>
                 </div>`;
             } else if (state.templateId === "overleaf_single_page_keywords") {
@@ -2972,21 +3310,21 @@
                     </div>
                     <div style="display:flex;align-items:center;gap:5px;margin-bottom:4px;">
                         <span style="background:${sCol};color:#fff;border-radius:50%;width:15px;height:15px;display:inline-flex;align-items:center;justify-content:center;font-size:8px;">📄</span>
-                        <span style="font-weight:800;font-size:10px;color:${pCol};">SUMMARY</span>
+                        <span style="font-weight:800;font-size:10px;color:${pCol};">${lblSummary}</span>
                     </div>
-                    <div style="font-size:9px;color:#334155;margin-bottom:6px;">Generalist software engineer & AI researcher specialized in Python and deep learning.</div>
+                    <div style="font-size:9px;color:#334155;margin-bottom:6px;">${isEn ? "Generalist software engineer & AI researcher specialized in Python and deep learning." : "Engenheiro de software generalista e pesquisador de IA especializado em Python e deep learning."}</div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                         <div>
                             <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;">
                                 <span style="background:${sCol};color:#fff;border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;font-size:7px;">✏️</span>
-                                <span style="font-weight:800;font-size:9.5px;color:${pCol};">WORK</span>
+                                <span style="font-weight:800;font-size:9.5px;color:${pCol};">${lblWork}</span>
                             </div>
                             <div style="font-size:8.5px;"><b>ML Engineer / 2023–Now</b><br><i>Keywords: Python, PyTorch, LaTeX</i></div>
                         </div>
                         <div>
                             <div style="display:flex;align-items:center;gap:4px;margin-bottom:3px;">
                                 <span style="background:${sCol};color:#fff;border-radius:50%;width:14px;height:14px;display:inline-flex;align-items:center;justify-content:center;font-size:7px;">🎓</span>
-                                <span style="font-weight:800;font-size:9.5px;color:${pCol};">EDUCATION</span>
+                                <span style="font-weight:800;font-size:9.5px;color:${pCol};">${lblEdu}</span>
                             </div>
                             <div style="font-size:8.5px;"><b>M.Sc. Computer Science</b><br>Thesis on Deep Neural Networks</div>
                         </div>
@@ -2999,13 +3337,13 @@
                         <div>
                             <div style="font-size:15px;font-weight:900;letter-spacing:0.5px;">${nameVal.toUpperCase()}</div>
                             <div style="font-size:9.5px;color:#e2e8f0;margin-top:2px;">${roleVal}</div>
-                            <div style="font-size:8px;color:#94a3b8;margin-top:2px;">Especialista em microsserviços e sistemas distribuídos de alta disponibilidade.</div>
+                            <div style="font-size:8px;color:#94a3b8;margin-top:2px;">${isEn ? "Microservices & distributed systems specialist" : "Especialista em microsserviços e sistemas distribuídos de alta disponibilidade."}</div>
                         </div>
                         ${avatarHtml}
                     </div>
                     <div style="display:flex;min-height:180px;">
                         <div style="width:34%;background:#f8f9fa;border-right:1px solid #e2e8f0;padding:10px;font-size:8.5px;color:#334155;">
-                            <div style="font-weight:800;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};padding-bottom:2px;margin-bottom:4px;">CONTATO</div>
+                            <div style="font-weight:800;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};padding-bottom:2px;margin-bottom:4px;">${lblContact}</div>
                             <div style="line-height:1.45;margin-bottom:6px;">
                                 ✉️ email@domain.com<br>
                                 📱 +55 11 99999-8888<br>
@@ -3014,26 +3352,25 @@
                                 🐙 ${ghNick}<br>
                                 📍 ${locVal}
                             </div>
-                            <div style="font-weight:800;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};padding-bottom:2px;margin-bottom:4px;">FORMAÇÃO ACADÊMICA</div>
-                            <div style="font-weight:700;color:#0f172a;line-height:1.2;margin-bottom:2px;">Bacharelado em Ciência da Computação</div>
+                            <div style="font-weight:800;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};padding-bottom:2px;margin-bottom:4px;">${lblEdu}</div>
+                            <div style="font-weight:700;color:#0f172a;line-height:1.2;margin-bottom:2px;">${isEn ? defaultEduTitleEn : defaultEduTitlePt}</div>
                             <div style="color:#64748b;font-size:8px;margin-bottom:6px;">USP · 2017–2021</div>
-                            <div style="font-weight:800;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};padding-bottom:2px;margin-bottom:4px;">HABILIDADES</div>
+                            <div style="font-weight:800;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};padding-bottom:2px;margin-bottom:4px;">${lblSk}</div>
                             <div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span>Python</span><span style="color:${pCol};">● ● ● ● ●</span></div>
                             <div style="display:flex;justify-content:space-between;margin-bottom:2px;"><span>Docker</span><span style="color:${pCol};">● ● ● ● ○</span></div>
                             <div style="display:flex;justify-content:space-between;margin-bottom:6px;"><span>AWS</span><span style="color:${pCol};">● ● ● ○ ○</span></div>
-                            <div style="font-weight:800;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};padding-bottom:2px;margin-bottom:4px;">IDIOMAS</div>
+                            <div style="font-weight:800;font-size:9px;color:${pCol};border-bottom:1px solid ${pCol};padding-bottom:2px;margin-bottom:4px;">${lblLanguages}</div>
                             <div style="display:flex;justify-content:space-between;"><span>Português</span><span style="color:${pCol};">● ● ● ● ● ●</span></div>
                             <div style="display:flex;justify-content:space-between;"><span>Inglês</span><span style="color:${pCol};">● ● ● ● ○ ○</span></div>
                         </div>
                         <div style="width:66%;padding:10px 12px;font-size:9px;">
-                            <div style="font-weight:800;font-size:9.5px;color:${pCol};border-bottom:1px solid #cbd5e1;padding-bottom:2px;margin-bottom:4px;">EXPERIÊNCIA PROFISSIONAL</div>
+                            <div style="font-weight:800;font-size:9.5px;color:${pCol};border-bottom:1px solid #cbd5e1;padding-bottom:2px;margin-bottom:4px;">${lblExp}</div>
                             <div style="display:flex;justify-content:space-between;font-weight:700;color:#0f172a;">
-                                <span>Lead Software Architect</span><span style="color:#64748b;font-size:8px;">2021–Presente</span>
+                                <span>${isEn ? defaultExpRoleEn : defaultExpRolePt}</span><span style="color:#64748b;font-size:8px;">2021–Present</span>
                             </div>
                             <div style="color:${pCol};font-weight:600;font-size:8.5px;margin-bottom:2px;">Tech Innovations Inc.</div>
                             <div style="color:#334155;font-size:8.5px;margin-bottom:6px;">
-                                • Liderança técnica de microsserviços atendendo 5M de requisições diárias.<br>
-                                • Redução de latência em 40% com cache Redis e mensageria distribuída.
+                                • ${isEn ? "Technical leadership of microservices serving 5M daily requests.<br>• 40% latency reduction with Redis cache and distributed messaging." : "Liderança técnica de microsserviços atendendo 5M de requisições diárias.<br>• Redução de latência em 40% com cache Redis e mensageria distribuída."}
                             </div>
                         </div>
                     </div>
@@ -3046,20 +3383,19 @@
                         <div style="font-size:9.5px;color:${pCol};font-weight:600;">${roleVal}</div>
                         <div style="font-size:8.5px;color:#444746;margin-top:2px;">🌐 ${portDisp} | 🔗 ${liNick} | 🐙 ${ghNick} | email@domain.com | 📍 ${locVal}</div>
                     </div>
-                    <div style="font-weight:800;font-size:9.5px;color:${sCol};border-bottom:1px solid ${pCol};margin-bottom:4px;letter-spacing:0.5px;">EXPERIENCE</div>
+                    <div style="font-weight:800;font-size:9.5px;color:${sCol};border-bottom:1px solid ${pCol};margin-bottom:4px;letter-spacing:0.5px;">${isEn ? "EXPERIENCE" : "EXPERIÊNCIA"}</div>
                     <div style="display:flex;justify-content:space-between;font-size:9.5px;font-weight:700;color:${sCol};">
-                        <span>Google — Senior Software Engineer</span><span style="color:#444746;">2022–Present</span>
+                        <span>Google — ${isEn ? defaultExpRoleEn : defaultExpRolePt}</span><span style="color:#444746;">2022–Present</span>
                     </div>
                     <div style="font-size:9px;color:#334155;margin:2px 0 6px 8px;">
-                        • Designed distributed caching architecture reducing P99 latency by 42% across 10M daily active users.<br>
-                        • Built deterministic resume synthesis pipeline saving 78% tokens via NVIDIA NIM.
+                        • ${isEn ? "Designed distributed caching architecture reducing P99 latency by 42% across 10M daily active users.<br>• Built deterministic resume synthesis pipeline saving 78% tokens via NVIDIA NIM." : "Projetou arquitetura de cache distribuído reduzindo latência P99 em 42% em 10M de usuários ativos diários.<br>• Criou pipeline de síntese de currículos determinístico economizando 78% de tokens via NVIDIA NIM."}
                     </div>
-                    <div style="font-weight:800;font-size:9.5px;color:${sCol};border-bottom:1px solid ${pCol};margin-bottom:4px;letter-spacing:0.5px;">EDUCATION</div>
+                    <div style="font-weight:800;font-size:9.5px;color:${sCol};border-bottom:1px solid ${pCol};margin-bottom:4px;letter-spacing:0.5px;">${isEn ? "EDUCATION" : "EDUCAÇÃO"}</div>
                     <div style="display:flex;justify-content:space-between;font-size:9.5px;font-weight:700;color:${sCol};">
                         <span>Universidade de São Paulo (USP)</span><span style="color:#444746;">2018–2022</span>
                     </div>
                     <div style="font-size:9px;color:#475569;font-style:italic;">B.S. in Computer Science — GPA: 3.9/4.0</div>
-                    <div style="font-weight:800;font-size:9.5px;color:${sCol};border-bottom:1px solid ${pCol};margin:6px 0 4px 0;letter-spacing:0.5px;">TECHNICAL SKILLS</div>
+                    <div style="font-weight:800;font-size:9.5px;color:${sCol};border-bottom:1px solid ${pCol};margin:6px 0 4px 0;letter-spacing:0.5px;">${lblSk}</div>
                     <div style="font-size:9px;color:#334155;"><b>Languages & Cloud:</b> Python, Go, C++, SQL, TypeScript, GCP, Docker, Kubernetes</div>
                 </div>`;
             } else if (state.templateId === "ai_ats_max") {
@@ -3068,14 +3404,14 @@
                     <div style="text-align:center;border-bottom:1.5px solid ${sCol};padding-bottom:5px;margin-bottom:6px;">
                         <div style="font-weight:900;font-size:15px;color:${sCol};">${nameVal.toUpperCase()}</div>
                         <div style="font-size:9.5px;font-weight:700;color:${pCol};">${roleVal.toUpperCase()}</div>
-                        <div style="font-size:8px;color:#334155;margin-top:2px;">PORTFOLIO: ${portDisp} &nbsp;|&nbsp; LINKEDIN: ${liNick} &nbsp;|&nbsp; GITHUB: ${ghNick} &nbsp;|&nbsp; EMAIL: contact@email.com &nbsp;|&nbsp; LOCATION: ${locVal}</div>
+                        <div style="font-size:8px;color:#334155;margin-top:2px;">${lblPortfolio}: ${portDisp} &nbsp;|&nbsp; ${lblLinkedin}: ${liNick} &nbsp;|&nbsp; ${lblGithub}: ${ghNick} &nbsp;|&nbsp; ${lblEmail}: contact@email.com &nbsp;|&nbsp; ${lblLocation}: ${locVal}</div>
                     </div>
-                    <div style="font-weight:800;font-size:9px;color:${sCol};border-bottom:1px solid #cbd5e1;margin-bottom:3px;">CORE COMPETENCIES & KEYWORDS</div>
+                    <div style="font-weight:800;font-size:9px;color:${sCol};border-bottom:1px solid #cbd5e1;margin-bottom:3px;">${lblCoreCompetencies}</div>
                     <div style="font-size:8.5px;color:#1e293b;margin-bottom:5px;">
-                        • <b>AI & LLMs:</b> RAG, Fine-Tuning, NVIDIA NIM, PyTorch, Embeddings, Prompt Engineering<br>
-                        • <b>Backend & Cloud:</b> Python, FastAPI, Docker, Kubernetes, PostgreSQL, AWS/GCP, CI/CD
+                        • <b>${lblAiLlms}</b> RAG, Fine-Tuning, NVIDIA NIM, PyTorch, Embeddings, Prompt Engineering<br>
+                        • <b>${lblBackendCloud}</b> Python, FastAPI, Docker, Kubernetes, PostgreSQL, AWS/GCP, CI/CD
                     </div>
-                    <div style="font-weight:800;font-size:9px;color:${sCol};border-bottom:1px solid #cbd5e1;margin-bottom:3px;">PROFESSIONAL EXPERIENCE</div>
+                    <div style="font-weight:800;font-size:9px;color:${sCol};border-bottom:1px solid #cbd5e1;margin-bottom:3px;">${lblExp}</div>
                     <div style="display:flex;justify-content:space-between;font-size:9px;font-weight:700;">
                         <span>Lead AI Architect | Enterprise Systems</span><span>2023–Present</span>
                     </div>
@@ -3083,7 +3419,7 @@
                         • Architected neural parsing pipelines processing 2M docs/day with 99.9% uptime.<br>
                         • Engineered zero-leakage TLS 1.3 token vault for enterprise LLM infrastructure.
                     </div>
-                    <div style="font-weight:800;font-size:9px;color:${sCol};border-bottom:1px solid #cbd5e1;margin-bottom:3px;">EDUCATION</div>
+                    <div style="font-weight:800;font-size:9px;color:${sCol};border-bottom:1px solid #cbd5e1;margin-bottom:3px;">${lblEdu}</div>
                     <div style="font-size:8.5px;"><b>B.S. in Computer Science</b> — Universidade Federal (2018–2022)</div>
                 </div>`;
             } else {
@@ -3099,9 +3435,9 @@
                     </div>
                     <div style="font-weight:700;font-size:10.5px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:5px;">${lblExp}</div>
                     <div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;color:${sCol};">
-                        <span>Senior AI & Software Engineer</span><span style="color:#64748b;">2023–Present</span>
+                        <span>${isEn ? defaultExpRoleEn : defaultExpRolePt}</span><span style="color:#64748b;">2023–Present</span>
                     </div>
-                    <div style="font-size:9.5px;color:#334155;margin:3px 0 8px 10px;">• Reduced LLM token consumption by 78% with Caveman & TOON plugins<br>• Multi-source extraction from GitHub, ORCID, Lattes & Portfolio</div>
+                    <div style="font-size:9.5px;color:#334155;margin:3px 0 8px 10px;">• ${isEn ? "Reduced LLM token consumption by 78% with Caveman & TOON plugins<br>• Multi-source extraction from GitHub, ORCID, Lattes & Portfolio" : "Redução de 78% no consumo de tokens de LLM com Caveman & TOON plugins<br>• Extração multi-fonte de GitHub, ORCID, Lattes & Portfólio"}</div>
                     <div style="font-weight:700;font-size:10.5px;color:${pCol};border-bottom:1px solid ${pCol};margin-bottom:5px;">${lblSk}</div>
                     <div style="font-size:9.5px;color:#334155;"><b>Stack:</b> Python, LaTeX, FastAPI, Flask, Streamlit, LLMOps</div>
                 </div>`;
@@ -3260,7 +3596,7 @@
                 }
 
                 badge.className = "pill-badge warn";
-                badge.textContent = `⚠️ Backend Offline (${displayHost})`;
+                badge.textContent = `⚠️ Backend Offline`;
                 badge.title = `Não foi possível conectar ao backend: ${err.message}.\nClique para abrir as configurações ou tentar novamente.`;
                 return { ok: false, error: err.message };
             }
@@ -3560,7 +3896,7 @@
                 const payload = {
                     resume_type: state.resumeType,
                     template_id: state.templateId,
-                    lang: document.getElementById("resume-lang-select").value,
+                    lang: state.pdfLang,
                     primary_color: document.getElementById("primary-color").value,
                     secondary_color: document.getElementById("secondary-color").value,
                     github: (state.dataMode === "manual" ? (document.getElementById("inp-man-github")?.value || document.getElementById("inp-github")?.value) : document.getElementById("inp-github")?.value) || "",
@@ -3681,7 +4017,7 @@
                     const isLocal = window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost" || window.location.protocol === "file:";
                     let errorMsg = `O servidor backend em "${targetHost}" retornou uma resposta não-JSON (HTTP ${resp.status} - ${resp.statusText || 'Erro'}).\n\n`;
                     if (isLocal) {
-                        errorMsg += `💡 Execução Local Detectada:\n1. Certifique-se de ter iniciado o servidor backend no terminal:\n   python server.py\n2. Verifique se o servidor está ativo na porta 5000 (http://127.0.0.1:5000).\n3. Você também pode clicar no botão ⚙️ Backend no topo para ajustar a URL.`;
+                        errorMsg += `💡 Execução Local Detectada:\n1. Certifique-se de ter iniciado o servidor backend no terminal:\n   python server.py\n2. Verifique se o servidor está ativo na porta 5000.\n3. Você também pode clicar no botão ⚙️ Backend no topo para ajustar a URL.`;
                     } else {
                         errorMsg += `💡 Dica de Nuvem (Render):\n1. No plano gratuito do Render, o serviço hiberna após inatividade e leva de 30 a 50 segundos para despertar. Aguarde um instante e tente novamente.\n2. Verifique no botão ⚙️ Backend se a URL do serviço no Render está correta.`;
                     }
